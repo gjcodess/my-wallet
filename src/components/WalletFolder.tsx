@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Animated,
   Pressable,
   StyleProp,
   StyleSheet,
@@ -62,6 +63,8 @@ export function WalletFolder({
   onMenu,
   compact = false,
   topShadow = false,
+  menuIcon = "more",
+  notchProgress,
   style,
 }: {
   wallet: Wallet;
@@ -70,6 +73,8 @@ export function WalletFolder({
   onMenu?: () => void;
   compact?: boolean;
   topShadow?: boolean;
+  menuIcon?: string;
+  notchProgress?: Animated.AnimatedInterpolation<number>;
   style?: StyleProp<ViewStyle>;
 }) {
   const palette = tonePalette[wallet.tone] || tonePalette.blue;
@@ -139,7 +144,69 @@ export function WalletFolder({
               ]}
               hitSlop={8}
             >
-              <Icon name="more" size={18} color={palette.ink} />
+              {notchProgress ? (
+                <View style={styles.notchIconStack} pointerEvents="none">
+                  <Animated.View
+                    style={[
+                      styles.notchIconLayer,
+                      {
+                        opacity: notchProgress.interpolate({
+                          inputRange: [0, 0.55, 1],
+                          outputRange: [1, 0, 0],
+                          extrapolate: "clamp",
+                        }),
+                        transform: [
+                          {
+                            scale: notchProgress.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [1, 0.65],
+                              extrapolate: "clamp",
+                            }),
+                          },
+                          {
+                            rotate: notchProgress.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ["0deg", "25deg"],
+                              extrapolate: "clamp",
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  >
+                    <Icon name="swap" size={15} color={palette.ink} />
+                  </Animated.View>
+                  <Animated.View
+                    style={[
+                      styles.notchIconLayer,
+                      {
+                        opacity: notchProgress.interpolate({
+                          inputRange: [0, 0.45, 1],
+                          outputRange: [0, 0, 1],
+                          extrapolate: "clamp",
+                        }),
+                        transform: [
+                          {
+                            scale: notchProgress.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0.65, 1],
+                              extrapolate: "clamp",
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  >
+                    <Icon name="more" size={18} color={palette.ink} />
+                  </Animated.View>
+                </View>
+              ) : (
+                <Icon
+                  name={menuIcon}
+                  size={menuIcon === "swap" ? 15 : 18}
+                  color={palette.ink}
+                />
+              )}
             </Pressable>
 
             {/* Folder Body */}
@@ -244,6 +311,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingLeft: 6,
+  },
+  notchIconStack: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  notchIconLayer: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
   },
   folderBody: {
     paddingHorizontal: 23,

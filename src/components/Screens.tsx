@@ -354,7 +354,12 @@ export function HomeScreen({
               },
             ]}
           >
-            <WalletFolder wallet={fourthWallet} hidden={hidden} topShadow />
+            <WalletFolder
+              wallet={fourthWallet}
+              hidden={hidden}
+              topShadow
+              menuIcon="swap"
+            />
           </Animated.View>
         ) : null}
 
@@ -393,6 +398,7 @@ export function HomeScreen({
               wallet={thirdWallet}
               hidden={hidden}
               topShadow
+              menuIcon="swap"
               onPress={() => cycleSteps(2)}
               onMenu={() => cycleSteps(2)}
             />
@@ -428,6 +434,11 @@ export function HomeScreen({
               wallet={peekWallet}
               hidden={hidden}
               topShadow
+              notchProgress={dragY.interpolate({
+                inputRange: [-120, 0, 130],
+                outputRange: [0, 0, 1],
+                extrapolate: "clamp",
+              })}
               onPress={() => cycleWallet(1)}
               onMenu={() => cycleWallet(1)}
             />
@@ -490,6 +501,11 @@ export function HomeScreen({
               wallet={featured}
               hidden={hidden}
               topShadow
+              notchProgress={dragY.interpolate({
+                inputRange: [-120, 0, 130],
+                outputRange: [0, 1, 1],
+                extrapolate: "clamp",
+              })}
               onMenu={() => onSheet("update", featured)}
             />
           </Animated.View>
