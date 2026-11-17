@@ -1,0 +1,10 @@
+{
+  "description": "Track balances across cash, GCash, Maya, banks, and other wallets, then update funds, transfer money, and review activity in one personal finance app.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

@@ -1,0 +1,215 @@
+export type Tab = "home" | "wallets" | "activity" | "settings";
+export type Sheet = "add" | "entry" | "transfer" | "update" | "auth" | null;
+export type Tone =
+  | "blue"
+  | "lime"
+  | "yellow"
+  | "navy"
+  | "mint"
+  | "lilac"
+  | "coral"
+  | "ocean"
+  | "plum"
+  | "sunset"
+  | "graphite"
+  | "rose";
+
+export type Wallet = {
+  id: number;
+  localId?: string;
+  name: string;
+  type: string;
+  balance: number;
+  mark: string;
+  tone: Tone;
+  account: string;
+  updatedAt?: string;
+  synced?: boolean;
+};
+
+export type ActivityItem = {
+  id: number;
+  localId?: string;
+  walletLocalId?: string;
+  title: string;
+  wallet: string;
+  date: string;
+  amount: number;
+  icon: string;
+  kind: string;
+  occurredAt?: string;
+  updatedAt?: string;
+  synced?: boolean;
+};
+
+export type UserProfile = {
+  fullName: string;
+  initials: string;
+  email?: string;
+};
+
+export const tonePalette: Record<
+  Tone,
+  { label: string; from: string; to: string; ink: string }
+> = {
+  blue: { label: "Blue", from: "#8fd0ff", to: "#2563eb", ink: "#ffffff" },
+  lime: { label: "Lime", from: "#e3ff86", to: "#8fdd32", ink: "#14201a" },
+  yellow: { label: "Sun", from: "#fff58a", to: "#f2c715", ink: "#211b07" },
+  mint: { label: "Mint", from: "#d8fff0", to: "#6fd6a8", ink: "#102b22" },
+  lilac: { label: "Lilac", from: "#f3edff", to: "#b8a0f2", ink: "#211938" },
+  navy: { label: "Navy", from: "#3c5c9a", to: "#111b34", ink: "#ffffff" },
+  coral: { label: "Coral", from: "#ffd0bf", to: "#f06f5f", ink: "#341611" },
+  ocean: { label: "Ocean", from: "#79efff", to: "#2477d8", ink: "#ffffff" },
+  plum: { label: "Plum", from: "#c29aff", to: "#4c2ca8", ink: "#ffffff" },
+  sunset: { label: "Sunset", from: "#ffe682", to: "#ff875f", ink: "#30170d" },
+  graphite: { label: "Graphite", from: "#788396", to: "#222833", ink: "#ffffff" },
+  rose: { label: "Rose", from: "#ffe0ec", to: "#e66b9f", ink: "#35111f" },
+};
+
+export const initialWallets: Wallet[] = [
+  {
+    id: 1,
+    localId: "wallet-1",
+    name: "GCash",
+    type: "E-wallet",
+    balance: 18450.75,
+    mark: "G",
+    tone: "blue",
+    account: "Personal",
+  },
+  {
+    id: 2,
+    localId: "wallet-2",
+    name: "Maya",
+    type: "E-wallet",
+    balance: 7680.25,
+    mark: "M",
+    tone: "yellow",
+    account: "Savings",
+  },
+  {
+    id: 3,
+    localId: "wallet-3",
+    name: "BPI Savings",
+    type: "Bank",
+    balance: 42840.5,
+    mark: "BPI",
+    tone: "navy",
+    account: "Primary bank",
+  },
+  {
+    id: 4,
+    localId: "wallet-4",
+    name: "Cash",
+    type: "Cash",
+    balance: 6350,
+    mark: "₱",
+    tone: "mint",
+    account: "On hand",
+  },
+  {
+    id: 5,
+    localId: "wallet-5",
+    name: "GoTyme",
+    type: "Bank",
+    balance: 12700,
+    mark: "GT",
+    tone: "lilac",
+    account: "Emergency fund",
+  },
+];
+
+export const initialActivities: ActivityItem[] = [
+  {
+    id: 1,
+    localId: "tx-1",
+    walletLocalId: "wallet-1",
+    title: "SM Supermarket",
+    wallet: "GCash",
+    date: "Today, 6:42 PM",
+    amount: -1856.35,
+    icon: "bag",
+    kind: "Payment",
+  },
+  {
+    id: 2,
+    localId: "tx-2",
+    walletLocalId: "wallet-4",
+    title: "Balance adjustment",
+    wallet: "Cash",
+    date: "Today, 9:15 AM",
+    amount: 500,
+    icon: "adjust",
+    kind: "Updated",
+  },
+  {
+    id: 3,
+    localId: "tx-3",
+    walletLocalId: "wallet-3",
+    title: "Monthly salary",
+    wallet: "BPI Savings",
+    date: "May 31, 8:00 AM",
+    amount: 32500,
+    icon: "arrow-down",
+    kind: "Received",
+  },
+  {
+    id: 4,
+    localId: "tx-4",
+    walletLocalId: "wallet-1",
+    title: "GCash to Maya",
+    wallet: "GCash",
+    date: "May 30, 4:21 PM",
+    amount: -2000,
+    icon: "swap",
+    kind: "Transfer",
+  },
+  {
+    id: 5,
+    localId: "tx-5",
+    walletLocalId: "wallet-2",
+    title: "Meralco bill",
+    wallet: "Maya",
+    date: "May 29, 7:32 PM",
+    amount: -3241.6,
+    icon: "bolt",
+    kind: "Bills",
+  },
+  {
+    id: 6,
+    localId: "tx-6",
+    walletLocalId: "wallet-4",
+    title: "Coffee Project",
+    wallet: "Cash",
+    date: "May 29, 10:06 AM",
+    amount: -285,
+    icon: "cup",
+    kind: "Food",
+  },
+];
+
+export const money = (value: number, compact = false): string => {
+  if (compact) {
+    if (Math.abs(value) >= 1000) {
+      const k = value / 1000;
+      return `₱${Number.isInteger(k) ? k : k.toFixed(1)}K`;
+    }
+    return `₱${Math.round(value)}`;
+  }
+  const abs = Math.abs(value);
+  const formatted = abs.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${value < 0 ? "-" : ""}₱${formatted}`;
+};
+
+export const splitMoney = (value: number): { whole: string; cents: string } => {
+  const abs = Math.abs(value);
+  const formatted = abs.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const [whole, cents = "00"] = formatted.split(".");
+  return { whole: value < 0 ? `-${whole}` : whole, cents };
+};
