@@ -1,5 +1,5 @@
 export type Tab = "home" | "wallets" | "activity" | "settings";
-export type Sheet = "add" | "entry" | "transfer" | "update" | "auth" | null;
+export type Sheet = "add" | "entry" | "transfer" | "update" | "edit" | "auth" | null;
 export type Tone =
   | "blue"
   | "lime"

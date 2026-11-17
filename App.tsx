@@ -362,6 +362,7 @@ export default function App() {
             onBack={() => setSelectedId(null)}
             onUpdate={() => openSheet("update", selected)}
             onTransfer={() => openSheet("transfer", selected)}
+            onEdit={() => openSheet("edit", selected)}
             theme={theme}
           />
         ) : (
@@ -473,6 +474,10 @@ export default function App() {
               recordActivity(item);
             }}
             onClose={() => setSheet(null)}
+            onSwitchSheet={(nextType, nextWallet) => {
+              if (nextWallet) setSelectedId(nextWallet.id);
+              setSheet(nextType);
+            }}
             onDone={(message) => {
               setSheet(null);
               setSelectedId(null);

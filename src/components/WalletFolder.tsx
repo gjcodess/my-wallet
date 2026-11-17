@@ -40,14 +40,11 @@ export function WalletLogoBadge({
           height: size,
           borderRadius: radius,
           overflow: "hidden",
-          backgroundColor: "rgba(255, 255, 255, 0.9)",
-          borderWidth: 1,
-          borderColor: "rgba(255, 255, 255, 0.35)",
         }}
       >
         <Image
           source={logo}
-          style={{ width: size - 2, height: size - 2 }}
+          style={{ width: size, height: size }}
           resizeMode="cover"
         />
       </View>

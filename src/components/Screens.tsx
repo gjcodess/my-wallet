@@ -1304,6 +1304,7 @@ export function WalletDetailScreen({
   onBack,
   onUpdate,
   onTransfer,
+  onEdit,
   theme,
 }: {
   wallet: Wallet;
@@ -1312,6 +1313,7 @@ export function WalletDetailScreen({
   onBack: () => void;
   onUpdate: () => void;
   onTransfer: () => void;
+  onEdit: () => void;
   theme: ThemeColors;
 }) {
   const related = activities.filter((item) => item.wallet === wallet.name);
@@ -1349,7 +1351,7 @@ export function WalletDetailScreen({
         theme={theme}
         right={
           <Pressable
-            onPress={onUpdate}
+            onPress={onEdit}
             style={[
               styles.roundBtn,
               {
@@ -1359,12 +1361,12 @@ export function WalletDetailScreen({
               cardShadow(theme.dark),
             ]}
           >
-            <Icon name="more" size={20} color={theme.ink} />
+            <Icon name="edit" size={18} color={theme.ink} />
           </Pressable>
         }
       />
 
-      <WalletFolder wallet={wallet} hidden={hidden} onMenu={onUpdate} />
+      <WalletFolder wallet={wallet} hidden={hidden} onMenu={onEdit} />
 
       <View style={styles.detailActions}>
         <Pressable

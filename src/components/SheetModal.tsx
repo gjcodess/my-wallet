@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -48,6 +48,7 @@ export function SheetModal({
   onSaveWallets,
   onRecordActivity,
   onClose,
+  onSwitchSheet,
   onDone,
   profile,
   onUpdateProfile,
@@ -61,6 +62,7 @@ export function SheetModal({
   onSaveWallets: (next: Wallet[]) => void;
   onRecordActivity: (item: Omit<ActivityItem, "id" | "date">) => void;
   onClose: () => void;
+  onSwitchSheet?: (nextType: Exclude<Sheet, null>, wallet?: Wallet) => void;
   onDone: (message: string) => void;
   profile: UserProfile;
   onUpdateProfile: (p: UserProfile) => void;
@@ -69,16 +71,47 @@ export function SheetModal({
   theme: ThemeColors;
 }) {
   const fallback = selected?.id || wallets[0]?.id || 1;
-  const [selectedPresetKey, setSelectedPresetKey] = useState<string>("custom");
+  const editTarget =
+    type === "edit" ? selected || wallets[0] : null;
+  const [selectedPresetKey, setSelectedPresetKey] = useState<string>(
+    editTarget?.logoKey || "custom"
+  );
   const [presetGroup, setPresetGroup] = useState<"All" | WalletPresetGroup>("All");
   const [presetSearch, setPresetSearch] = useState("");
-  const [logoKey, setLogoKey] = useState<string | undefined>(undefined);
-  const [recommendedTone, setRecommendedTone] = useState<Tone | null>(null);
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState("E-wallet");
-  const [accountLabel, setAccountLabel] = useState("");
-  const [tone, setTone] = useState<Tone>("blue");
-  const [balance, setBalance] = useState("");
+  const [logoKey, setLogoKey] = useState<string | undefined>(
+    editTarget?.logoKey
+  );
+  const [recommendedTone, setRecommendedTone] = useState<Tone | null>(() => {
+    if (!editTarget?.logoKey) return null;
+    return (
+      walletPresets.find((p) => p.key === editTarget.logoKey)?.recommendedTone ??
+      null
+    );
+  });
+  const [name, setName] = useState(editTarget?.name || "");
+  const [category, setCategory] = useState(editTarget?.type || "E-wallet");
+  const [accountLabel, setAccountLabel] = useState(editTarget?.account || "");
+  const [tone, setTone] = useState<Tone>(editTarget?.tone || "blue");
+  const [balance, setBalance] = useState(
+    editTarget ? String(editTarget.balance) : ""
+  );
+
+  useEffect(() => {
+    if (type === "edit" && editTarget) {
+      setSelectedPresetKey(editTarget.logoKey || "custom");
+      setLogoKey(editTarget.logoKey);
+      setRecommendedTone(
+        editTarget.logoKey
+          ? (walletPresets.find((p) => p.key === editTarget.logoKey)
+              ?.recommendedTone ?? null)
+          : null
+      );
+      setName(editTarget.name);
+      setCategory(editTarget.type);
+      setAccountLabel(editTarget.account);
+      setTone(editTarget.tone);
+    }
+  }, [type, editTarget?.id]);
   const [amount, setAmount] = useState("");
   const [source, setSource] = useState(fallback);
   const [destination, setDestination] = useState(
@@ -221,6 +254,31 @@ export function SheetModal({
       onDone(`${name.trim()} added`);
     }
 
+    if (type === "edit" && editTarget && name.trim()) {
+      const trimmedName = name.trim();
+      const nextWallets = wallets.map((w) =>
+        w.id === editTarget.id
+          ? {
+              ...w,
+              name: trimmedName,
+              type: category,
+              mark:
+                selectedPreset?.mark ||
+                (w.logoKey === logoKey && w.name === trimmedName
+                  ? w.mark
+                  : trimmedName.slice(0, 2).toUpperCase()),
+              tone,
+              account: accountLabel.trim() || "Personal",
+              logoKey,
+              updatedAt: now,
+              synced: false,
+            }
+          : w
+      );
+      onSaveWallets(nextWallets);
+      onDone(`${trimmedName} updated`);
+    }
+
     if (type === "update" && amount && current) {
       const newBal = Number(amount);
       const difference = Number((newBal - current.balance).toFixed(2));
@@ -333,13 +391,15 @@ export function SheetModal({
   const sheetTitle =
     type === "add"
       ? "New Wallet"
-      : type === "entry"
-        ? "Add Transaction"
-        : type === "update"
-          ? "Update Balance"
-          : type === "transfer"
-            ? "Transfer"
-            : "Account & Cloud Sync";
+      : type === "edit"
+        ? "Edit Wallet"
+        : type === "entry"
+          ? "Add Transaction"
+          : type === "update"
+            ? "Update Balance"
+            : type === "transfer"
+              ? "Transfer"
+              : "Account & Cloud Sync";
 
   const heroTone: Tone = entryType === "expense" ? "blue" : "yellow";
   const heroPal = tonePalette[heroTone];
@@ -375,8 +435,8 @@ export function SheetModal({
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 28 }}
           >
-            {/* ==================== ADD WALLET SHEET ==================== */}
-            {type === "add" && (
+            {/* ==================== ADD / EDIT WALLET SHEET ==================== */}
+            {(type === "add" || type === "edit") && (
               <View>
                 <WalletFolder wallet={preview} hidden={false} compact />
 
@@ -616,30 +676,32 @@ export function SheetModal({
                     </ScrollView>
                   </View>
 
-                  <View
-                    style={[
-                      styles.softField,
-                      {
-                        flex: 1,
-                        backgroundColor: theme.soft,
-                        borderColor: theme.line,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                      Opening balance
-                    </Text>
-                    <TextInput
-                      value={balance}
-                      onChangeText={(t) =>
-                        setBalance(t.replace(/[^\d.]/g, ""))
-                      }
-                      keyboardType="decimal-pad"
-                      placeholder="₱0.00"
-                      placeholderTextColor={theme.muted}
-                      style={[styles.fieldInput, { color: theme.ink }]}
-                    />
-                  </View>
+                  {type === "add" ? (
+                    <View
+                      style={[
+                        styles.softField,
+                        {
+                          flex: 1,
+                          backgroundColor: theme.soft,
+                          borderColor: theme.line,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.fieldLabel, { color: theme.muted }]}>
+                        Opening balance
+                      </Text>
+                      <TextInput
+                        value={balance}
+                        onChangeText={(t) =>
+                          setBalance(t.replace(/[^\d.]/g, ""))
+                        }
+                        keyboardType="decimal-pad"
+                        placeholder="₱0.00"
+                        placeholderTextColor={theme.muted}
+                        style={[styles.fieldInput, { color: theme.ink }]}
+                      />
+                    </View>
+                  ) : null}
                 </View>
 
                 {/* 12-Tone Color Picker */}
@@ -685,7 +747,7 @@ export function SheetModal({
                 </View>
 
                 <PrimaryButton
-                  label="Save wallet"
+                  label={type === "edit" ? "Save changes" : "Save wallet"}
                   disabled={!name.trim()}
                   onPress={save}
                   theme={theme}
@@ -1123,6 +1185,26 @@ export function SheetModal({
             {type === "update" && current && (
               <View>
                 <WalletFolder wallet={current} hidden={false} compact />
+
+                {onSwitchSheet ? (
+                  <Pressable
+                    onPress={() => onSwitchSheet("edit", current)}
+                    style={[
+                      styles.editCardLinkBtn,
+                      { backgroundColor: theme.soft, borderColor: theme.line },
+                    ]}
+                  >
+                    <Icon name="edit" size={15} color={theme.accentText} />
+                    <Text
+                      style={[
+                        styles.editCardLinkText,
+                        { color: theme.accentText },
+                      ]}
+                    >
+                      Edit card name, logo & color
+                    </Text>
+                  </Pressable>
+                ) : null}
 
                 {/* Wallet Selector */}
                 <View style={{ marginTop: 14, marginBottom: 4 }}>
@@ -1800,6 +1882,21 @@ const styles = StyleSheet.create({
     fontFamily: "Urbanist_700Bold",
     fontWeight: "700",
     fontSize: 10.5,
+  },
+  editCardLinkBtn: {
+    marginTop: 12,
+    height: 42,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+  },
+  editCardLinkText: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 12.5,
   },
   tonePicker: {
     flexDirection: "row",
