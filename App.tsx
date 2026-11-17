@@ -43,7 +43,7 @@ import {
   syncWithSupabase,
 } from "./src/lib/sqlite";
 import { supabase } from "./src/lib/supabase";
-import { BottomNav, getThemeColors } from "./src/components/SharedUI";
+import { BottomNav, EdgeFade, getThemeColors } from "./src/components/SharedUI";
 import {
   ActivityScreen,
   HomeScreen,
@@ -446,6 +446,17 @@ export default function App() {
                 )}
               </Animated.View>
             </ScrollView>
+
+            <EdgeFade
+              position="top"
+              color={dark ? "#1b2b44" : "#fbfdff"}
+              size={24}
+            />
+            <EdgeFade
+              position="bottom"
+              color={dark ? "#090d12" : "#dce6f5"}
+              size={52}
+            />
 
             <BottomNav
               tab={tab}

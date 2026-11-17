@@ -71,6 +71,58 @@ export function cardShadow(dark: boolean) {
   };
 }
 
+function hexToRgba(hex: string, alpha: number): string {
+  const clean = hex.replace("#", "");
+  if (clean.length !== 6) return `rgba(238, 243, 250, ${alpha})`;
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+export function EdgeFade({
+  position,
+  color,
+  size = 28,
+}: {
+  position: "top" | "bottom" | "left" | "right";
+  color: string;
+  size?: number;
+}) {
+  const solid = hexToRgba(color, 0.96);
+  const mid = hexToRgba(color, 0.52);
+  const clear = hexToRgba(color, 0);
+
+  const isVertical = position === "top" || position === "bottom";
+  const colors: [string, string, string] =
+    position === "top" || position === "left"
+      ? [solid, mid, clear]
+      : [clear, mid, solid];
+
+  const start = isVertical ? { x: 0, y: 0 } : { x: 0, y: 0 };
+  const end = isVertical ? { x: 0, y: 1 } : { x: 1, y: 0 };
+
+  const posStyle =
+    position === "top"
+      ? { top: 0, left: 0, right: 0, height: size }
+      : position === "bottom"
+        ? { bottom: 0, left: 0, right: 0, height: size }
+        : position === "left"
+          ? { top: 0, bottom: 0, left: 0, width: size }
+          : { top: 0, bottom: 0, right: 0, width: size };
+
+  return (
+    <LinearGradient
+      pointerEvents="none"
+      colors={colors}
+      locations={position === "top" || position === "left" ? [0, 0.45, 1] : [0, 0.55, 1]}
+      start={start}
+      end={end}
+      style={[{ position: "absolute", zIndex: 15 }, posStyle]}
+    />
+  );
+}
+
 export function bevelStyle(dark: boolean) {
   return dark
     ? {
@@ -350,9 +402,7 @@ export function BottomNav({
       style={[
         styles.bottomNav,
         {
-          backgroundColor: theme.dark
-            ? "rgba(18, 24, 33, 0.96)"
-            : "rgba(248, 251, 255, 0.96)",
+          backgroundColor: theme.dark ? "#121821" : "#f8fbff",
           opacity,
           transform: [{ translateY }],
         },
@@ -568,6 +618,7 @@ const styles = StyleSheet.create({
   },
   bottomNav: {
     position: "absolute",
+    zIndex: 30,
     left: 12,
     right: 12,
     bottom: 12,
@@ -582,7 +633,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.14,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 12,
   },
   navItem: {
     flex: 1,

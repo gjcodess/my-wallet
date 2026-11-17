@@ -23,7 +23,7 @@ import {
 } from "../types/wallet";
 import { FolderSurface } from "./FolderSurface";
 import { Icon } from "./Icon";
-import { ThemeColors, TopBar } from "./SharedUI";
+import { EdgeFade, ThemeColors, TopBar } from "./SharedUI";
 import { WalletFolder, WalletLogoBadge } from "./WalletFolder";
 import {
   WalletPreset,
@@ -430,11 +430,12 @@ export function SheetModal({
           />
           <TopBar title={sheetTitle} onBack={onClose} theme={theme} />
 
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingBottom: 28 }}
-          >
+          <View style={{ flexShrink: 1, position: "relative" }}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingTop: 6, paddingBottom: 32 }}
+            >
             {/* ==================== ADD / EDIT WALLET SHEET ==================== */}
             {(type === "add" || type === "edit") && (
               <View>
@@ -502,11 +503,12 @@ export function SheetModal({
                 </ScrollView>
 
                 {/* Horizontal Preset Cards + Custom Option */}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 9, paddingVertical: 2 }}
-                >
+                <View style={{ position: "relative" }}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 9, paddingVertical: 2, paddingHorizontal: 4 }}
+                  >
                   <Pressable
                     onPress={() => handleSelectPreset("custom")}
                     style={[
@@ -584,7 +586,10 @@ export function SheetModal({
                       </Pressable>
                     );
                   })}
-                </ScrollView>
+                  </ScrollView>
+                  <EdgeFade position="left" color={theme.page} size={14} />
+                  <EdgeFade position="right" color={theme.page} size={14} />
+                </View>
 
                 <Text style={[styles.formTitle, { color: theme.ink }]}>
                   Wallet detail
@@ -981,11 +986,12 @@ export function SheetModal({
                       {wallets.length} wallets
                     </Text>
                   </View>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ gap: 9 }}
-                  >
+                  <View style={{ position: "relative" }}>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ gap: 9, paddingHorizontal: 4 }}
+                    >
                     {wallets.map((w) => {
                       const active = walletId === w.id;
                       const wPal = tonePalette[w.tone] || tonePalette.blue;
@@ -1041,8 +1047,11 @@ export function SheetModal({
                           </View>
                         </Pressable>
                       );
-                    })}
-                  </ScrollView>
+                      })}
+                    </ScrollView>
+                    <EdgeFade position="left" color={theme.page} size={14} />
+                    <EdgeFade position="right" color={theme.page} size={14} />
+                  </View>
                 </View>
 
                 {/* Category Grid */}
@@ -1694,7 +1703,10 @@ export function SheetModal({
                 )}
               </View>
             )}
-          </ScrollView>
+            </ScrollView>
+            <EdgeFade position="top" color={theme.page} size={18} />
+            <EdgeFade position="bottom" color={theme.page} size={28} />
+          </View>
         </View>
       </KeyboardAvoidingView>
     </Modal>

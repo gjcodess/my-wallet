@@ -25,6 +25,7 @@ import {
   ActionButton,
   bevelStyle,
   cardShadow,
+  EdgeFade,
   SectionTitle,
   SwitchControl,
   ThemeColors,
@@ -1032,46 +1033,61 @@ export function ActivityScreen({
 
       {/* Categories Horizontal Folder Cards */}
       <SectionTitle title="Categories" action="Expense" theme={theme} />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryScroll}
-      >
-        {(
-          [
-            ["bag", "Groceries", 4207],
-            ["bolt", "Bills", 3241.6],
-            ["cup", "Food", 2185],
-            ["swap", "Transfers", 6200],
-          ] as const
-        ).map(([icon, label, amount]) => (
-          <View key={label} style={styles.categoryCardWrapper}>
-            <FolderSurface
-              tab={0.58}
-              tabHeight={18}
-              radius={20}
-              fromColor={theme.dark ? "#1b2531" : theme.card}
-              toColor={theme.dark ? "#121922" : "#edf3fc"}
-              minHeight={108}
-            >
-              <View style={styles.categoryContent}>
-                <View style={styles.categoryIconPos}>
-                  <Icon name={icon} size={20} color={theme.accentText} />
+      <View style={{ position: "relative", marginHorizontal: -18 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.categoryScroll,
+            { paddingHorizontal: 18 },
+          ]}
+        >
+          {(
+            [
+              ["bag", "Groceries", 4207],
+              ["bolt", "Bills", 3241.6],
+              ["cup", "Food", 2185],
+              ["swap", "Transfers", 6200],
+            ] as const
+          ).map(([icon, label, amount]) => (
+            <View key={label} style={styles.categoryCardWrapper}>
+              <FolderSurface
+                tab={0.58}
+                tabHeight={18}
+                radius={20}
+                fromColor={theme.dark ? "#1b2531" : theme.card}
+                toColor={theme.dark ? "#121922" : "#edf3fc"}
+                minHeight={108}
+              >
+                <View style={styles.categoryContent}>
+                  <View style={styles.categoryIconPos}>
+                    <Icon name={icon} size={20} color={theme.accentText} />
+                  </View>
+                  <Text style={[styles.categoryLabel, { color: theme.muted }]}>
+                    {label}
+                  </Text>
+                  <Text
+                    style={[styles.categoryAmount, { color: theme.ink }]}
+                    numberOfLines={1}
+                  >
+                    {hidden ? "••••" : money(amount)}
+                  </Text>
                 </View>
-                <Text style={[styles.categoryLabel, { color: theme.muted }]}>
-                  {label}
-                </Text>
-                <Text
-                  style={[styles.categoryAmount, { color: theme.ink }]}
-                  numberOfLines={1}
-                >
-                  {hidden ? "••••" : money(amount)}
-                </Text>
-              </View>
-            </FolderSurface>
-          </View>
-        ))}
-      </ScrollView>
+              </FolderSurface>
+            </View>
+          ))}
+        </ScrollView>
+        <EdgeFade
+          position="left"
+          color={theme.dark ? "#0b1018" : "#e4edf8"}
+          size={18}
+        />
+        <EdgeFade
+          position="right"
+          color={theme.dark ? "#0b1018" : "#e4edf8"}
+          size={18}
+        />
+      </View>
 
       {/* Recent Activity List */}
       <View style={styles.section}>
@@ -1329,7 +1345,7 @@ export function WalletDetailScreen({
   }, [wallet.id, slideAnim]);
 
   return (
-    <Animated.ScrollView
+    <Animated.View
       style={{
         flex: 1,
         opacity: slideAnim,
@@ -1342,9 +1358,12 @@ export function WalletDetailScreen({
           },
         ],
       }}
-      contentContainerStyle={styles.detailScreen}
-      showsVerticalScrollIndicator={false}
     >
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.detailScreen}
+        showsVerticalScrollIndicator={false}
+      >
       <TopBar
         title={wallet.name}
         onBack={onBack}
@@ -1439,7 +1458,18 @@ export function WalletDetailScreen({
           </Text>
         </View>
       )}
-    </Animated.ScrollView>
+      </ScrollView>
+      <EdgeFade
+        position="top"
+        color={theme.dark ? "#1b2b44" : "#fbfdff"}
+        size={22}
+      />
+      <EdgeFade
+        position="bottom"
+        color={theme.dark ? "#090d12" : "#dce6f5"}
+        size={36}
+      />
+    </Animated.View>
   );
 }
 
