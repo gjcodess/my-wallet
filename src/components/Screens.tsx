@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
+  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -41,6 +42,7 @@ export function HomeScreen({
   onWallet,
   onSheet,
   setTab,
+  onStackDragChange,
   profile,
   theme,
 }: {
@@ -52,6 +54,7 @@ export function HomeScreen({
   onWallet: (w: Wallet) => void;
   onSheet: (s: Sheet, w?: Wallet) => void;
   setTab: (t: Tab) => void;
+  onStackDragChange?: (dragging: boolean) => void;
   profile: UserProfile;
   theme: ThemeColors;
 }) {
@@ -67,15 +70,110 @@ export function HomeScreen({
   const navyPalette = tonePalette.navy;
 
   const cardAnim = useRef(new Animated.Value(1)).current;
+  const dragY = useRef(new Animated.Value(0)).current;
+  const walletsLenRef = useRef(wallets.length);
+  walletsLenRef.current = wallets.length;
+  const isAnimatingRef = useRef(false);
+  const skipNextCardAnimRef = useRef(false);
+
+  // Reset dragY atomically in the same React commit as safeFront changing
+  // so the old card never flashes back at opacity 1 for a frame.
+  useLayoutEffect(() => {
+    dragY.setValue(0);
+    isAnimatingRef.current = false;
+  }, [safeFront, dragY]);
+
   useEffect(() => {
+    if (skipNextCardAnimRef.current) {
+      skipNextCardAnimRef.current = false;
+      cardAnim.setValue(1);
+      return;
+    }
     cardAnim.setValue(0);
     Animated.spring(cardAnim, {
       toValue: 1,
       useNativeDriver: true,
-      speed: 18,
-      bounciness: 6,
+      speed: 20,
+      bounciness: 5,
     }).start();
   }, [safeFront, cardAnim]);
+
+  const cycleWallet = (direction: 1 | -1) => {
+    const len = walletsLenRef.current;
+    if (len <= 1 || isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
+    Animated.timing(dragY, {
+      toValue: direction === 1 ? 130 : -70,
+      duration: 230,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (!finished) {
+        isAnimatingRef.current = false;
+        return;
+      }
+      skipNextCardAnimRef.current = true;
+      setFront((prev) => (prev + direction + len) % len);
+    });
+  };
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onStartShouldSetPanResponderCapture: () => false,
+        onMoveShouldSetPanResponder: (_evt, g) =>
+          walletsLenRef.current > 1 &&
+          !isAnimatingRef.current &&
+          Math.abs(g.dy) > 5 &&
+          Math.abs(g.dy) > Math.abs(g.dx),
+        onMoveShouldSetPanResponderCapture: (_evt, g) =>
+          walletsLenRef.current > 1 &&
+          !isAnimatingRef.current &&
+          Math.abs(g.dy) > 5 &&
+          Math.abs(g.dy) > Math.abs(g.dx),
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderGrant: () => {
+          onStackDragChange?.(true);
+        },
+        onPanResponderMove: (_evt, g) => {
+          const clamped = Math.max(-70, Math.min(130, g.dy));
+          dragY.setValue(clamped);
+        },
+        onPanResponderRelease: (_evt, g) => {
+          onStackDragChange?.(false);
+          const len = walletsLenRef.current;
+          if (len <= 1) {
+            Animated.spring(dragY, {
+              toValue: 0,
+              useNativeDriver: true,
+            }).start();
+            return;
+          }
+
+          if (g.dy > 52 || g.vy > 0.5) {
+            cycleWallet(1);
+          } else if (g.dy < -42 || g.vy < -0.5) {
+            cycleWallet(-1);
+          } else {
+            Animated.spring(dragY, {
+              toValue: 0,
+              useNativeDriver: true,
+              speed: 22,
+              bounciness: 6,
+            }).start();
+          }
+        },
+        onPanResponderTerminate: () => {
+          onStackDragChange?.(false);
+          Animated.spring(dragY, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        },
+      }),
+    [dragY, onStackDragChange]
+  );
 
   return (
     <View style={styles.page}>
@@ -186,79 +284,87 @@ export function HomeScreen({
           </FolderSurface>
         </Pressable>
 
-        {/* Middle Layer: Peek Next Wallet */}
+        {/* Middle Layer: Peek Next Wallet (full WalletFolder scaled slightly behind front) */}
         {peekWallet ? (
-          <Pressable
-            onPress={() => setFront((safeFront + 1) % wallets.length)}
-            style={styles.stackPeekLayer}
-          >
-            {(() => {
-              const pPal = tonePalette[peekWallet.tone] || tonePalette.yellow;
-              return (
-                <FolderSurface
-                  tab={0.6}
-                  tabHeight={42}
-                  radius={25}
-                  notch
-                  fromColor={pPal.from}
-                  toColor={pPal.to}
-                  minHeight={112}
-                >
-                  {({ notchX, notchHeight }) => (
-                    <View style={{ minHeight: 112 }}>
-                      <View style={[styles.stackLabelRow, { height: 42 }]}>
-                        <View style={styles.peekLogo}>
-                          <Text
-                            style={[styles.peekLogoText, { color: pPal.ink }]}
-                          >
-                            {peekWallet.mark}
-                          </Text>
-                        </View>
-                        <Text
-                          style={[styles.peekName, { color: pPal.ink }]}
-                          numberOfLines={1}
-                        >
-                          {peekWallet.name}
-                        </Text>
-                      </View>
-                      <View
-                        style={[
-                          styles.stackNotchSlot,
-                          { left: notchX, height: notchHeight },
-                        ]}
-                      >
-                        <Icon name="swap" size={15} color={pPal.ink} />
-                      </View>
-                    </View>
-                  )}
-                </FolderSurface>
-              );
-            })()}
-          </Pressable>
-        ) : null}
-
-        {/* Front Layer: Active Featured Wallet */}
-        {featured ? (
           <Animated.View
             style={[
-              styles.stackFrontLayer,
+              styles.stackPeekFolderLayer,
               {
-                opacity: cardAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.65, 1],
-                }),
                 transform: [
                   {
-                    translateY: cardAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [15, 0],
+                    translateY: dragY.interpolate({
+                      inputRange: [0, 130],
+                      outputRange: [0, 54],
+                      extrapolate: "clamp",
                     }),
                   },
                   {
-                    scale: cardAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.97, 1],
+                    scale: dragY.interpolate({
+                      inputRange: [0, 130],
+                      outputRange: [0.94, 1],
+                      extrapolate: "clamp",
                     }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <WalletFolder
+              wallet={peekWallet}
+              hidden={hidden}
+              onPress={() => cycleWallet(1)}
+              onMenu={() => cycleWallet(1)}
+            />
+          </Animated.View>
+        ) : null}
+
+        {/* Front Layer: Active Featured Wallet (Swipe down/up to cycle) */}
+        {featured ? (
+          <Animated.View
+            {...panResponder.panHandlers}
+            onTouchStart={() => onStackDragChange?.(true)}
+            onTouchEnd={() => onStackDragChange?.(false)}
+            onTouchCancel={() => onStackDragChange?.(false)}
+            style={[
+              styles.stackFrontLayer,
+              {
+                opacity: Animated.multiply(
+                  cardAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.65, 1],
+                  }),
+                  dragY.interpolate({
+                    inputRange: [-70, -25, 0, 60, 130],
+                    outputRange: [0, 0.85, 1, 0.78, 0],
+                    extrapolate: "clamp",
+                  })
+                ),
+                transform: [
+                  {
+                    translateY: Animated.add(
+                      cardAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [12, 0],
+                      }),
+                      dragY.interpolate({
+                        inputRange: [-70, 0, 130],
+                        outputRange: [-38, 0, 70],
+                        extrapolate: "clamp",
+                      })
+                    ),
+                  },
+                  {
+                    scale: Animated.multiply(
+                      cardAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.97, 1],
+                      }),
+                      dragY.interpolate({
+                        inputRange: [-70, 0, 130],
+                        outputRange: [0.93, 1, 0.92],
+                        extrapolate: "clamp",
+                      })
+                    ),
                   },
                 ],
               },
@@ -1184,6 +1290,13 @@ const styles = StyleSheet.create({
     left: 13,
     right: 13,
     height: 112,
+  },
+  stackPeekFolderLayer: {
+    position: "absolute",
+    zIndex: 2,
+    top: 52,
+    left: 0,
+    right: 0,
   },
   stackFrontLayer: {
     position: "absolute",
