@@ -76,6 +76,7 @@ export default function App() {
   });
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [sheetWalletId, setSheetWalletId] = useState<number | null>(null);
+  const [sheetActivity, setSheetActivity] = useState<ActivityItem | null>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [toast, setToast] = useState("");
   const [dbReady, setDbReady] = useState(false);
@@ -295,20 +296,29 @@ export default function App() {
   }, [toast]);
 
   const openSheet = (next: Sheet, wallet?: Wallet) => {
+    setSheetActivity(null);
     setSheetWalletId(wallet ? wallet.id : null);
     setSheet(next);
   };
 
+  const openTransactionSheet = (item: ActivityItem) => {
+    setSheetActivity(item);
+    setSheetWalletId(null);
+    setSheet("tx");
+  };
+
   const recordActivity = (item: Omit<ActivityItem, "id" | "date">) => {
+    const nowIso = item.occurredAt || new Date().toISOString();
     const timeStr = new Intl.DateTimeFormat("en-PH", {
       hour: "numeric",
       minute: "2-digit",
-    }).format(new Date());
+    }).format(new Date(nowIso));
     const date = `Today, ${timeStr}`;
     const newItem: ActivityItem = {
       ...item,
       id: Date.now(),
       date,
+      occurredAt: nowIso,
     };
     setActivityItems((prev) => [newItem, ...prev]);
   };
@@ -372,6 +382,7 @@ export default function App() {
             onUpdate={() => openSheet("update", selected)}
             onTransfer={() => openSheet("transfer", selected)}
             onEdit={() => openSheet("edit", selected)}
+            onTransaction={openTransactionSheet}
             theme={theme}
           />
         ) : (
@@ -415,6 +426,7 @@ export default function App() {
                     hidden={hidden}
                     setHidden={setHidden}
                     onWallet={(w) => setSelectedId(w.id)}
+                    onTransaction={openTransactionSheet}
                     onSheet={openSheet}
                     setTab={handleTabChange}
                     onStackDragChange={handleStackDragChange}
@@ -437,6 +449,7 @@ export default function App() {
                   <ActivityScreen
                     activities={activityItems}
                     hidden={hidden}
+                    onTransaction={openTransactionSheet}
                     theme={theme}
                   />
                 )}
@@ -492,6 +505,8 @@ export default function App() {
             type={sheet}
             wallets={wallets}
             selected={sheetWallet}
+            activity={sheetActivity}
+            hidden={hidden}
             onSaveWallets={(nextWallets) => {
               setWallets(nextWallets);
               if (userId) {
@@ -508,17 +523,26 @@ export default function App() {
             onRecordActivity={(item) => {
               recordActivity(item);
             }}
+            onOpenWallet={(w) => {
+              setSheet(null);
+              setSheetWalletId(null);
+              setSheetActivity(null);
+              setSelectedId(w.id);
+            }}
             onClose={() => {
               setSheet(null);
               setSheetWalletId(null);
+              setSheetActivity(null);
             }}
             onSwitchSheet={(nextType, nextWallet) => {
+              setSheetActivity(null);
               if (nextWallet) setSheetWalletId(nextWallet.id);
               setSheet(nextType);
             }}
             onDone={(message) => {
               setSheet(null);
               setSheetWalletId(null);
+              setSheetActivity(null);
               setToast(message);
             }}
             profile={profile}

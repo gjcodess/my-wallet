@@ -146,6 +146,7 @@ export function HomeScreen({
   hidden,
   setHidden,
   onWallet,
+  onTransaction,
   onSheet,
   setTab,
   onStackDragChange,
@@ -157,6 +158,7 @@ export function HomeScreen({
   hidden: boolean;
   setHidden: (v: boolean) => void;
   onWallet: (w: Wallet) => void;
+  onTransaction?: (item: ActivityItem) => void;
   onSheet: (s: Sheet, w?: Wallet) => void;
   setTab: (t: Tab) => void;
   onStackDragChange?: (dragging: boolean) => void;
@@ -754,7 +756,13 @@ export function HomeScreen({
         />
         <View style={styles.txList}>
           {activities.slice(0, 10).map((item) => (
-            <TxRow key={item.id} item={item} hidden={hidden} theme={theme} />
+            <TxRow
+              key={item.id}
+              item={item}
+              hidden={hidden}
+              onPress={onTransaction ? () => onTransaction(item) : undefined}
+              theme={theme}
+            />
           ))}
         </View>
         {activities.length > 10 ? (
@@ -889,10 +897,12 @@ export function WalletsScreen({
 export function ActivityScreen({
   activities,
   hidden,
+  onTransaction,
   theme,
 }: {
   activities: ActivityItem[];
   hidden: boolean;
+  onTransaction?: (item: ActivityItem) => void;
   theme: ThemeColors;
 }) {
   const [range, setRange] = useState<"Month" | "Week">("Month");
@@ -1177,7 +1187,13 @@ export function ActivityScreen({
         />
         <View style={styles.txList}>
           {pageItems.map((item) => (
-            <TxRow key={item.id} item={item} hidden={hidden} theme={theme} />
+            <TxRow
+              key={item.id}
+              item={item}
+              hidden={hidden}
+              onPress={onTransaction ? () => onTransaction(item) : undefined}
+              theme={theme}
+            />
           ))}
         </View>
 
@@ -1493,6 +1509,7 @@ export function WalletDetailScreen({
   onUpdate,
   onTransfer,
   onEdit,
+  onTransaction,
   theme,
 }: {
   wallet: Wallet;
@@ -1502,6 +1519,7 @@ export function WalletDetailScreen({
   onUpdate: () => void;
   onTransfer: () => void;
   onEdit: () => void;
+  onTransaction?: (item: ActivityItem) => void;
   theme: ThemeColors;
 }) {
   const related = activities.filter((item) => item.wallet === wallet.name);
@@ -1614,7 +1632,13 @@ export function WalletDetailScreen({
       {related.length ? (
         <View style={styles.txList}>
           {related.map((item) => (
-            <TxRow key={item.id} item={item} hidden={hidden} theme={theme} />
+            <TxRow
+              key={item.id}
+              item={item}
+              hidden={hidden}
+              onPress={onTransaction ? () => onTransaction(item) : undefined}
+              theme={theme}
+            />
           ))}
         </View>
       ) : (

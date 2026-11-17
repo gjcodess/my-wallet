@@ -24,7 +24,13 @@ import {
 } from "../types/wallet";
 import { FolderSurface } from "./FolderSurface";
 import { Icon } from "./Icon";
-import { EdgeFade, ThemeColors, TopBar } from "./SharedUI";
+import {
+  bevelStyle,
+  cardShadow,
+  EdgeFade,
+  ThemeColors,
+  TopBar,
+} from "./SharedUI";
 import { WalletFolder, WalletLogoBadge } from "./WalletFolder";
 import {
   WalletPreset,
@@ -46,8 +52,11 @@ export function SheetModal({
   type,
   wallets,
   selected,
+  activity,
+  hidden = false,
   onSaveWallets,
   onRecordActivity,
+  onOpenWallet,
   onClose,
   onSwitchSheet,
   onDone,
@@ -60,8 +69,11 @@ export function SheetModal({
   type: Exclude<Sheet, null>;
   wallets: Wallet[];
   selected: Wallet | null;
+  activity?: ActivityItem | null;
+  hidden?: boolean;
   onSaveWallets: (next: Wallet[]) => void;
   onRecordActivity: (item: Omit<ActivityItem, "id" | "date">) => void;
+  onOpenWallet?: (w: Wallet) => void;
   onClose: () => void;
   onSwitchSheet?: (nextType: Exclude<Sheet, null>, wallet?: Wallet) => void;
   onDone: (message: string) => void;
@@ -402,7 +414,9 @@ export function SheetModal({
             ? "Update Balance"
             : type === "transfer"
               ? "Transfer"
-              : "Account & Cloud Sync";
+              : type === "tx"
+                ? "Transaction Details"
+                : "Account & Cloud Sync";
 
   const heroTone: Tone = entryType === "expense" ? "blue" : "yellow";
   const heroPal = tonePalette[heroTone];
@@ -1501,6 +1515,183 @@ export function SheetModal({
               </View>
             )}
 
+            {/* ==================== TRANSACTION DETAILS SHEET ==================== */}
+            {type === "tx" && activity && (() => {
+              const isPositive = activity.amount > 0;
+              const matchedWallet = wallets.find(
+                (w) =>
+                  (activity.walletLocalId && w.localId === activity.walletLocalId) ||
+                  w.name === activity.wallet
+              );
+              const { dateLabel, timeLabel } = formatTransactionDateTime(activity);
+              const iconBg = isPositive
+                ? theme.dark
+                  ? "rgba(250, 204, 21, 0.16)"
+                  : "#fef1a8"
+                : theme.accentSoft;
+              const iconColor = isPositive
+                ? theme.dark
+                  ? "#fde047"
+                  : "#9a6700"
+                : theme.accentText;
+
+              return (
+                <View>
+                  {/* Hero Transaction Summary Card */}
+                  <View
+                    style={[
+                      styles.txDetailHero,
+                      { backgroundColor: theme.card },
+                      bevelStyle(theme.dark),
+                      cardShadow(theme.dark),
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.txDetailIconBox,
+                        { backgroundColor: iconBg },
+                      ]}
+                    >
+                      <Icon name={activity.icon} size={24} color={iconColor} />
+                    </View>
+                    <Text
+                      style={[styles.txDetailTitle, { color: theme.ink }]}
+                      numberOfLines={2}
+                    >
+                      {activity.title}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.txDetailAmount,
+                        { color: isPositive ? theme.accentText : theme.ink },
+                      ]}
+                    >
+                      {hidden
+                        ? "₱ ••••••"
+                        : `${isPositive ? "+" : "-"} ${money(Math.abs(activity.amount))}`}
+                    </Text>
+                    <View
+                      style={[
+                        styles.txTypePill,
+                        { backgroundColor: iconBg },
+                      ]}
+                    >
+                      <Text style={[styles.txTypePillText, { color: iconColor }]}>
+                        {isPositive ? "Money in" : "Money out"} · {activity.kind}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Breakdown Details Card */}
+                  <View
+                    style={[
+                      styles.txDetailCard,
+                      { backgroundColor: theme.card },
+                      bevelStyle(theme.dark),
+                      cardShadow(theme.dark),
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.txDetailRow,
+                        { borderBottomWidth: 1, borderBottomColor: theme.line },
+                      ]}
+                    >
+                      <Text style={[styles.txDetailKey, { color: theme.muted }]}>
+                        Date
+                      </Text>
+                      <Text style={[styles.txDetailVal, { color: theme.ink }]}>
+                        {dateLabel}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.txDetailRow,
+                        { borderBottomWidth: 1, borderBottomColor: theme.line },
+                      ]}
+                    >
+                      <Text style={[styles.txDetailKey, { color: theme.muted }]}>
+                        Time
+                      </Text>
+                      <Text style={[styles.txDetailVal, { color: theme.ink }]}>
+                        {timeLabel}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.txDetailRow,
+                        { borderBottomWidth: 1, borderBottomColor: theme.line },
+                      ]}
+                    >
+                      <Text style={[styles.txDetailKey, { color: theme.muted }]}>
+                        Wallet
+                      </Text>
+                      <View style={styles.txWalletValRow}>
+                        {matchedWallet ? (
+                          <WalletLogoBadge
+                            logoKey={matchedWallet.logoKey}
+                            name={matchedWallet.name}
+                            mark={matchedWallet.mark}
+                            size={22}
+                            radius={7}
+                            ink={theme.ink}
+                            fontSize={8}
+                          />
+                        ) : null}
+                        <Text style={[styles.txDetailVal, { color: theme.ink }]}>
+                          {activity.wallet}
+                          {matchedWallet ? ` · ${matchedWallet.type}` : ""}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.txDetailRow,
+                        { borderBottomWidth: 1, borderBottomColor: theme.line },
+                      ]}
+                    >
+                      <Text style={[styles.txDetailKey, { color: theme.muted }]}>
+                        Category
+                      </Text>
+                      <Text style={[styles.txDetailVal, { color: theme.ink }]}>
+                        {activity.kind}
+                      </Text>
+                    </View>
+
+                    <View style={styles.txDetailRow}>
+                      <Text style={[styles.txDetailKey, { color: theme.muted }]}>
+                        Storage
+                      </Text>
+                      <Text style={[styles.txDetailVal, { color: theme.ink }]}>
+                        {activity.synced ? "Synced with Supabase" : "Saved on device"}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {matchedWallet && onOpenWallet ? (
+                    <Pressable
+                      onPress={() => onOpenWallet(matchedWallet)}
+                      style={[
+                        styles.secondaryButton,
+                        { backgroundColor: theme.soft2, marginBottom: 0 },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.secondaryButtonText, { color: theme.ink }]}
+                      >
+                        View {matchedWallet.name} wallet
+                      </Text>
+                    </Pressable>
+                  ) : null}
+
+                  <PrimaryButton label="Done" onPress={onClose} theme={theme} />
+                </View>
+              );
+            })()}
+
             {/* ==================== SUPABASE AUTH & PROFILE SHEET ==================== */}
             {type === "auth" && (
               <View>
@@ -2328,4 +2519,101 @@ const styles = StyleSheet.create({
     fontSize: 24,
     marginVertical: 2,
   },
+  txDetailHero: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    alignItems: "center",
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  txDetailIconBox: {
+    width: 54,
+    height: 54,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  txDetailTitle: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 19,
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  txDetailAmount: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 30,
+    letterSpacing: -0.8,
+    marginBottom: 10,
+  },
+  txTypePill: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 99,
+  },
+  txTypePillText: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 11.5,
+  },
+  txDetailCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    marginBottom: 14,
+  },
+  txDetailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingVertical: 14,
+  },
+  txDetailKey: {
+    fontFamily: "Urbanist_600SemiBold",
+    fontWeight: "600",
+    fontSize: 12.5,
+  },
+  txDetailVal: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 13,
+    textAlign: "right",
+  },
+  txWalletValRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
 });
+
+function formatTransactionDateTime(item: ActivityItem): {
+  dateLabel: string;
+  timeLabel: string;
+} {
+  if (item.occurredAt) {
+    const parsed = new Date(item.occurredAt);
+    if (!Number.isNaN(parsed.getTime())) {
+      const dateLabel = new Intl.DateTimeFormat("en-PH", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }).format(parsed);
+      const timeLabel = new Intl.DateTimeFormat("en-PH", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }).format(parsed);
+      return { dateLabel, timeLabel };
+    }
+  }
+  const parts = item.date.split(",");
+  return {
+    dateLabel: parts[0]?.trim() || item.date,
+    timeLabel: parts[1]?.trim() || "Time not recorded",
+  };
+}

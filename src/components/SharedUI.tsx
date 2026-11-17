@@ -162,10 +162,12 @@ export function bevelStyle(dark: boolean) {
 export function TxRow({
   item,
   hidden,
+  onPress,
   theme,
 }: {
   item: ActivityItem;
   hidden: boolean;
+  onPress?: () => void;
   theme: ThemeColors;
 }) {
   const isPositive = item.amount > 0;
@@ -181,11 +183,14 @@ export function TxRow({
     : theme.accentText;
 
   return (
-    <View
-      style={[
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => [
         styles.txRow,
         {
           backgroundColor: theme.card,
+          transform: [{ scale: pressed && onPress ? 0.985 : 1 }],
         },
         bevelStyle(theme.dark),
         cardShadow(theme.dark),
@@ -223,7 +228,7 @@ export function TxRow({
           {item.date.split(",")[0]}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
