@@ -61,6 +61,16 @@ export function getThemeColors(dark: boolean): ThemeColors {
   };
 }
 
+export function cardShadow(dark: boolean) {
+  return {
+    shadowColor: dark ? "#000000" : "#121a2d",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: dark ? 0.35 : 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  };
+}
+
 export function bevelStyle(dark: boolean) {
   return dark
     ? {
@@ -114,6 +124,7 @@ export function TxRow({
           backgroundColor: theme.card,
         },
         bevelStyle(theme.dark),
+        cardShadow(theme.dark),
       ]}
     >
       <View style={[styles.txIcon, { backgroundColor: iconBg }]}>
@@ -176,6 +187,7 @@ export function ActionButton({
           transform: [{ scale: pressed ? 0.95 : 1 }],
         },
         bevelStyle(theme.dark),
+        cardShadow(theme.dark),
       ]}
     >
       <LinearGradient
@@ -241,6 +253,7 @@ export function TopBar({
               backgroundColor: theme.card,
             },
             bevelStyle(theme.dark),
+            cardShadow(theme.dark),
           ]}
         >
           <Icon name="back" size={20} color={theme.ink} />
@@ -426,11 +439,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 20,
     borderWidth: 1,
-    shadowColor: "#121a2d",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    elevation: 4,
   },
   txIcon: {
     width: 40,
@@ -482,11 +490,6 @@ const styles = StyleSheet.create({
     gap: 7,
     paddingVertical: 9,
     paddingHorizontal: 5,
-    shadowColor: "#121a2d",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    elevation: 5,
   },
   actionIconBadge: {
     width: 36,
@@ -549,11 +552,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#121a2d",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
   },
   switchTrack: {
     width: 44,

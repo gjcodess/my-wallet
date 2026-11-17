@@ -145,7 +145,10 @@ export function FolderSurface({
         style,
       ]}
     >
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <View
+        style={{ position: "absolute", top: 0, left: 0, right: 0 }}
+        pointerEvents="none"
+      >
         <Svg
           width={size.width}
           height={effectiveHeight + 16}
@@ -163,18 +166,16 @@ export function FolderSurface({
               <Path d={geometry.notch} />
             </ClipPath>
           </Defs>
-          {/* Soft diffused multi-step drop shadow */}
+          {/* Soft diffused multi-step drop shadow calibrated to cardShadow */}
           {[
-            { y: 15, op: 0.015 },
-            { y: 12, op: 0.022 },
-            { y: 10, op: 0.028 },
-            { y: 8, op: 0.034 },
-            { y: 6, op: 0.04 },
-            { y: 4, op: 0.046 },
-            { y: 2, op: 0.05 },
+            { y: 10, op: 0.012 },
+            { y: 8, op: 0.016 },
+            { y: 6, op: 0.02 },
+            { y: 4, op: 0.024 },
+            { y: 2, op: 0.028 },
           ].map((s, idx) => (
             <G key={idx} transform={`translate(0, ${s.y})`}>
-              <Path d={geometry.folder} fill={`rgba(15, 23, 42, ${s.op})`} />
+              <Path d={geometry.folder} fill={`rgba(18, 26, 45, ${s.op})`} />
             </G>
           ))}
           <Path d={geometry.folder} fill="url(#folderGrad)" />

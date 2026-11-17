@@ -23,6 +23,7 @@ import { Icon } from "./Icon";
 import {
   ActionButton,
   bevelStyle,
+  cardShadow,
   SectionTitle,
   SwitchControl,
   ThemeColors,
@@ -134,6 +135,7 @@ export function HomeScreen({
               backgroundColor: theme.card,
             },
             bevelStyle(theme.dark),
+            cardShadow(theme.dark),
           ]}
         >
           <Icon
@@ -374,6 +376,7 @@ export function WalletsScreen({
                 backgroundColor: theme.card,
               },
               bevelStyle(theme.dark),
+              cardShadow(theme.dark),
             ]}
           >
             <Icon name="plus" size={20} color={theme.ink} />
@@ -416,6 +419,7 @@ export function WalletsScreen({
                   transform: [{ scale: pressed ? 0.985 : 1 }],
                 },
                 bevelStyle(theme.dark),
+                cardShadow(theme.dark),
               ]}
             >
               <LinearGradient
@@ -526,6 +530,7 @@ export function ActivityScreen({
                 backgroundColor: theme.card,
               },
               bevelStyle(theme.dark),
+              cardShadow(theme.dark),
             ]}
           >
             <Icon name="more" size={20} color={theme.ink} />
@@ -634,7 +639,7 @@ export function ActivityScreen({
           colors={["#fff58a", "#f2c715"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.flowCard}
+          style={[styles.flowCard, bevelStyle(false), cardShadow(theme.dark)]}
         >
           <View style={styles.flowIconBox}>
             <Icon name="arrow-down" size={16} color="#172442" />
@@ -651,7 +656,7 @@ export function ActivityScreen({
           colors={theme.accentGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.flowCard}
+          style={[styles.flowCard, bevelStyle(false), cardShadow(theme.dark)]}
         >
           <View style={styles.flowIconBox}>
             <Icon name="arrow-up" size={16} color={theme.accentInk} />
@@ -883,6 +888,7 @@ function SettingsGroup({
             backgroundColor: theme.card,
           },
           bevelStyle(theme.dark),
+          cardShadow(theme.dark),
         ]}
       >
         {children}
@@ -995,6 +1001,7 @@ export function WalletDetailScreen({
                 backgroundColor: theme.card,
               },
               bevelStyle(theme.dark),
+              cardShadow(theme.dark),
             ]}
           >
             <Icon name="more" size={20} color={theme.ink} />
@@ -1014,6 +1021,7 @@ export function WalletDetailScreen({
               transform: [{ scale: pressed ? 0.97 : 1 }],
             },
             bevelStyle(theme.dark),
+            cardShadow(theme.dark),
           ]}
         >
           <Icon name="edit" size={18} color={theme.ink} />
@@ -1031,6 +1039,7 @@ export function WalletDetailScreen({
               transform: [{ scale: pressed ? 0.97 : 1 }],
             },
             bevelStyle(theme.dark),
+            cardShadow(theme.dark),
           ]}
         >
           <Icon name="swap" size={18} color={theme.ink} />
@@ -1056,6 +1065,7 @@ export function WalletDetailScreen({
               backgroundColor: theme.card,
             },
             bevelStyle(theme.dark),
+            cardShadow(theme.dark),
           ]}
         >
           <LinearGradient
@@ -1433,7 +1443,9 @@ const styles = StyleSheet.create({
   },
   categoryScroll: {
     gap: 10,
-    paddingVertical: 6,
+    paddingTop: 6,
+    paddingBottom: 20,
+    paddingHorizontal: 2,
   },
   categoryCardWrapper: {
     width: 120,
