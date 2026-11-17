@@ -68,7 +68,9 @@ export function HomeScreen({
   const peekWallet = ordered[1];
   const thirdWallet = wallets.length > 2 ? ordered[2] : undefined;
   const firstName = profile.fullName.split(" ")[0] || "Justin";
-  const navyPalette = tonePalette.navy;
+  const addFrom = theme.dark ? "#354052" : "#4c586b";
+  const addTo = theme.dark ? "#1e2531" : "#2d3645";
+  const addInk = "#ffffff";
 
   const cardAnim = useRef(new Animated.Value(1)).current;
   const dragY = useRef(new Animated.Value(0)).current;
@@ -257,16 +259,15 @@ export function HomeScreen({
             tabHeight={42}
             radius={25}
             notch
-            notchGloss="rgba(255, 255, 255, 0.05)"
-            fromColor={navyPalette.from}
-            toColor={navyPalette.to}
+            fromColor={addFrom}
+            toColor={addTo}
             minHeight={112}
           >
             {({ notchX, notchHeight }) => (
               <View style={{ minHeight: 112 }}>
                 <View style={[styles.stackLabelRow, { height: 42 }]}>
                   <Text
-                    style={[styles.stackAddText, { color: navyPalette.ink }]}
+                    style={[styles.stackAddText, { color: addInk }]}
                     numberOfLines={1}
                   >
                     Add new wallet
@@ -278,7 +279,7 @@ export function HomeScreen({
                     { left: notchX, height: notchHeight },
                   ]}
                 >
-                  <Icon name="plus" size={16} color={navyPalette.ink} />
+                  <Icon name="plus" size={16} color={addInk} />
                 </View>
               </View>
             )}
