@@ -319,7 +319,7 @@ export function HomeScreen({
               },
             ]}
           >
-            <WalletFolder wallet={fourthWallet} hidden={hidden} />
+            <WalletFolder wallet={fourthWallet} hidden={hidden} topShadow />
           </Animated.View>
         ) : null}
 
@@ -352,6 +352,7 @@ export function HomeScreen({
             <WalletFolder
               wallet={thirdWallet}
               hidden={hidden}
+              topShadow
               onPress={() => setFront((safeFront + 2) % wallets.length)}
               onMenu={() => setFront((safeFront + 2) % wallets.length)}
             />
@@ -386,6 +387,7 @@ export function HomeScreen({
             <WalletFolder
               wallet={peekWallet}
               hidden={hidden}
+              topShadow
               onPress={() => cycleWallet(1)}
               onMenu={() => cycleWallet(1)}
             />
@@ -447,6 +449,7 @@ export function HomeScreen({
             <WalletFolder
               wallet={featured}
               hidden={hidden}
+              topShadow
               onPress={() => onWallet(featured)}
               onMenu={() => onSheet("update", featured)}
             />

@@ -78,6 +78,7 @@ export function FolderSurface({
   radius = 26,
   notch = false,
   notchGloss,
+  topShadow = false,
   gap = 7,
   minHeight = 190,
 }: {
@@ -99,6 +100,7 @@ export function FolderSurface({
   radius?: number;
   notch?: boolean;
   notchGloss?: string;
+  topShadow?: boolean;
   gap?: number;
   minHeight?: number;
 }) {
@@ -136,6 +138,9 @@ export function FolderSurface({
     ? "rgba(0, 0, 0, 0.16)"
     : "rgba(18, 26, 45, 0.07)";
 
+  const topOffset = topShadow ? 12 : 0;
+  const totalSvgHeight = effectiveHeight + 16 + topOffset;
+
   return (
     <View
       onLayout={onLayout}
@@ -146,13 +151,13 @@ export function FolderSurface({
       ]}
     >
       <View
-        style={{ position: "absolute", top: 0, left: 0, right: 0 }}
+        style={{ position: "absolute", top: -topOffset, left: 0, right: 0 }}
         pointerEvents="none"
       >
         <Svg
           width={size.width}
-          height={effectiveHeight + 16}
-          viewBox={`0 0 ${size.width} ${effectiveHeight + 16}`}
+          height={totalSvgHeight}
+          viewBox={`0 -${topOffset} ${size.width} ${totalSvgHeight}`}
         >
           <Defs>
             <LinearGradient id="folderGrad" x1="0" y1="0" x2="1" y2="1">
@@ -166,6 +171,22 @@ export function FolderSurface({
               <Path d={geometry.notch} />
             </ClipPath>
           </Defs>
+          {/* Soft upward depth shadow cast onto the card behind in a stack */}
+          {topShadow &&
+            [
+              { y: -10, op: 0.012 },
+              { y: -8, op: 0.018 },
+              { y: -6, op: 0.025 },
+              { y: -4, op: 0.034 },
+              { y: -2, op: 0.044 },
+            ].map((s, idx) => (
+              <G key={`top-${idx}`} transform={`translate(0, ${s.y})`}>
+                <Path d={geometry.folder} fill={`rgba(12, 18, 34, ${s.op})`} />
+                {notch && (
+                  <Path d={geometry.notch} fill={`rgba(12, 18, 34, ${s.op})`} />
+                )}
+              </G>
+            ))}
           {/* Soft diffused multi-step drop shadow calibrated to cardShadow */}
           {[
             { y: 10, op: 0.012 },

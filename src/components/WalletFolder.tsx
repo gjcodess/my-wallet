@@ -61,6 +61,7 @@ export function WalletFolder({
   onPress,
   onMenu,
   compact = false,
+  topShadow = false,
   style,
 }: {
   wallet: Wallet;
@@ -68,6 +69,7 @@ export function WalletFolder({
   onPress?: () => void;
   onMenu?: () => void;
   compact?: boolean;
+  topShadow?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
   const palette = tonePalette[wallet.tone] || tonePalette.blue;
@@ -90,6 +92,7 @@ export function WalletFolder({
         tabHeight={tabHeight}
         radius={compact ? 25 : 28}
         notch
+        topShadow={topShadow}
         fromColor={palette.from}
         toColor={palette.to}
         minHeight={minHeight}
