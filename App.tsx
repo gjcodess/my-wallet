@@ -329,17 +329,17 @@ export default function App() {
               >
                 <Stop
                   offset="0%"
-                  stopColor={dark ? "#1b2b44" : "#f9fcf5"}
+                  stopColor={dark ? "#1e3250" : "#ffffff"}
                   stopOpacity="1"
                 />
                 <Stop
-                  offset="55%"
-                  stopColor={dark ? "#101724" : "#eff4eb"}
+                  offset="50%"
+                  stopColor={dark ? "#101724" : "#eef3fa"}
                   stopOpacity="1"
                 />
                 <Stop
                   offset="100%"
-                  stopColor={theme.page}
+                  stopColor={dark ? "#090d12" : "#dbe6f5"}
                   stopOpacity="1"
                 />
               </SvgRadialGradient>

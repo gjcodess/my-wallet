@@ -1,6 +1,13 @@
 import React, { useState } from "react";
 import { LayoutChangeEvent, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
-import Svg, { Defs, G, LinearGradient, Path, Stop } from "react-native-svg";
+import Svg, {
+  ClipPath,
+  Defs,
+  G,
+  LinearGradient,
+  Path,
+  Stop,
+} from "react-native-svg";
 
 export function folderGeometry(
   width: number,
@@ -50,6 +57,16 @@ export function folderGeometry(
   return { folder, notch, notchX, notchHeight };
 }
 
+function isDarkHex(hex: string): boolean {
+  const clean = hex.replace("#", "");
+  if (clean.length !== 6) return false;
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance < 0.45;
+}
+
 export function FolderSurface({
   children,
   style,
@@ -60,6 +77,7 @@ export function FolderSurface({
   tabHeight = 34,
   radius = 26,
   notch = false,
+  notchGloss,
   gap = 7,
   minHeight = 190,
 }: {
@@ -80,6 +98,7 @@ export function FolderSurface({
   tabHeight?: number;
   radius?: number;
   notch?: boolean;
+  notchGloss?: string;
   gap?: number;
   minHeight?: number;
 }) {
@@ -104,6 +123,18 @@ export function FolderSurface({
   );
 
   const effectiveHeight = Math.max(size.height, minHeight);
+  const darkSurface = isDarkHex(toColor);
+  const resolvedGloss =
+    notchGloss ??
+    (darkSurface
+      ? "rgba(255, 255, 255, 0.05)"
+      : "rgba(255, 255, 255, 0.16)");
+  const bevelHighlight = darkSurface
+    ? "rgba(255, 255, 255, 0.18)"
+    : "rgba(255, 255, 255, 0.48)";
+  const bevelShadow = darkSurface
+    ? "rgba(0, 0, 0, 0.32)"
+    : "rgba(18, 26, 45, 0.16)";
 
   return (
     <View
@@ -125,19 +156,58 @@ export function FolderSurface({
               <Stop offset="0%" stopColor={fromColor} />
               <Stop offset="100%" stopColor={toColor} />
             </LinearGradient>
+            <ClipPath id="folderClip">
+              <Path d={geometry.folder} />
+            </ClipPath>
+            <ClipPath id="notchClip">
+              <Path d={geometry.notch} />
+            </ClipPath>
           </Defs>
           {/* Soft shape-accurate drop shadow */}
           <G transform="translate(0, 8)">
-            <Path d={geometry.folder} fill="rgba(16, 26, 12, 0.06)" />
+            <Path d={geometry.folder} fill="rgba(18, 26, 45, 0.06)" />
           </G>
           <G transform="translate(0, 4)">
-            <Path d={geometry.folder} fill="rgba(16, 26, 12, 0.08)" />
+            <Path d={geometry.folder} fill="rgba(18, 26, 45, 0.08)" />
           </G>
           <Path d={geometry.folder} fill="url(#folderGrad)" />
+          {/* Inner bevel highlight (top-left) & rim shadow (bottom-right) */}
+          <G clipPath="url(#folderClip)">
+            <Path
+              d={geometry.folder}
+              fill="none"
+              stroke={bevelHighlight}
+              strokeWidth={2.5}
+              transform="translate(0.5, 1)"
+            />
+            <Path
+              d={geometry.folder}
+              fill="none"
+              stroke={bevelShadow}
+              strokeWidth={2.5}
+              transform="translate(-0.5, -1)"
+            />
+          </G>
           {notch && (
             <>
               <Path d={geometry.notch} fill="url(#folderGrad)" />
-              <Path d={geometry.notch} fill="rgba(255, 255, 255, 0.18)" />
+              <Path d={geometry.notch} fill={resolvedGloss} />
+              <G clipPath="url(#notchClip)">
+                <Path
+                  d={geometry.notch}
+                  fill="none"
+                  stroke={bevelHighlight}
+                  strokeWidth={2}
+                  transform="translate(0.5, 0.8)"
+                />
+                <Path
+                  d={geometry.notch}
+                  fill="none"
+                  stroke={bevelShadow}
+                  strokeWidth={2}
+                  transform="translate(-0.5, -0.8)"
+                />
+              </G>
             </>
           )}
         </Svg>

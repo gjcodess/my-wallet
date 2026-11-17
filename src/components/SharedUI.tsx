@@ -42,12 +42,12 @@ export function getThemeColors(dark: boolean): ThemeColors {
   }
   return {
     dark: false,
-    page: "#edf2e9",
-    surface: "#f8fbf5",
-    soft: "#e2e9dc",
-    soft2: "#d8e1d1",
+    page: "#eef3fa",
+    surface: "#f8fbff",
+    soft: "#e2eaf5",
+    soft2: "#d3dfef",
     ink: "#121a2d",
-    muted: "#7c8578",
+    muted: "#6c7a91",
     line: "rgba(18, 26, 45, 0.08)",
     navy: "#172442",
     accent: "#2563eb",
@@ -56,6 +56,30 @@ export function getThemeColors(dark: boolean): ThemeColors {
     accentText: "#1d4ed8",
     accentGradient: ["#8fd0ff", "#2563eb"],
   };
+}
+
+export function bevelStyle(dark: boolean) {
+  return dark
+    ? {
+        borderTopWidth: 1.25,
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        borderBottomWidth: 2,
+        borderTopColor: "rgba(255, 255, 255, 0.14)",
+        borderLeftColor: "rgba(255, 255, 255, 0.09)",
+        borderRightColor: "rgba(255, 255, 255, 0.06)",
+        borderBottomColor: "rgba(0, 0, 0, 0.45)",
+      }
+    : {
+        borderTopWidth: 1.5,
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        borderBottomWidth: 2,
+        borderTopColor: "rgba(255, 255, 255, 0.92)",
+        borderLeftColor: "rgba(255, 255, 255, 0.78)",
+        borderRightColor: "rgba(255, 255, 255, 0.55)",
+        borderBottomColor: "rgba(18, 26, 45, 0.12)",
+      };
 }
 
 export function TxRow({
@@ -85,8 +109,8 @@ export function TxRow({
         styles.txRow,
         {
           backgroundColor: theme.soft,
-          borderColor: theme.dark ? theme.line : "rgba(255, 255, 255, 0.65)",
         },
+        bevelStyle(theme.dark),
       ]}
     >
       <View style={[styles.txIcon, { backgroundColor: iconBg }]}>
@@ -146,9 +170,9 @@ export function ActionButton({
         styles.actionButton,
         {
           backgroundColor: theme.soft,
-          borderColor: theme.dark ? theme.line : "rgba(255, 255, 255, 0.7)",
           transform: [{ scale: pressed ? 0.95 : 1 }],
         },
+        bevelStyle(theme.dark),
       ]}
     >
       <LinearGradient
@@ -212,8 +236,8 @@ export function TopBar({
             styles.roundButton,
             {
               backgroundColor: theme.soft,
-              borderColor: theme.dark ? theme.line : "rgba(255,255,255,0.65)",
             },
+            bevelStyle(theme.dark),
           ]}
         >
           <Icon name="back" size={20} color={theme.ink} />
@@ -312,11 +336,11 @@ export function BottomNav({
         {
           backgroundColor: theme.dark
             ? "rgba(18, 24, 33, 0.96)"
-            : "rgba(248, 251, 245, 0.96)",
-          borderColor: theme.line,
+            : "rgba(248, 251, 255, 0.96)",
           opacity,
           transform: [{ translateY }],
         },
+        bevelStyle(theme.dark),
       ]}
     >
       {items.slice(0, 2).map((item) => {
@@ -399,7 +423,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 20,
     borderWidth: 1,
-    shadowColor: "#1a2612",
+    shadowColor: "#121a2d",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.07,
     shadowRadius: 12,
@@ -411,7 +435,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#1e2d14",
+    shadowColor: "#121a2d",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -455,7 +479,7 @@ const styles = StyleSheet.create({
     gap: 7,
     paddingVertical: 9,
     paddingHorizontal: 5,
-    shadowColor: "#1e2d14",
+    shadowColor: "#121a2d",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
     shadowRadius: 14,
@@ -467,7 +491,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#1e2d14",
+    shadowColor: "#121a2d",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -522,7 +546,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#1e2d14",
+    shadowColor: "#121a2d",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -575,7 +599,7 @@ const styles = StyleSheet.create({
     width: 58,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#1e2d14",
+    shadowColor: "#121a2d",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -587,7 +611,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#1e2d14",
+    shadowColor: "#121a2d",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 12,

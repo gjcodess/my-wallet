@@ -22,6 +22,7 @@ import { FolderSurface } from "./FolderSurface";
 import { Icon } from "./Icon";
 import {
   ActionButton,
+  bevelStyle,
   SectionTitle,
   SwitchControl,
   ThemeColors,
@@ -155,6 +156,7 @@ export function HomeScreen({
             tabHeight={42}
             radius={25}
             notch
+            notchGloss="rgba(255, 255, 255, 0.05)"
             fromColor={navyPalette.from}
             toColor={navyPalette.to}
             minHeight={112}
@@ -370,8 +372,8 @@ export function WalletsScreen({
               styles.roundBtn,
               {
                 backgroundColor: theme.soft,
-                borderColor: theme.dark ? theme.line : "rgba(255,255,255,0.7)",
               },
+              bevelStyle(theme.dark),
             ]}
           >
             <Icon name="plus" size={20} color={theme.ink} />
@@ -411,11 +413,9 @@ export function WalletsScreen({
                 styles.walletTile,
                 {
                   backgroundColor: theme.soft,
-                  borderColor: theme.dark
-                    ? theme.line
-                    : "rgba(255,255,255,0.65)",
                   transform: [{ scale: pressed ? 0.985 : 1 }],
                 },
+                bevelStyle(theme.dark),
               ]}
             >
               <LinearGradient
@@ -524,8 +524,8 @@ export function ActivityScreen({
               styles.roundBtn,
               {
                 backgroundColor: theme.soft,
-                borderColor: theme.dark ? theme.line : "rgba(255,255,255,0.7)",
               },
+              bevelStyle(theme.dark),
             ]}
           >
             <Icon name="more" size={20} color={theme.ink} />
@@ -881,8 +881,8 @@ function SettingsGroup({
           styles.settingsGroupBox,
           {
             backgroundColor: theme.soft,
-            borderColor: theme.line,
           },
+          bevelStyle(theme.dark),
         ]}
       >
         {children}
@@ -993,8 +993,8 @@ export function WalletDetailScreen({
               styles.roundBtn,
               {
                 backgroundColor: theme.soft,
-                borderColor: theme.dark ? theme.line : "rgba(255,255,255,0.7)",
               },
+              bevelStyle(theme.dark),
             ]}
           >
             <Icon name="more" size={20} color={theme.ink} />
@@ -1011,9 +1011,9 @@ export function WalletDetailScreen({
             styles.detailActionBtn,
             {
               backgroundColor: theme.soft,
-              borderColor: theme.dark ? theme.line : "rgba(255,255,255,0.65)",
               transform: [{ scale: pressed ? 0.97 : 1 }],
             },
+            bevelStyle(theme.dark),
           ]}
         >
           <Icon name="edit" size={18} color={theme.ink} />
@@ -1028,9 +1028,9 @@ export function WalletDetailScreen({
             styles.detailActionBtn,
             {
               backgroundColor: theme.soft,
-              borderColor: theme.dark ? theme.line : "rgba(255,255,255,0.65)",
               transform: [{ scale: pressed ? 0.97 : 1 }],
             },
+            bevelStyle(theme.dark),
           ]}
         >
           <Icon name="swap" size={18} color={theme.ink} />
@@ -1146,7 +1146,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#1e2d14",
+    shadowColor: "#121a2d",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -1277,7 +1277,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 20,
     borderWidth: 1,
-    shadowColor: "#1a2612",
+    shadowColor: "#121a2d",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.07,
     shadowRadius: 12,
@@ -1404,7 +1404,7 @@ const styles = StyleSheet.create({
     gap: 9,
     padding: 13,
     borderRadius: 18,
-    shadowColor: "#1a2612",
+    shadowColor: "#121a2d",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,
     shadowRadius: 14,
@@ -1513,7 +1513,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     overflow: "hidden",
-    shadowColor: "#1a2612",
+    shadowColor: "#121a2d",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -1568,7 +1568,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 7,
-    shadowColor: "#1a2612",
+    shadowColor: "#121a2d",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.07,
     shadowRadius: 12,
