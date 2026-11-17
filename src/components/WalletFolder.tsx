@@ -195,11 +195,6 @@ export function WalletFolder({
 const styles = StyleSheet.create({
   wrapper: {
     width: "100%",
-    shadowColor: "#1e2d0f",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.14,
-    shadowRadius: 18,
-    elevation: 6,
   },
   amountText: {
     fontFamily: "Urbanist_800ExtraBold",

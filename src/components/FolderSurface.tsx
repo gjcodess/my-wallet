@@ -130,11 +130,11 @@ export function FolderSurface({
       ? "rgba(255, 255, 255, 0.05)"
       : "rgba(255, 255, 255, 0.16)");
   const bevelHighlight = darkSurface
-    ? "rgba(255, 255, 255, 0.18)"
-    : "rgba(255, 255, 255, 0.48)";
+    ? "rgba(255, 255, 255, 0.16)"
+    : "rgba(255, 255, 255, 0.42)";
   const bevelShadow = darkSurface
-    ? "rgba(0, 0, 0, 0.32)"
-    : "rgba(18, 26, 45, 0.16)";
+    ? "rgba(0, 0, 0, 0.16)"
+    : "rgba(18, 26, 45, 0.07)";
 
   return (
     <View
@@ -163,29 +163,36 @@ export function FolderSurface({
               <Path d={geometry.notch} />
             </ClipPath>
           </Defs>
-          {/* Soft shape-accurate drop shadow */}
-          <G transform="translate(0, 8)">
-            <Path d={geometry.folder} fill="rgba(18, 26, 45, 0.06)" />
-          </G>
-          <G transform="translate(0, 4)">
-            <Path d={geometry.folder} fill="rgba(18, 26, 45, 0.08)" />
-          </G>
+          {/* Soft diffused multi-step drop shadow */}
+          {[
+            { y: 15, op: 0.015 },
+            { y: 12, op: 0.022 },
+            { y: 10, op: 0.028 },
+            { y: 8, op: 0.034 },
+            { y: 6, op: 0.04 },
+            { y: 4, op: 0.046 },
+            { y: 2, op: 0.05 },
+          ].map((s, idx) => (
+            <G key={idx} transform={`translate(0, ${s.y})`}>
+              <Path d={geometry.folder} fill={`rgba(15, 23, 42, ${s.op})`} />
+            </G>
+          ))}
           <Path d={geometry.folder} fill="url(#folderGrad)" />
-          {/* Inner bevel highlight (top-left) & rim shadow (bottom-right) */}
+          {/* Subtle inner bevel highlight (top-left) & soft rim (bottom-right) */}
           <G clipPath="url(#folderClip)">
             <Path
               d={geometry.folder}
               fill="none"
               stroke={bevelHighlight}
-              strokeWidth={2.5}
-              transform="translate(0.5, 1)"
+              strokeWidth={1.6}
+              transform="translate(0.4, 0.8)"
             />
             <Path
               d={geometry.folder}
               fill="none"
               stroke={bevelShadow}
-              strokeWidth={2.5}
-              transform="translate(-0.5, -1)"
+              strokeWidth={1.4}
+              transform="translate(-0.4, -0.8)"
             />
           </G>
           {notch && (
@@ -197,15 +204,15 @@ export function FolderSurface({
                   d={geometry.notch}
                   fill="none"
                   stroke={bevelHighlight}
-                  strokeWidth={2}
-                  transform="translate(0.5, 0.8)"
+                  strokeWidth={1.4}
+                  transform="translate(0.4, 0.7)"
                 />
                 <Path
                   d={geometry.notch}
                   fill="none"
                   stroke={bevelShadow}
-                  strokeWidth={2}
-                  transform="translate(-0.5, -0.8)"
+                  strokeWidth={1.2}
+                  transform="translate(-0.4, -0.7)"
                 />
               </G>
             </>
