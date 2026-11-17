@@ -68,6 +68,8 @@ export function HomeScreen({
   const peekWallet = ordered[1];
   const thirdWallet = wallets.length > 2 ? ordered[2] : undefined;
   const fourthWallet = wallets.length > 3 ? ordered[3] : undefined;
+  const prevWallet =
+    wallets.length > 1 ? ordered[wallets.length - 1] : undefined;
   const firstName = profile.fullName.split(" ")[0] || "Justin";
   const addFrom = theme.dark ? "#354052" : "#4c586b";
   const addTo = theme.dark ? "#1e2531" : "#2d3645";
@@ -86,7 +88,7 @@ export function HomeScreen({
     if (len <= 1 || isAnimatingRef.current) return;
     isAnimatingRef.current = true;
     Animated.timing(dragY, {
-      toValue: direction === 1 ? 130 : -70,
+      toValue: direction === 1 ? 130 : -120,
       duration,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
@@ -154,7 +156,7 @@ export function HomeScreen({
           onStackDragChange?.(true);
         },
         onPanResponderMove: (_evt, g) => {
-          const clamped = Math.max(-70, Math.min(130, g.dy));
+          const clamped = Math.max(-120, Math.min(130, g.dy));
           dragY.setValue(clamped);
         },
         onPanResponderRelease: (_evt, g) => {
@@ -170,7 +172,7 @@ export function HomeScreen({
 
           if (g.dy > 52 || g.vy > 0.5) {
             cycleWallet(1);
-          } else if (g.dy < -42 || g.vy < -0.5) {
+          } else if (g.dy < -48 || g.vy < -0.5) {
             cycleWallet(-1);
           } else {
             Animated.spring(dragY, {
@@ -336,25 +338,30 @@ export function HomeScreen({
           </Animated.View>
         ) : null}
 
-        {/* 3rd Card Layer: Visible in resting stack behind 2nd card, steps into 2nd slot on swipe */}
+        {/* 3rd Card Layer: Visible in resting stack behind 2nd card, steps into 2nd slot on swipe down or tucks back on swipe up */}
         {thirdWallet ? (
           <Animated.View
             style={[
               styles.stackThirdFolderLayer,
               {
                 zIndex: 2,
+                opacity: dragY.interpolate({
+                  inputRange: [-120, -35, 0, 130],
+                  outputRange: [0, 0.45, 1, 1],
+                  extrapolate: "clamp",
+                }),
                 transform: [
                   {
                     translateY: dragY.interpolate({
-                      inputRange: [0, 130],
-                      outputRange: [0, 44],
+                      inputRange: [-120, 0, 130],
+                      outputRange: [-18, 0, 44],
                       extrapolate: "clamp",
                     }),
                   },
                   {
                     scale: dragY.interpolate({
-                      inputRange: [0, 130],
-                      outputRange: [0.89, 0.945],
+                      inputRange: [-120, 0, 130],
+                      outputRange: [0.83, 0.89, 0.945],
                       extrapolate: "clamp",
                     }),
                   },
@@ -372,7 +379,7 @@ export function HomeScreen({
           </Animated.View>
         ) : null}
 
-        {/* Middle Layer: 2nd Wallet (scaled behind front, steps into front slot on swipe) */}
+        {/* Middle Layer: 2nd Wallet (moves to front on swipe down, or to 3rd slot on swipe up) */}
         {peekWallet ? (
           <Animated.View
             style={[
@@ -381,15 +388,15 @@ export function HomeScreen({
                 transform: [
                   {
                     translateY: dragY.interpolate({
-                      inputRange: [0, 130],
-                      outputRange: [0, 46],
+                      inputRange: [-120, 0, 130],
+                      outputRange: [-44, 0, 46],
                       extrapolate: "clamp",
                     }),
                   },
                   {
                     scale: dragY.interpolate({
-                      inputRange: [0, 130],
-                      outputRange: [0.945, 1],
+                      inputRange: [-120, 0, 130],
+                      outputRange: [0.89, 0.945, 1],
                       extrapolate: "clamp",
                     }),
                   },
@@ -423,8 +430,8 @@ export function HomeScreen({
                     outputRange: [0.65, 1],
                   }),
                   dragY.interpolate({
-                    inputRange: [-70, -25, 0, 60, 130],
-                    outputRange: [0, 0.85, 1, 0.78, 0],
+                    inputRange: [-120, 0, 60, 130],
+                    outputRange: [1, 1, 0.78, 0],
                     extrapolate: "clamp",
                   })
                 ),
@@ -436,8 +443,8 @@ export function HomeScreen({
                         outputRange: [12, 0],
                       }),
                       dragY.interpolate({
-                        inputRange: [-70, 0, 130],
-                        outputRange: [-38, 0, 70],
+                        inputRange: [-120, 0, 130],
+                        outputRange: [-46, 0, 70],
                         extrapolate: "clamp",
                       })
                     ),
@@ -449,8 +456,8 @@ export function HomeScreen({
                         outputRange: [0.97, 1],
                       }),
                       dragY.interpolate({
-                        inputRange: [-70, 0, 130],
-                        outputRange: [0.93, 1, 0.92],
+                        inputRange: [-120, 0, 130],
+                        outputRange: [0.945, 1, 0.92],
                         extrapolate: "clamp",
                       })
                     ),
@@ -466,6 +473,42 @@ export function HomeScreen({
               onPress={() => onWallet(featured)}
               onMenu={() => onSheet("update", featured)}
             />
+          </Animated.View>
+        ) : null}
+
+        {/* Previous Card Layer: Rises smoothly into the front slot when swiping upward */}
+        {prevWallet ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.stackFrontLayer,
+              {
+                zIndex: 5,
+                opacity: dragY.interpolate({
+                  inputRange: [-120, -55, -8, 0],
+                  outputRange: [1, 0.82, 0.15, 0],
+                  extrapolate: "clamp",
+                }),
+                transform: [
+                  {
+                    translateY: dragY.interpolate({
+                      inputRange: [-120, 0],
+                      outputRange: [0, 62],
+                      extrapolate: "clamp",
+                    }),
+                  },
+                  {
+                    scale: dragY.interpolate({
+                      inputRange: [-120, 0],
+                      outputRange: [1, 0.93],
+                      extrapolate: "clamp",
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <WalletFolder wallet={prevWallet} hidden={hidden} topShadow />
           </Animated.View>
         ) : null}
       </View>
