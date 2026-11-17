@@ -34,6 +34,111 @@ import {
 } from "./SharedUI";
 import { Amount, WalletFolder, WalletLogoBadge } from "./WalletFolder";
 
+export function TabHeader({
+  tab,
+  profile,
+  setTab,
+  onAddWallet,
+  theme,
+}: {
+  tab: Tab;
+  profile: UserProfile;
+  setTab: (t: Tab) => void;
+  onAddWallet: () => void;
+  theme: ThemeColors;
+}) {
+  const firstName = profile.fullName.split(" ")[0] || "Justin";
+
+  if (tab === "home") {
+    return (
+      <View style={styles.fixedHomeHeader}>
+        <View style={styles.homeHeader}>
+          <View>
+            <Text style={[styles.greetingSub, { color: theme.ink }]}>
+              Hi, {firstName}
+            </Text>
+            <Text style={[styles.greetingTitle, { color: theme.ink }]}>
+              Welcome back!
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => setTab("settings")}
+            style={styles.profileOrbWrapper}
+          >
+            <LinearGradient
+              colors={theme.accentGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.profileOrb}
+            >
+              <Text style={[styles.profileOrbText, { color: theme.accentInk }]}>
+                {profile.initials}
+              </Text>
+            </LinearGradient>
+            <View
+              style={[
+                styles.profileOrbBadge,
+                { backgroundColor: theme.page },
+              ]}
+            >
+              <Icon name="grid" size={13} color={theme.ink} />
+            </View>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.fixedTopBarHeader}>
+      {tab === "wallets" && (
+        <TopBar
+          title="My Wallets"
+          theme={theme}
+          noMargin
+          right={
+            <Pressable
+              onPress={onAddWallet}
+              style={[
+                styles.roundBtn,
+                {
+                  backgroundColor: theme.card,
+                },
+                bevelStyle(theme.dark),
+                cardShadow(theme.dark),
+              ]}
+            >
+              <Icon name="plus" size={20} color={theme.ink} />
+            </Pressable>
+          }
+        />
+      )}
+      {tab === "activity" && (
+        <TopBar
+          title="Activity"
+          theme={theme}
+          noMargin
+          right={
+            <View
+              style={[
+                styles.roundBtn,
+                {
+                  backgroundColor: theme.card,
+                },
+                bevelStyle(theme.dark),
+                cardShadow(theme.dark),
+              ]}
+            >
+              <Icon name="more" size={20} color={theme.ink} />
+            </View>
+          }
+        />
+      )}
+      {tab === "settings" && <TopBar title="Settings" theme={theme} noMargin />}
+    </View>
+  );
+}
+
 export function HomeScreen({
   wallets,
   activities,
@@ -44,7 +149,6 @@ export function HomeScreen({
   onSheet,
   setTab,
   onStackDragChange,
-  profile,
   theme,
 }: {
   wallets: Wallet[];
@@ -56,7 +160,6 @@ export function HomeScreen({
   onSheet: (s: Sheet, w?: Wallet) => void;
   setTab: (t: Tab) => void;
   onStackDragChange?: (dragging: boolean) => void;
-  profile: UserProfile;
   theme: ThemeColors;
 }) {
   const [front, setFront] = useState(0);
@@ -71,7 +174,6 @@ export function HomeScreen({
   const fourthWallet = wallets.length > 3 ? ordered[3] : undefined;
   const prevWallet =
     wallets.length > 1 ? ordered[wallets.length - 1] : undefined;
-  const firstName = profile.fullName.split(" ")[0] || "Justin";
   const addFrom = theme.dark ? "#354052" : "#4c586b";
   const addTo = theme.dark ? "#1e2531" : "#2d3645";
   const addInk = "#ffffff";
@@ -217,41 +319,6 @@ export function HomeScreen({
 
   return (
     <View style={styles.page}>
-      {/* Home Header */}
-      <View style={styles.homeHeader}>
-        <View>
-          <Text style={[styles.greetingSub, { color: theme.ink }]}>
-            Hi, {firstName}
-          </Text>
-          <Text style={[styles.greetingTitle, { color: theme.ink }]}>
-            Welcome back!
-          </Text>
-        </View>
-        <Pressable
-          onPress={() => setTab("settings")}
-          style={styles.profileOrbWrapper}
-        >
-          <LinearGradient
-            colors={theme.accentGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.profileOrb}
-          >
-            <Text style={[styles.profileOrbText, { color: theme.accentInk }]}>
-              {profile.initials}
-            </Text>
-          </LinearGradient>
-          <View
-            style={[
-              styles.profileOrbBadge,
-              { backgroundColor: theme.page },
-            ]}
-          >
-            <Icon name="grid" size={13} color={theme.ink} />
-          </View>
-        </Pressable>
-      </View>
-
       {/* Total Strip */}
       <View style={styles.totalStrip}>
         <View>
@@ -698,7 +765,6 @@ export function WalletsScreen({
   total,
   hidden,
   onWallet,
-  onAdd,
   isCloudSynced,
   theme,
 }: {
@@ -706,31 +772,11 @@ export function WalletsScreen({
   total: number;
   hidden: boolean;
   onWallet: (w: Wallet) => void;
-  onAdd: () => void;
   isCloudSynced: boolean;
   theme: ThemeColors;
 }) {
   return (
     <View style={styles.page}>
-      <TopBar
-        title="My Wallets"
-        theme={theme}
-        right={
-          <Pressable
-            onPress={onAdd}
-            style={[
-              styles.roundBtn,
-              {
-                backgroundColor: theme.card,
-              },
-              bevelStyle(theme.dark),
-              cardShadow(theme.dark),
-            ]}
-          >
-            <Icon name="plus" size={20} color={theme.ink} />
-          </Pressable>
-        }
-      />
 
       <View style={styles.walletsTotal}>
         <Text style={[styles.walletsTotalSub, { color: theme.muted }]}>
@@ -873,25 +919,6 @@ export function ActivityScreen({
 
   return (
     <View style={styles.page}>
-      <TopBar
-        title="Activity"
-        theme={theme}
-        right={
-          <View
-            style={[
-              styles.roundBtn,
-              {
-                backgroundColor: theme.card,
-              },
-              bevelStyle(theme.dark),
-              cardShadow(theme.dark),
-            ]}
-          >
-            <Icon name="more" size={20} color={theme.ink} />
-          </View>
-        }
-      />
-
       <View style={styles.spendingHead}>
         <Text style={[styles.walletsTotalSub, { color: theme.muted }]}>
           Total spending
@@ -1129,8 +1156,6 @@ export function SettingsScreen({
 }) {
   return (
     <View style={styles.page}>
-      <TopBar title="Settings" theme={theme} />
-
       {/* Profile Card (Opens Supabase Auth / Cloud Sync Sheet) */}
       <Pressable onPress={onOpenAuth}>
         <LinearGradient
@@ -1359,31 +1384,35 @@ export function WalletDetailScreen({
         ],
       }}
     >
+      <View style={styles.fixedTopBarHeader}>
+        <TopBar
+          title={wallet.name}
+          onBack={onBack}
+          theme={theme}
+          noMargin
+          right={
+            <Pressable
+              onPress={onEdit}
+              style={[
+                styles.roundBtn,
+                {
+                  backgroundColor: theme.card,
+                },
+                bevelStyle(theme.dark),
+                cardShadow(theme.dark),
+              ]}
+            >
+              <Icon name="edit" size={18} color={theme.ink} />
+            </Pressable>
+          }
+        />
+      </View>
+
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={styles.detailScreen}
         showsVerticalScrollIndicator={false}
       >
-      <TopBar
-        title={wallet.name}
-        onBack={onBack}
-        theme={theme}
-        right={
-          <Pressable
-            onPress={onEdit}
-            style={[
-              styles.roundBtn,
-              {
-                backgroundColor: theme.card,
-              },
-              bevelStyle(theme.dark),
-              cardShadow(theme.dark),
-            ]}
-          >
-            <Icon name="edit" size={18} color={theme.ink} />
-          </Pressable>
-        }
-      />
 
       <WalletFolder wallet={wallet} hidden={hidden} onMenu={onEdit} />
 
@@ -1460,11 +1489,6 @@ export function WalletDetailScreen({
       )}
       </ScrollView>
       <EdgeFade
-        position="top"
-        color={theme.dark ? "#1b2b44" : "#fbfdff"}
-        size={22}
-      />
-      <EdgeFade
         position="bottom"
         color={theme.dark ? "#090d12" : "#dce6f5"}
         size={36}
@@ -1476,8 +1500,18 @@ export function WalletDetailScreen({
 const styles = StyleSheet.create({
   page: {
     paddingHorizontal: 18,
-    paddingTop: 10,
+    paddingTop: 6,
     paddingBottom: 105,
+  },
+  fixedHomeHeader: {
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  fixedTopBarHeader: {
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 8,
   },
   homeHeader: {
     flexDirection: "row",
@@ -1524,7 +1558,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   totalStrip: {
-    marginTop: 17,
+    marginTop: 6,
     marginBottom: 15,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1977,7 +2011,7 @@ const styles = StyleSheet.create({
   },
   detailScreen: {
     paddingHorizontal: 18,
-    paddingTop: 8,
+    paddingTop: 6,
     paddingBottom: 40,
   },
   detailActions: {

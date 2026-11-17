@@ -89,15 +89,16 @@ export function EdgeFade({
   color: string;
   size?: number;
 }) {
-  const solid = hexToRgba(color, 0.96);
-  const mid = hexToRgba(color, 0.52);
+  const solid = hexToRgba(color, 0.98);
+  const high = hexToRgba(color, 0.72);
+  const low = hexToRgba(color, 0.28);
   const clear = hexToRgba(color, 0);
 
   const isVertical = position === "top" || position === "bottom";
-  const colors: [string, string, string] =
-    position === "top" || position === "left"
-      ? [solid, mid, clear]
-      : [clear, mid, solid];
+  const isStartEdge = position === "top" || position === "left";
+  const colors: [string, string, string, string] = isStartEdge
+    ? [solid, high, low, clear]
+    : [clear, low, high, solid];
 
   const start = isVertical ? { x: 0, y: 0 } : { x: 0, y: 0 };
   const end = isVertical ? { x: 0, y: 1 } : { x: 1, y: 0 };
@@ -115,7 +116,7 @@ export function EdgeFade({
     <LinearGradient
       pointerEvents="none"
       colors={colors}
-      locations={position === "top" || position === "left" ? [0, 0.45, 1] : [0, 0.55, 1]}
+      locations={isStartEdge ? [0, 0.28, 0.65, 1] : [0, 0.35, 0.72, 1]}
       start={start}
       end={end}
       style={[{ position: "absolute", zIndex: 15 }, posStyle]}
@@ -288,14 +289,16 @@ export function TopBar({
   onBack,
   right,
   theme,
+  noMargin,
 }: {
   title: string;
   onBack?: () => void;
   right?: React.ReactNode;
   theme: ThemeColors;
+  noMargin?: boolean;
 }) {
   return (
-    <View style={styles.topBar}>
+    <View style={[styles.topBar, noMargin && { marginBottom: 0 }]}>
       {onBack ? (
         <Pressable
           onPress={onBack}

@@ -48,6 +48,7 @@ import {
   ActivityScreen,
   HomeScreen,
   SettingsScreen,
+  TabHeader,
   WalletDetailScreen,
   WalletsScreen,
 } from "./src/components/Screens";
@@ -373,6 +374,13 @@ export default function App() {
           />
         ) : (
           <View style={{ flex: 1 }}>
+            <TabHeader
+              tab={tab}
+              profile={profile}
+              setTab={handleTabChange}
+              onAddWallet={() => openSheet("add")}
+              theme={theme}
+            />
             <ScrollView
               ref={scrollRef}
               style={{ flex: 1 }}
@@ -404,7 +412,6 @@ export default function App() {
                     onSheet={openSheet}
                     setTab={handleTabChange}
                     onStackDragChange={handleStackDragChange}
-                    profile={profile}
                     theme={theme}
                   />
                 )}
@@ -415,7 +422,6 @@ export default function App() {
                     total={total}
                     hidden={hidden}
                     onWallet={(w) => setSelectedId(w.id)}
-                    onAdd={() => openSheet("add")}
                     isCloudSynced={Boolean(userEmail)}
                     theme={theme}
                   />
@@ -447,11 +453,6 @@ export default function App() {
               </Animated.View>
             </ScrollView>
 
-            <EdgeFade
-              position="top"
-              color={dark ? "#1b2b44" : "#fbfdff"}
-              size={24}
-            />
             <EdgeFade
               position="bottom"
               color={dark ? "#090d12" : "#dce6f5"}
