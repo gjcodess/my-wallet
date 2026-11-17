@@ -1,5 +1,5 @@
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { ActivityItem, money, Tab, Tone, tonePalette } from "../types/wallet";
 import { Icon } from "./Icon";
@@ -241,6 +241,17 @@ export function SwitchControl({
   onPress: () => void;
   theme: ThemeColors;
 }) {
+  const thumbX = useRef(new Animated.Value(on ? 18 : 0)).current;
+
+  useEffect(() => {
+    Animated.spring(thumbX, {
+      toValue: on ? 18 : 0,
+      useNativeDriver: true,
+      speed: 24,
+      bounciness: 8,
+    }).start();
+  }, [on, thumbX]);
+
   return (
     <Pressable
       onPress={onPress}
@@ -251,11 +262,11 @@ export function SwitchControl({
         },
       ]}
     >
-      <View
+      <Animated.View
         style={[
           styles.switchThumb,
           {
-            transform: [{ translateX: on ? 18 : 0 }],
+            transform: [{ translateX: thumbX }],
           },
         ]}
       />
@@ -267,11 +278,15 @@ export function BottomNav({
   tab,
   setTab,
   onAdd,
+  navAnim,
+  visible = true,
   theme,
 }: {
   tab: Tab;
   setTab: (t: Tab) => void;
   onAdd: () => void;
+  navAnim?: Animated.Value;
+  visible?: boolean;
   theme: ThemeColors;
 }) {
   const items: { id: Tab; icon: string; label: string }[] = [
@@ -281,8 +296,17 @@ export function BottomNav({
     { id: "settings", icon: "settings", label: "Settings" },
   ];
 
+  const translateY = navAnim
+    ? navAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [100, 0],
+      })
+    : 0;
+  const opacity = navAnim ?? 1;
+
   return (
-    <View
+    <Animated.View
+      pointerEvents={visible ? "auto" : "none"}
       style={[
         styles.bottomNav,
         {
@@ -290,6 +314,8 @@ export function BottomNav({
             ? "rgba(18, 24, 33, 0.96)"
             : "rgba(248, 251, 245, 0.96)",
           borderColor: theme.line,
+          opacity,
+          transform: [{ translateY }],
         },
       ]}
     >
@@ -359,7 +385,7 @@ export function BottomNav({
           </Pressable>
         );
       })}
-    </View>
+    </Animated.View>
   );
 }
 

@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  Animated,
+  Easing,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -61,6 +63,17 @@ export function HomeScreen({
   const peekWallet = ordered[1];
   const firstName = profile.fullName.split(" ")[0] || "Justin";
   const navyPalette = tonePalette.navy;
+
+  const cardAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    cardAnim.setValue(0);
+    Animated.spring(cardAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 18,
+      bounciness: 6,
+    }).start();
+  }, [safeFront, cardAnim]);
 
   return (
     <View style={styles.page}>
@@ -222,14 +235,38 @@ export function HomeScreen({
 
         {/* Front Layer: Active Featured Wallet */}
         {featured ? (
-          <View style={styles.stackFrontLayer}>
+          <Animated.View
+            style={[
+              styles.stackFrontLayer,
+              {
+                opacity: cardAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.65, 1],
+                }),
+                transform: [
+                  {
+                    translateY: cardAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [15, 0],
+                    }),
+                  },
+                  {
+                    scale: cardAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.97, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
             <WalletFolder
               wallet={featured}
               hidden={hidden}
               onPress={() => onWallet(featured)}
               onMenu={() => onSheet("update", featured)}
             />
-          </View>
+          </Animated.View>
         ) : null}
       </View>
 
@@ -434,6 +471,18 @@ export function ActivityScreen({
   theme: ThemeColors;
 }) {
   const [range, setRange] = useState<"Month" | "Week">("Month");
+  const barProgress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    barProgress.setValue(0);
+    Animated.timing(barProgress, {
+      toValue: 1,
+      duration: 520,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [range, barProgress]);
+
   const bars: [number, number][] =
     range === "Month"
       ? [
@@ -534,14 +583,40 @@ export function ActivityScreen({
                   {bars.map(([a, b], i) => (
                     <View key={i} style={styles.barGroup}>
                       <View style={styles.barPair}>
-                        <LinearGradient
-                          colors={["#fff99a", "#f5c414"]}
-                          style={[styles.bar, { height: `${a}%` }]}
-                        />
-                        <LinearGradient
-                          colors={["#a8ddff", "#3b82f6"]}
-                          style={[styles.bar, { height: `${b}%` }]}
-                        />
+                        <Animated.View
+                          style={[
+                            styles.bar,
+                            {
+                              height: barProgress.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: ["0%", `${a}%`],
+                              }),
+                              overflow: "hidden",
+                            },
+                          ]}
+                        >
+                          <LinearGradient
+                            colors={["#fff99a", "#f5c414"]}
+                            style={StyleSheet.absoluteFill}
+                          />
+                        </Animated.View>
+                        <Animated.View
+                          style={[
+                            styles.bar,
+                            {
+                              height: barProgress.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: ["0%", `${b}%`],
+                              }),
+                              overflow: "hidden",
+                            },
+                          ]}
+                        >
+                          <LinearGradient
+                            colors={["#a8ddff", "#3b82f6"]}
+                            style={StyleSheet.absoluteFill}
+                          />
+                        </Animated.View>
                       </View>
                       <Text style={styles.barLabel}>{labels[i]}</Text>
                     </View>
@@ -879,10 +954,31 @@ export function WalletDetailScreen({
   theme: ThemeColors;
 }) {
   const related = activities.filter((item) => item.wallet === wallet.name);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(slideAnim, {
+      toValue: 1,
+      duration: 280,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [wallet.id, slideAnim]);
 
   return (
-    <ScrollView
-      style={{ flex: 1 }}
+    <Animated.ScrollView
+      style={{
+        flex: 1,
+        opacity: slideAnim,
+        transform: [
+          {
+            translateX: slideAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [22, 0],
+            }),
+          },
+        ],
+      }}
       contentContainerStyle={styles.detailScreen}
       showsVerticalScrollIndicator={false}
     >
@@ -976,7 +1072,7 @@ export function WalletDetailScreen({
           </Text>
         </View>
       )}
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 

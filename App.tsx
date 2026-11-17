@@ -1,5 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Animated,
+  Easing,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -77,6 +86,82 @@ export default function App() {
   );
 
   const theme = useMemo(() => getThemeColors(dark), [dark]);
+
+  // Scroll-reactive bottom navbar & screen/toast animations
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const lastScrollY = useRef(0);
+  const navVisibleRef = useRef(true);
+  const [navVisible, setNavVisible] = useState(true);
+  const navAnim = useRef(new Animated.Value(1)).current;
+  const tabAnim = useRef(new Animated.Value(1)).current;
+  const toastAnim = useRef(new Animated.Value(0)).current;
+
+  const setNavbarVisible = useCallback(
+    (show: boolean) => {
+      if (navVisibleRef.current === show) return;
+      navVisibleRef.current = show;
+      setNavVisible(show);
+      Animated.timing(navAnim, {
+        toValue: show ? 1 : 0,
+        duration: show ? 240 : 210,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    },
+    [navAnim]
+  );
+
+  const handleTabChange = useCallback(
+    (nextTab: Tab) => {
+      setTab(nextTab);
+      lastScrollY.current = 0;
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      setNavbarVisible(true);
+    },
+    [setNavbarVisible]
+  );
+
+  useEffect(() => {
+    tabAnim.setValue(0);
+    Animated.timing(tabAnim, {
+      toValue: 1,
+      duration: 240,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [tab, tabAnim]);
+
+  useEffect(() => {
+    if (toast) {
+      toastAnim.setValue(0);
+      Animated.spring(toastAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 20,
+        bounciness: 6,
+      }).start();
+    }
+  }, [toast, toastAnim]);
+
+  const handleScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const y = e.nativeEvent.contentOffset.y;
+      if (y <= 12) {
+        lastScrollY.current = y;
+        setNavbarVisible(true);
+        return;
+      }
+      const delta = y - lastScrollY.current;
+      if (delta > 6 && y > 24) {
+        setNavbarVisible(false);
+        lastScrollY.current = y;
+      } else if (delta < -6) {
+        setNavbarVisible(true);
+        lastScrollY.current = y;
+      }
+    },
+    [setNavbarVisible]
+  );
 
   // 1. Load offline-first state from SQLite on mount
   useEffect(() => {
@@ -240,65 +325,84 @@ export default function App() {
         ) : (
           <View style={{ flex: 1 }}>
             <ScrollView
+              ref={scrollRef}
               style={{ flex: 1 }}
               showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
             >
-              {tab === "home" && (
-                <HomeScreen
-                  wallets={wallets}
-                  activities={activityItems}
-                  total={total}
-                  hidden={hidden}
-                  setHidden={setHidden}
-                  onWallet={(w) => setSelectedId(w.id)}
-                  onSheet={openSheet}
-                  setTab={setTab}
-                  profile={profile}
-                  theme={theme}
-                />
-              )}
+              <Animated.View
+                style={{
+                  opacity: tabAnim,
+                  transform: [
+                    {
+                      translateY: tabAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [10, 0],
+                      }),
+                    },
+                  ],
+                }}
+              >
+                {tab === "home" && (
+                  <HomeScreen
+                    wallets={wallets}
+                    activities={activityItems}
+                    total={total}
+                    hidden={hidden}
+                    setHidden={setHidden}
+                    onWallet={(w) => setSelectedId(w.id)}
+                    onSheet={openSheet}
+                    setTab={handleTabChange}
+                    profile={profile}
+                    theme={theme}
+                  />
+                )}
 
-              {tab === "wallets" && (
-                <WalletsScreen
-                  wallets={wallets}
-                  total={total}
-                  hidden={hidden}
-                  onWallet={(w) => setSelectedId(w.id)}
-                  onAdd={() => openSheet("add")}
-                  isCloudSynced={Boolean(userEmail)}
-                  theme={theme}
-                />
-              )}
+                {tab === "wallets" && (
+                  <WalletsScreen
+                    wallets={wallets}
+                    total={total}
+                    hidden={hidden}
+                    onWallet={(w) => setSelectedId(w.id)}
+                    onAdd={() => openSheet("add")}
+                    isCloudSynced={Boolean(userEmail)}
+                    theme={theme}
+                  />
+                )}
 
-              {tab === "activity" && (
-                <ActivityScreen
-                  activities={activityItems}
-                  hidden={hidden}
-                  theme={theme}
-                />
-              )}
+                {tab === "activity" && (
+                  <ActivityScreen
+                    activities={activityItems}
+                    hidden={hidden}
+                    theme={theme}
+                  />
+                )}
 
-              {tab === "settings" && (
-                <SettingsScreen
-                  dark={dark}
-                  setDark={setDark}
-                  hidden={hidden}
-                  setHidden={setHidden}
-                  showToast={setToast}
-                  profile={profile}
-                  userEmail={userEmail}
-                  lastSyncedAt={lastSyncedAt}
-                  onOpenAuth={() => openSheet("auth")}
-                  onSyncNow={handleSyncNow}
-                  theme={theme}
-                />
-              )}
+                {tab === "settings" && (
+                  <SettingsScreen
+                    dark={dark}
+                    setDark={setDark}
+                    hidden={hidden}
+                    setHidden={setHidden}
+                    showToast={setToast}
+                    profile={profile}
+                    userEmail={userEmail}
+                    lastSyncedAt={lastSyncedAt}
+                    onOpenAuth={() => openSheet("auth")}
+                    onSyncNow={handleSyncNow}
+                    theme={theme}
+                  />
+                )}
+              </Animated.View>
             </ScrollView>
 
             <BottomNav
               tab={tab}
-              setTab={setTab}
+              setTab={handleTabChange}
               onAdd={() => openSheet("entry")}
+              navAnim={navAnim}
+              visible={navVisible}
               theme={theme}
             />
           </View>
@@ -340,12 +444,21 @@ export default function App() {
         )}
 
         {toast ? (
-          <View
+          <Animated.View
             style={[
               styles.toast,
               {
                 backgroundColor: dark ? "#1b2633" : "#172442",
                 borderColor: theme.line,
+                opacity: toastAnim,
+                transform: [
+                  {
+                    translateY: toastAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [14, 0],
+                    }),
+                  },
+                ],
               },
             ]}
           >
@@ -356,7 +469,7 @@ export default function App() {
               <Icon name="check" size={14} color={theme.accentInk} />
             </LinearGradient>
             <Text style={styles.toastText}>{toast}</Text>
-          </View>
+          </Animated.View>
         ) : null}
       </SafeAreaView>
     </SafeAreaProvider>
