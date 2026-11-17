@@ -67,6 +67,7 @@ export function HomeScreen({
   const featured = ordered[0];
   const peekWallet = ordered[1];
   const thirdWallet = wallets.length > 2 ? ordered[2] : undefined;
+  const fourthWallet = wallets.length > 3 ? ordered[3] : undefined;
   const firstName = profile.fullName.split(" ")[0] || "Justin";
   const addFrom = theme.dark ? "#354052" : "#4c586b";
   const addTo = theme.dark ? "#1e2531" : "#2d3645";
@@ -286,15 +287,16 @@ export function HomeScreen({
           </FolderSurface>
         </Pressable>
 
-        {/* 3rd Card Layer: Emerges smoothly into the peek slot as front card is swiped down */}
-        {thirdWallet ? (
+        {/* 4th Card Layer: Pre-mounted behind 3rd card, emerges smoothly on swipe */}
+        {fourthWallet ? (
           <Animated.View
             pointerEvents="none"
             style={[
               styles.stackThirdFolderLayer,
               {
+                zIndex: 1,
                 opacity: dragY.interpolate({
-                  inputRange: [0, 30, 130],
+                  inputRange: [0, 35, 130],
                   outputRange: [0, 0.35, 1],
                   extrapolate: "clamp",
                 }),
@@ -309,7 +311,7 @@ export function HomeScreen({
                   {
                     scale: dragY.interpolate({
                       inputRange: [0, 130],
-                      outputRange: [0.88, 0.94],
+                      outputRange: [0.83, 0.89],
                       extrapolate: "clamp",
                     }),
                   },
@@ -317,11 +319,46 @@ export function HomeScreen({
               },
             ]}
           >
-            <WalletFolder wallet={thirdWallet} hidden={hidden} />
+            <WalletFolder wallet={fourthWallet} hidden={hidden} />
           </Animated.View>
         ) : null}
 
-        {/* Middle Layer: Peek Next Wallet (full WalletFolder scaled slightly behind front) */}
+        {/* 3rd Card Layer: Visible in resting stack behind 2nd card, steps into 2nd slot on swipe */}
+        {thirdWallet ? (
+          <Animated.View
+            style={[
+              styles.stackThirdFolderLayer,
+              {
+                zIndex: 2,
+                transform: [
+                  {
+                    translateY: dragY.interpolate({
+                      inputRange: [0, 130],
+                      outputRange: [0, 44],
+                      extrapolate: "clamp",
+                    }),
+                  },
+                  {
+                    scale: dragY.interpolate({
+                      inputRange: [0, 130],
+                      outputRange: [0.89, 0.945],
+                      extrapolate: "clamp",
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <WalletFolder
+              wallet={thirdWallet}
+              hidden={hidden}
+              onPress={() => setFront((safeFront + 2) % wallets.length)}
+              onMenu={() => setFront((safeFront + 2) % wallets.length)}
+            />
+          </Animated.View>
+        ) : null}
+
+        {/* Middle Layer: 2nd Wallet (scaled behind front, steps into front slot on swipe) */}
         {peekWallet ? (
           <Animated.View
             style={[
@@ -331,14 +368,14 @@ export function HomeScreen({
                   {
                     translateY: dragY.interpolate({
                       inputRange: [0, 130],
-                      outputRange: [0, 54],
+                      outputRange: [0, 46],
                       extrapolate: "clamp",
                     }),
                   },
                   {
                     scale: dragY.interpolate({
                       inputRange: [0, 130],
-                      outputRange: [0.94, 1],
+                      outputRange: [0.945, 1],
                       extrapolate: "clamp",
                     }),
                   },
@@ -1309,43 +1346,43 @@ const styles = StyleSheet.create({
   },
   walletStack: {
     position: "relative",
-    height: 312,
+    height: 336,
     marginTop: 10,
   },
   stackAddLayer: {
     position: "absolute",
     zIndex: 0,
     top: 0,
-    left: 26,
-    right: 26,
+    left: 34,
+    right: 34,
     height: 112,
   },
   stackThirdFolderLayer: {
     position: "absolute",
-    zIndex: 1,
-    top: 52,
+    zIndex: 2,
+    top: 40,
     left: 0,
     right: 0,
   },
   stackPeekLayer: {
     position: "absolute",
-    zIndex: 2,
-    top: 52,
+    zIndex: 3,
+    top: 84,
     left: 13,
     right: 13,
     height: 112,
   },
   stackPeekFolderLayer: {
     position: "absolute",
-    zIndex: 2,
-    top: 52,
+    zIndex: 3,
+    top: 84,
     left: 0,
     right: 0,
   },
   stackFrontLayer: {
     position: "absolute",
-    zIndex: 3,
-    top: 106,
+    zIndex: 4,
+    top: 130,
     left: 0,
     right: 0,
   },
