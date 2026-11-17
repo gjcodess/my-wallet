@@ -23,6 +23,7 @@ export type Wallet = {
   mark: string;
   tone: Tone;
   account: string;
+  logoKey?: string;
   updatedAt?: string;
   synced?: boolean;
 };
@@ -76,6 +77,7 @@ export const initialWallets: Wallet[] = [
     mark: "G",
     tone: "blue",
     account: "Personal",
+    logoKey: "gcash",
   },
   {
     id: 2,
@@ -86,6 +88,7 @@ export const initialWallets: Wallet[] = [
     mark: "M",
     tone: "yellow",
     account: "Savings",
+    logoKey: "maya",
   },
   {
     id: 3,
@@ -96,6 +99,7 @@ export const initialWallets: Wallet[] = [
     mark: "BPI",
     tone: "navy",
     account: "Primary bank",
+    logoKey: "bpi",
   },
   {
     id: 4,
@@ -106,6 +110,7 @@ export const initialWallets: Wallet[] = [
     mark: "₱",
     tone: "mint",
     account: "On hand",
+    logoKey: "cash",
   },
   {
     id: 5,
@@ -116,6 +121,7 @@ export const initialWallets: Wallet[] = [
     mark: "GT",
     tone: "lilac",
     account: "Emergency fund",
+    logoKey: "gotyme",
   },
 ];
 

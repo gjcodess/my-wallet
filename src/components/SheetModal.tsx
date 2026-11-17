@@ -24,10 +24,22 @@ import {
 import { FolderSurface } from "./FolderSurface";
 import { Icon } from "./Icon";
 import { ThemeColors, TopBar } from "./SharedUI";
-import { WalletFolder } from "./WalletFolder";
+import { WalletFolder, WalletLogoBadge } from "./WalletFolder";
+import {
+  WalletPreset,
+  WalletPresetGroup,
+  walletPresets,
+} from "../data/walletPresets";
 import { supabase } from "../lib/supabase";
 
 const WALLET_CATEGORIES = ["E-wallet", "Bank", "Cash", "Savings"];
+const PRESET_GROUPS: ("All" | WalletPresetGroup)[] = [
+  "All",
+  "E-wallet",
+  "Digital Bank",
+  "Bank",
+  "Cash",
+];
 
 export function SheetModal({
   type,
@@ -57,8 +69,14 @@ export function SheetModal({
   theme: ThemeColors;
 }) {
   const fallback = selected?.id || wallets[0]?.id || 1;
+  const [selectedPresetKey, setSelectedPresetKey] = useState<string>("custom");
+  const [presetGroup, setPresetGroup] = useState<"All" | WalletPresetGroup>("All");
+  const [presetSearch, setPresetSearch] = useState("");
+  const [logoKey, setLogoKey] = useState<string | undefined>(undefined);
+  const [recommendedTone, setRecommendedTone] = useState<Tone | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("E-wallet");
+  const [accountLabel, setAccountLabel] = useState("");
   const [tone, setTone] = useState<Tone>("blue");
   const [balance, setBalance] = useState("");
   const [amount, setAmount] = useState("");
@@ -83,14 +101,44 @@ export function SheetModal({
   const sourceWallet = wallets.find((w) => w.id === source) || wallets[0];
   const destWallet = wallets.find((w) => w.id === destination) || wallets[0];
 
+  const selectedPreset = walletPresets.find((p) => p.key === selectedPresetKey);
+  const filteredPresets = walletPresets.filter((p) => {
+    const matchesGroup = presetGroup === "All" || p.group === presetGroup;
+    const q = presetSearch.trim().toLowerCase();
+    const matchesQuery =
+      !q ||
+      p.name.toLowerCase().includes(q) ||
+      p.type.toLowerCase().includes(q);
+    return matchesGroup && matchesQuery;
+  });
+
+  const handleSelectPreset = (preset: WalletPreset | "custom") => {
+    if (preset === "custom") {
+      setSelectedPresetKey("custom");
+      setLogoKey(undefined);
+      setRecommendedTone(null);
+      setName("");
+      setAccountLabel("");
+      return;
+    }
+    setSelectedPresetKey(preset.key);
+    setLogoKey(preset.key);
+    setName(preset.name);
+    setCategory(preset.type);
+    setTone(preset.recommendedTone);
+    setRecommendedTone(preset.recommendedTone);
+    setAccountLabel(preset.account);
+  };
+
   const preview: Wallet = {
     id: 0,
     name: name || "New wallet",
     type: category,
     balance: Number(balance) || 0,
-    mark: (name || "NW").slice(0, 2).toUpperCase(),
+    mark: selectedPreset?.mark || (name || "NW").slice(0, 2).toUpperCase(),
     tone,
-    account: "Manual tracking",
+    account: accountLabel.trim() || "Manual tracking",
+    logoKey,
   };
 
   const transferValue = Number(amount);
@@ -332,6 +380,152 @@ export function SheetModal({
               <View>
                 <WalletFolder wallet={preview} hidden={false} compact />
 
+                <View style={styles.presetHeaderRow}>
+                  <Text style={[styles.formTitle, { color: theme.ink, marginTop: 18, marginBottom: 8 }]}>
+                    Choose bank or e-wallet
+                  </Text>
+                </View>
+
+                {/* Search + Group Filter */}
+                <View
+                  style={[
+                    styles.presetSearchBox,
+                    { backgroundColor: theme.soft, borderColor: theme.line },
+                  ]}
+                >
+                  <Icon name="search" size={16} color={theme.muted} />
+                  <TextInput
+                    value={presetSearch}
+                    onChangeText={setPresetSearch}
+                    placeholder="Search GCash, BPI, SeaBank..."
+                    placeholderTextColor={theme.muted}
+                    style={[styles.presetSearchInput, { color: theme.ink }]}
+                  />
+                  {presetSearch ? (
+                    <Pressable onPress={() => setPresetSearch("")} hitSlop={8}>
+                      <Icon name="close" size={14} color={theme.muted} />
+                    </Pressable>
+                  ) : null}
+                </View>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 7, marginBottom: 10 }}
+                >
+                  {PRESET_GROUPS.map((grp) => {
+                    const active = presetGroup === grp;
+                    return (
+                      <Pressable
+                        key={grp}
+                        onPress={() => setPresetGroup(grp)}
+                        style={[
+                          styles.miniPill,
+                          {
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            backgroundColor: active ? theme.accent : theme.soft,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.miniPillText,
+                            { color: active ? "#ffffff" : theme.ink },
+                          ]}
+                        >
+                          {grp}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+
+                {/* Horizontal Preset Cards + Custom Option */}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 9, paddingVertical: 2 }}
+                >
+                  <Pressable
+                    onPress={() => handleSelectPreset("custom")}
+                    style={[
+                      styles.presetCard,
+                      {
+                        backgroundColor:
+                          selectedPresetKey === "custom"
+                            ? theme.surface
+                            : theme.soft,
+                        borderColor:
+                          selectedPresetKey === "custom"
+                            ? theme.accent
+                            : theme.line,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.presetCustomIcon,
+                        { backgroundColor: theme.accentSoft },
+                      ]}
+                    >
+                      <Icon name="plus" size={18} color={theme.accentText} />
+                    </View>
+                    <Text
+                      style={[styles.presetName, { color: theme.ink }]}
+                      numberOfLines={1}
+                    >
+                      Custom
+                    </Text>
+                    <Text
+                      style={[styles.presetSub, { color: theme.muted }]}
+                      numberOfLines={1}
+                    >
+                      Any name
+                    </Text>
+                  </Pressable>
+
+                  {filteredPresets.map((preset) => {
+                    const active = selectedPresetKey === preset.key;
+                    const pPal = tonePalette[preset.recommendedTone];
+                    return (
+                      <Pressable
+                        key={preset.key}
+                        onPress={() => handleSelectPreset(preset)}
+                        style={[
+                          styles.presetCard,
+                          {
+                            backgroundColor: active ? theme.surface : theme.soft,
+                            borderColor: active ? theme.accent : theme.line,
+                          },
+                        ]}
+                      >
+                        <WalletLogoBadge
+                          logoKey={preset.key}
+                          name={preset.name}
+                          mark={preset.mark}
+                          size={34}
+                          radius={11}
+                          ink={pPal.ink}
+                          fontSize={10}
+                        />
+                        <Text
+                          style={[styles.presetName, { color: theme.ink }]}
+                          numberOfLines={1}
+                        >
+                          {preset.name}
+                        </Text>
+                        <Text
+                          style={[styles.presetSub, { color: theme.muted }]}
+                          numberOfLines={1}
+                        >
+                          {preset.type}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+
                 <Text style={[styles.formTitle, { color: theme.ink }]}>
                   Wallet detail
                 </Text>
@@ -349,6 +543,24 @@ export function SheetModal({
                     value={name}
                     onChangeText={setName}
                     placeholder="e.g. UnionBank"
+                    placeholderTextColor={theme.muted}
+                    style={[styles.fieldInput, { color: theme.ink }]}
+                  />
+                </View>
+
+                <View
+                  style={[
+                    styles.softField,
+                    { backgroundColor: theme.soft, borderColor: theme.line },
+                  ]}
+                >
+                  <Text style={[styles.fieldLabel, { color: theme.muted }]}>
+                    Label (optional)
+                  </Text>
+                  <TextInput
+                    value={accountLabel}
+                    onChangeText={setAccountLabel}
+                    placeholder="e.g. Personal, Payroll, Savings"
                     placeholderTextColor={theme.muted}
                     style={[styles.fieldInput, { color: theme.ink }]}
                   />
@@ -431,6 +643,17 @@ export function SheetModal({
                 </View>
 
                 {/* 12-Tone Color Picker */}
+                <View style={styles.colorHeaderRow}>
+                  <Text style={[styles.fieldLabel, { color: theme.muted }]}>
+                    Card color
+                  </Text>
+                  {recommendedTone ? (
+                    <Text style={[styles.recommendedHint, { color: theme.accentText }]}>
+                      Recommended: {tonePalette[recommendedTone].label}
+                      {tone !== recommendedTone ? " (customized)" : ""}
+                    </Text>
+                  ) : null}
+                </View>
                 <View style={styles.tonePicker}>
                   {(Object.keys(tonePalette) as Tone[]).map((t) => {
                     const pal = tonePalette[t];
@@ -724,14 +947,15 @@ export function SheetModal({
                             colors={[wPal.from, wPal.to]}
                             style={styles.entryWalletMark}
                           >
-                            <Text
-                              style={[
-                                styles.entryWalletMarkText,
-                                { color: wPal.ink },
-                              ]}
-                            >
-                              {w.mark}
-                            </Text>
+                            <WalletLogoBadge
+                              logoKey={w.logoKey}
+                              name={w.name}
+                              mark={w.mark}
+                              size={40}
+                              radius={14}
+                              ink={wPal.ink}
+                              fontSize={10}
+                            />
                           </LinearGradient>
                           <View style={{ flex: 1 }}>
                             <Text
@@ -1516,6 +1740,66 @@ const styles = StyleSheet.create({
     fontFamily: "Urbanist_700Bold",
     fontWeight: "700",
     fontSize: 11,
+  },
+  presetHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  presetSearchBox: {
+    height: 44,
+    borderRadius: 15,
+    borderWidth: 1,
+    paddingHorizontal: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  presetSearchInput: {
+    flex: 1,
+    fontFamily: "Urbanist_600SemiBold",
+    fontWeight: "600",
+    fontSize: 13,
+    paddingVertical: 0,
+  },
+  presetCard: {
+    width: 84,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    alignItems: "center",
+    gap: 5,
+  },
+  presetCustomIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  presetName: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 11.5,
+  },
+  presetSub: {
+    fontFamily: "Urbanist_600SemiBold",
+    fontWeight: "600",
+    fontSize: 9.5,
+  },
+  colorHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
+    marginHorizontal: 2,
+  },
+  recommendedHint: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 10.5,
   },
   tonePicker: {
     flexDirection: "row",

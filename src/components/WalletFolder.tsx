@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Animated,
+  Image,
   Pressable,
   StyleProp,
   StyleSheet,
@@ -8,9 +9,76 @@ import {
   View,
   ViewStyle,
 } from "react-native";
+import { resolveWalletLogo } from "../data/walletPresets";
 import { splitMoney, tonePalette, Wallet } from "../types/wallet";
 import { FolderSurface } from "./FolderSurface";
 import { Icon } from "./Icon";
+
+export function WalletLogoBadge({
+  logoKey,
+  name,
+  mark,
+  size = 31,
+  radius = 11,
+  ink = "#ffffff",
+  fontSize = 10,
+}: {
+  logoKey?: string;
+  name?: string;
+  mark: string;
+  size?: number;
+  radius?: number;
+  ink?: string;
+  fontSize?: number;
+}) {
+  const logo = resolveWalletLogo(logoKey, name);
+  if (logo) {
+    return (
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: radius,
+          overflow: "hidden",
+          backgroundColor: "rgba(255, 255, 255, 0.9)",
+          borderWidth: 1,
+          borderColor: "rgba(255, 255, 255, 0.35)",
+        }}
+      >
+        <Image
+          source={logo}
+          style={{ width: size - 2, height: size - 2 }}
+          resizeMode="cover"
+        />
+      </View>
+    );
+  }
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius,
+        backgroundColor: "rgba(255, 255, 255, 0.28)",
+        borderWidth: 1,
+        borderColor: "rgba(255, 255, 255, 0.3)",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: "Urbanist_800ExtraBold",
+          fontWeight: "900",
+          fontSize,
+          color: ink,
+        }}
+      >
+        {mark}
+      </Text>
+    </View>
+  );
+}
 
 export function Amount({
   value,
@@ -113,11 +181,15 @@ export function WalletFolder({
                 },
               ]}
             >
-              <View style={styles.walletLogo}>
-                <Text style={[styles.walletLogoText, { color: palette.ink }]}>
-                  {wallet.mark}
-                </Text>
-              </View>
+              <WalletLogoBadge
+                logoKey={wallet.logoKey}
+                name={wallet.name}
+                mark={wallet.mark}
+                size={31}
+                radius={11}
+                ink={palette.ink}
+                fontSize={10}
+              />
               <Text
                 style={[
                   styles.folderName,

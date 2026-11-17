@@ -29,6 +29,7 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
       mark TEXT NOT NULL,
       tone TEXT NOT NULL DEFAULT 'blue',
       account TEXT NOT NULL DEFAULT 'Personal',
+      logo_key TEXT NOT NULL DEFAULT '',
       sort_order INTEGER NOT NULL DEFAULT 0,
       updated_at TEXT NOT NULL,
       synced INTEGER NOT NULL DEFAULT 0
@@ -49,6 +50,14 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
     );
   `);
 
+  try {
+    await dbInstance.execAsync(
+      "ALTER TABLE wallets ADD COLUMN logo_key TEXT NOT NULL DEFAULT '';"
+    );
+  } catch {
+    // Column already exists on fresh DBs
+  }
+
   const countRow = await dbInstance.getFirstAsync<{ count: number }>(
     "SELECT COUNT(*) as count FROM wallets"
   );
@@ -57,8 +66,8 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
     for (let i = 0; i < initialWallets.length; i++) {
       const w = initialWallets[i];
       await dbInstance.runAsync(
-        `INSERT OR IGNORE INTO wallets (id, local_id, name, type, balance, mark, tone, account, sort_order, updated_at, synced)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+        `INSERT OR IGNORE INTO wallets (id, local_id, name, type, balance, mark, tone, account, logo_key, sort_order, updated_at, synced)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
         [
           w.id,
           w.localId || `wallet-${w.id}`,
@@ -68,6 +77,7 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
           w.mark,
           w.tone,
           w.account,
+          w.logoKey || "",
           i,
           now,
         ]
@@ -116,6 +126,7 @@ export async function loadLocalState(): Promise<{
     mark: string;
     tone: string;
     account: string;
+    logo_key?: string;
     updated_at: string;
     synced: number;
   }>("SELECT * FROM wallets ORDER BY sort_order ASC, id ASC");
@@ -149,6 +160,7 @@ export async function loadLocalState(): Promise<{
     mark: r.mark,
     tone: (r.tone as Tone) || "blue",
     account: r.account,
+    logoKey: r.logo_key || undefined,
     updatedAt: r.updated_at,
     synced: r.synced === 1,
   }));
@@ -196,8 +208,8 @@ export async function saveWalletsToSQLite(wallets: Wallet[]): Promise<void> {
     const w = wallets[i];
     const localId = w.localId || `wallet-${w.id}`;
     await db.runAsync(
-      `INSERT OR REPLACE INTO wallets (id, local_id, name, type, balance, mark, tone, account, sort_order, updated_at, synced)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT OR REPLACE INTO wallets (id, local_id, name, type, balance, mark, tone, account, logo_key, sort_order, updated_at, synced)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         w.id,
         localId,
@@ -207,6 +219,7 @@ export async function saveWalletsToSQLite(wallets: Wallet[]): Promise<void> {
         w.mark,
         w.tone,
         w.account,
+        w.logoKey || "",
         i,
         w.updatedAt || now,
         w.synced ? 1 : 0,
@@ -283,6 +296,7 @@ export async function syncWithSupabase(params: {
       mark: w.mark,
       tone: w.tone,
       account: w.account,
+      logo_key: w.logoKey || "",
       sort_order: index,
       updated_at: w.updatedAt || now,
     }));
@@ -346,6 +360,7 @@ export async function syncWithSupabase(params: {
         mark: rw.mark,
         tone: (rw.tone as Tone) || "blue",
         account: rw.account,
+        logoKey: rw.logo_key || undefined,
         updatedAt: rw.updated_at,
         synced: true,
       };

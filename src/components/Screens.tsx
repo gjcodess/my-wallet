@@ -31,7 +31,7 @@ import {
   TopBar,
   TxRow,
 } from "./SharedUI";
-import { Amount, WalletFolder } from "./WalletFolder";
+import { Amount, WalletFolder, WalletLogoBadge } from "./WalletFolder";
 
 export function HomeScreen({
   wallets,
@@ -775,9 +775,15 @@ export function WalletsScreen({
                 end={{ x: 1, y: 1 }}
                 style={styles.tileBadge}
               >
-                <Text style={[styles.tileBadgeText, { color: pal.ink }]}>
-                  {wallet.mark}
-                </Text>
+                <WalletLogoBadge
+                  logoKey={wallet.logoKey}
+                  name={wallet.name}
+                  mark={wallet.mark}
+                  size={48}
+                  radius={16}
+                  ink={pal.ink}
+                  fontSize={11}
+                />
               </LinearGradient>
 
               <View style={styles.tileMain}>
