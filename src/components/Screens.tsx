@@ -66,6 +66,7 @@ export function HomeScreen({
   ];
   const featured = ordered[0];
   const peekWallet = ordered[1];
+  const thirdWallet = wallets.length > 2 ? ordered[2] : undefined;
   const firstName = profile.fullName.split(" ")[0] || "Justin";
   const navyPalette = tonePalette.navy;
 
@@ -283,6 +284,41 @@ export function HomeScreen({
             )}
           </FolderSurface>
         </Pressable>
+
+        {/* 3rd Card Layer: Emerges smoothly into the peek slot as front card is swiped down */}
+        {thirdWallet ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.stackThirdFolderLayer,
+              {
+                opacity: dragY.interpolate({
+                  inputRange: [0, 30, 130],
+                  outputRange: [0, 0.35, 1],
+                  extrapolate: "clamp",
+                }),
+                transform: [
+                  {
+                    translateY: dragY.interpolate({
+                      inputRange: [0, 130],
+                      outputRange: [-18, 0],
+                      extrapolate: "clamp",
+                    }),
+                  },
+                  {
+                    scale: dragY.interpolate({
+                      inputRange: [0, 130],
+                      outputRange: [0.88, 0.94],
+                      extrapolate: "clamp",
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <WalletFolder wallet={thirdWallet} hidden={hidden} />
+          </Animated.View>
+        ) : null}
 
         {/* Middle Layer: Peek Next Wallet (full WalletFolder scaled slightly behind front) */}
         {peekWallet ? (
@@ -1277,11 +1313,18 @@ const styles = StyleSheet.create({
   },
   stackAddLayer: {
     position: "absolute",
-    zIndex: 1,
+    zIndex: 0,
     top: 0,
     left: 26,
     right: 26,
     height: 112,
+  },
+  stackThirdFolderLayer: {
+    position: "absolute",
+    zIndex: 1,
+    top: 52,
+    left: 0,
+    right: 0,
   },
   stackPeekLayer: {
     position: "absolute",
