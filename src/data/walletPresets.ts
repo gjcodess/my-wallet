@@ -33,7 +33,7 @@ export const walletLogoAssets: Record<string, ImageSourcePropType> = {
   eastwest: require("../../assets/logos/eastwest.webp"),
   psbank: require("../../assets/logos/psbank.webp"),
   gotyme: require("../../assets/logos/gotyme.webp"),
-  seabank: require("../../assets/logos/seabank.webp"),
+  maribank: require("../../assets/logos/maribank.webp"),
   cimb: require("../../assets/logos/cimb.webp"),
   tonik: require("../../assets/logos/tonik.webp"),
   unobank: require("../../assets/logos/unobank.webp"),
@@ -60,7 +60,7 @@ export const walletPrintmarkAssets: Record<string, ImageSourcePropType> = {
   eastwest: require("../../assets/printmarks/eastwest.webp"),
   psbank: require("../../assets/printmarks/psbank.webp"),
   gotyme: require("../../assets/printmarks/gotyme.webp"),
-  seabank: require("../../assets/printmarks/seabank.webp"),
+  maribank: require("../../assets/printmarks/maribank.webp"),
   cimb: require("../../assets/printmarks/cimb.webp"),
   tonik: require("../../assets/printmarks/tonik.webp"),
   unobank: require("../../assets/printmarks/unobank.webp"),
@@ -79,7 +79,7 @@ export const walletPresets: WalletPreset[] = [
 
   // Digital Banks
   { key: "gotyme", name: "GoTyme", type: "Bank", mark: "GT", recommendedTone: "lilac", account: "Emergency fund", group: "Digital Bank" },
-  { key: "seabank", name: "SeaBank", type: "Bank", mark: "SB", recommendedTone: "sunset", account: "Daily interest", group: "Digital Bank" },
+  { key: "maribank", name: "MariBank", type: "Bank", mark: "MB", recommendedTone: "sunset", account: "Daily interest", group: "Digital Bank" },
   { key: "cimb", name: "CIMB Bank", type: "Bank", mark: "CB", recommendedTone: "coral", account: "GSave", group: "Digital Bank" },
   { key: "tonik", name: "Tonik", type: "Savings", mark: "TK", recommendedTone: "plum", account: "Stash", group: "Digital Bank" },
   { key: "unobank", name: "UNO Bank", type: "Bank", mark: "UN", recommendedTone: "plum", account: "Savings", group: "Digital Bank" },
@@ -121,11 +121,13 @@ function resolveFromMap(
   logoKey?: string,
   walletName?: string
 ): ImageSourcePropType | undefined {
-  if (logoKey && map[logoKey]) {
-    return map[logoKey];
+  const aliasKey = logoKey === "seabank" ? "maribank" : logoKey;
+  if (aliasKey && map[aliasKey]) {
+    return map[aliasKey];
   }
   if (!walletName) return undefined;
   const normalized = walletName.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (normalized.includes("seabank") && map.maribank) return map.maribank;
   if (map[normalized]) return map[normalized];
   const matched = walletPresets.find(
     (p) =>

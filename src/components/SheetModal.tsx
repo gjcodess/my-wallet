@@ -466,7 +466,7 @@ export function SheetModal({
                   <TextInput
                     value={presetSearch}
                     onChangeText={setPresetSearch}
-                    placeholder="Search GCash, BPI, SeaBank..."
+                    placeholder="Search GCash, BPI, MariBank..."
                     placeholderTextColor={theme.muted}
                     style={[styles.presetSearchInput, { color: theme.ink }]}
                   />
