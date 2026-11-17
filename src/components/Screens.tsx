@@ -513,17 +513,75 @@ export function HomeScreen({
         ) : null}
       </View>
 
-      {/* Stack Pagination Dots */}
+      {/* Stack Pagination Dots (driven live by dragY on the UI thread) */}
       <View style={styles.stackDots}>
         {wallets.map((w, i) => {
-          const active = i === safeFront;
+          const len = wallets.length;
+          const nextIdx = (safeFront + 1) % len;
+          const prevIdx = (safeFront - 1 + len) % len;
+          const isCurrent = i === safeFront;
+          const isNext = len > 1 && i === nextIdx;
+          const isPrev = len > 1 && i === prevIdx;
+
+          const dotScaleX = isCurrent
+            ? dragY.interpolate({
+                inputRange: [-120, 0, 130],
+                outputRange: [0.75, 2.0, 0.75],
+                extrapolate: "clamp",
+              })
+            : isNext && isPrev
+              ? dragY.interpolate({
+                  inputRange: [-120, 0, 130],
+                  outputRange: [2.0, 0.75, 2.0],
+                  extrapolate: "clamp",
+                })
+              : isNext
+                ? dragY.interpolate({
+                    inputRange: [-120, 0, 130],
+                    outputRange: [0.75, 0.75, 2.0],
+                    extrapolate: "clamp",
+                  })
+                : isPrev
+                  ? dragY.interpolate({
+                      inputRange: [-120, 0, 130],
+                      outputRange: [2.0, 0.75, 0.75],
+                      extrapolate: "clamp",
+                    })
+                  : 0.75;
+
+          const dotOpacity = isCurrent
+            ? dragY.interpolate({
+                inputRange: [-120, 0, 130],
+                outputRange: [0.22, 1, 0.22],
+                extrapolate: "clamp",
+              })
+            : isNext && isPrev
+              ? dragY.interpolate({
+                  inputRange: [-120, 0, 130],
+                  outputRange: [1, 0.22, 1],
+                  extrapolate: "clamp",
+                })
+              : isNext
+                ? dragY.interpolate({
+                    inputRange: [-120, 0, 130],
+                    outputRange: [0.22, 0.22, 1],
+                    extrapolate: "clamp",
+                  })
+                : isPrev
+                  ? dragY.interpolate({
+                      inputRange: [-120, 0, 130],
+                      outputRange: [1, 0.22, 0.22],
+                      extrapolate: "clamp",
+                    })
+                  : 0.22;
+
           return (
             <Pressable
               key={w.id}
               onPress={() => {
                 if (i === safeFront || isAnimatingRef.current) return;
-                const forward = (i - safeFront + wallets.length) % wallets.length;
-                const backward = (safeFront - i + wallets.length) % wallets.length;
+                const forward = (i - safeFront + len) % len;
+                const backward = (safeFront - i + len) % len;
                 if (forward <= 2) {
                   cycleSteps(forward);
                 } else if (backward === 1) {
@@ -533,14 +591,18 @@ export function HomeScreen({
                 }
               }}
               hitSlop={6}
-              style={[
-                styles.dot,
-                {
-                  width: active ? 18 : 6,
-                  backgroundColor: active ? theme.ink : theme.soft2,
-                },
-              ]}
-            />
+            >
+              <Animated.View
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor: theme.ink,
+                    opacity: dotOpacity,
+                    transform: [{ scaleX: dotScaleX }],
+                  },
+                ]}
+              />
+            </Pressable>
           );
         })}
       </View>
@@ -1504,11 +1566,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 5,
+    gap: 6,
     marginTop: 12,
     marginBottom: 20,
   },
   dot: {
+    width: 8,
     height: 6,
     borderRadius: 3,
   },
