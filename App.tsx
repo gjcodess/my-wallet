@@ -19,6 +19,12 @@ import {
   Urbanist_700Bold,
   Urbanist_800ExtraBold,
 } from "@expo-google-fonts/urbanist";
+import Svg, {
+  Defs,
+  RadialGradient as SvgRadialGradient,
+  Rect as SvgRect,
+  Stop,
+} from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ActivityItem,
@@ -310,6 +316,38 @@ export default function App() {
         style={[styles.container, { backgroundColor: theme.page }]}
         edges={["top", "left", "right", "bottom"]}
       >
+        {/* Top Radial Gradient Background */}
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Svg width="100%" height="100%">
+            <Defs>
+              <SvgRadialGradient
+                id="bgRadial"
+                cx="50%"
+                cy="0%"
+                rx="85%"
+                ry="48%"
+              >
+                <Stop
+                  offset="0%"
+                  stopColor={dark ? "#1b2b44" : "#f9fcf5"}
+                  stopOpacity="1"
+                />
+                <Stop
+                  offset="55%"
+                  stopColor={dark ? "#101724" : "#eff4eb"}
+                  stopOpacity="1"
+                />
+                <Stop
+                  offset="100%"
+                  stopColor={theme.page}
+                  stopOpacity="1"
+                />
+              </SvgRadialGradient>
+            </Defs>
+            <SvgRect x="0" y="0" width="100%" height="100%" fill="url(#bgRadial)" />
+          </Svg>
+        </View>
+
         <StatusBar style={dark ? "light" : "dark"} />
 
         {selected && !sheet ? (

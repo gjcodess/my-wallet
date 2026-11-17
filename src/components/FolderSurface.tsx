@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { LayoutChangeEvent, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
-import Svg, { Defs, LinearGradient, Path, Stop } from "react-native-svg";
+import Svg, { Defs, G, LinearGradient, Path, Stop } from "react-native-svg";
 
 export function folderGeometry(
   width: number,
@@ -117,8 +117,8 @@ export function FolderSurface({
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <Svg
           width={size.width}
-          height={effectiveHeight}
-          viewBox={`0 0 ${size.width} ${effectiveHeight}`}
+          height={effectiveHeight + 16}
+          viewBox={`0 0 ${size.width} ${effectiveHeight + 16}`}
         >
           <Defs>
             <LinearGradient id="folderGrad" x1="0" y1="0" x2="1" y2="1">
@@ -126,6 +126,13 @@ export function FolderSurface({
               <Stop offset="100%" stopColor={toColor} />
             </LinearGradient>
           </Defs>
+          {/* Soft shape-accurate drop shadow */}
+          <G transform="translate(0, 8)">
+            <Path d={geometry.folder} fill="rgba(16, 26, 12, 0.06)" />
+          </G>
+          <G transform="translate(0, 4)">
+            <Path d={geometry.folder} fill="rgba(16, 26, 12, 0.08)" />
+          </G>
           <Path d={geometry.folder} fill="url(#folderGrad)" />
           {notch && (
             <>
