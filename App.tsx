@@ -74,6 +74,7 @@ export default function App() {
     initials: "JS",
   });
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [sheetWalletId, setSheetWalletId] = useState<number | null>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [toast, setToast] = useState("");
   const [dbReady, setDbReady] = useState(false);
@@ -84,6 +85,11 @@ export default function App() {
   const selected = useMemo(
     () => wallets.find((w) => w.id === selectedId) || null,
     [wallets, selectedId]
+  );
+
+  const sheetWallet = useMemo(
+    () => wallets.find((w) => w.id === sheetWalletId) || selected,
+    [wallets, sheetWalletId, selected]
   );
 
   const total = useMemo(
@@ -286,7 +292,7 @@ export default function App() {
   }, [toast]);
 
   const openSheet = (next: Sheet, wallet?: Wallet) => {
-    if (wallet) setSelectedId(wallet.id);
+    setSheetWalletId(wallet ? wallet.id : null);
     setSheet(next);
   };
 
@@ -354,7 +360,7 @@ export default function App() {
 
         <StatusBar style={dark ? "light" : "dark"} />
 
-        {selected && !sheet ? (
+        {selected ? (
           <WalletDetailScreen
             wallet={selected}
             activities={activityItems}
@@ -456,7 +462,7 @@ export default function App() {
           <SheetModal
             type={sheet}
             wallets={wallets}
-            selected={selected}
+            selected={sheetWallet}
             onSaveWallets={(nextWallets) => {
               setWallets(nextWallets);
               if (userId) {
@@ -473,14 +479,17 @@ export default function App() {
             onRecordActivity={(item) => {
               recordActivity(item);
             }}
-            onClose={() => setSheet(null)}
+            onClose={() => {
+              setSheet(null);
+              setSheetWalletId(null);
+            }}
             onSwitchSheet={(nextType, nextWallet) => {
-              if (nextWallet) setSelectedId(nextWallet.id);
+              if (nextWallet) setSheetWalletId(nextWallet.id);
               setSheet(nextType);
             }}
             onDone={(message) => {
               setSheet(null);
-              setSelectedId(null);
+              setSheetWalletId(null);
               setToast(message);
             }}
             profile={profile}
