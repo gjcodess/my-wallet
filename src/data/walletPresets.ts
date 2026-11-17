@@ -40,6 +40,33 @@ export const walletLogoAssets: Record<string, ImageSourcePropType> = {
   ownbank: require("../../assets/logos/ownbank.webp"),
 };
 
+export const walletPrintmarkAssets: Record<string, ImageSourcePropType> = {
+  gcash: require("../../assets/printmarks/gcash.webp"),
+  maya: require("../../assets/printmarks/maya.webp"),
+  shopeepay: require("../../assets/printmarks/shopeepay.webp"),
+  grabpay: require("../../assets/printmarks/grabpay.webp"),
+  coinsph: require("../../assets/printmarks/coinsph.webp"),
+  paypal: require("../../assets/printmarks/paypal.webp"),
+  wise: require("../../assets/printmarks/wise.webp"),
+  bpi: require("../../assets/printmarks/bpi.webp"),
+  bdo: require("../../assets/printmarks/bdo.webp"),
+  unionbank: require("../../assets/printmarks/unionbank.webp"),
+  metrobank: require("../../assets/printmarks/metrobank.webp"),
+  rcbc: require("../../assets/printmarks/rcbc.webp"),
+  landbank: require("../../assets/printmarks/landbank.webp"),
+  securitybank: require("../../assets/printmarks/securitybank.webp"),
+  chinabank: require("../../assets/printmarks/chinabank.webp"),
+  pnb: require("../../assets/printmarks/pnb.webp"),
+  eastwest: require("../../assets/printmarks/eastwest.webp"),
+  psbank: require("../../assets/printmarks/psbank.webp"),
+  gotyme: require("../../assets/printmarks/gotyme.webp"),
+  seabank: require("../../assets/printmarks/seabank.webp"),
+  cimb: require("../../assets/printmarks/cimb.webp"),
+  tonik: require("../../assets/printmarks/tonik.webp"),
+  unobank: require("../../assets/printmarks/unobank.webp"),
+  ownbank: require("../../assets/printmarks/ownbank.webp"),
+};
+
 export const walletPresets: WalletPreset[] = [
   // E-Wallets
   { key: "gcash", name: "GCash", type: "E-wallet", mark: "G", recommendedTone: "blue", account: "Personal", group: "E-wallet" },
@@ -79,16 +106,31 @@ export function resolveWalletLogo(
   logoKey?: string,
   walletName?: string
 ): ImageSourcePropType | undefined {
-  if (logoKey && walletLogoAssets[logoKey]) {
-    return walletLogoAssets[logoKey];
+  return resolveFromMap(walletLogoAssets, logoKey, walletName);
+}
+
+export function resolveWalletPrintmark(
+  logoKey?: string,
+  walletName?: string
+): ImageSourcePropType | undefined {
+  return resolveFromMap(walletPrintmarkAssets, logoKey, walletName);
+}
+
+function resolveFromMap(
+  map: Record<string, ImageSourcePropType>,
+  logoKey?: string,
+  walletName?: string
+): ImageSourcePropType | undefined {
+  if (logoKey && map[logoKey]) {
+    return map[logoKey];
   }
   if (!walletName) return undefined;
   const normalized = walletName.toLowerCase().replace(/[^a-z0-9]/g, "");
-  if (walletLogoAssets[normalized]) return walletLogoAssets[normalized];
+  if (map[normalized]) return map[normalized];
   const matched = walletPresets.find(
     (p) =>
       normalized.includes(p.key) ||
       p.name.toLowerCase().replace(/[^a-z0-9]/g, "") === normalized
   );
-  return matched ? walletLogoAssets[matched.key] : undefined;
+  return matched ? map[matched.key] : undefined;
 }

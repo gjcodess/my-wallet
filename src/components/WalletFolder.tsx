@@ -9,7 +9,7 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import { resolveWalletLogo } from "../data/walletPresets";
+import { resolveWalletLogo, resolveWalletPrintmark } from "../data/walletPresets";
 import { splitMoney, tonePalette, Wallet } from "../types/wallet";
 import { FolderSurface } from "./FolderSurface";
 import { Icon } from "./Icon";
@@ -145,6 +145,10 @@ export function WalletFolder({
   const palette = tonePalette[wallet.tone] || tonePalette.blue;
   const tabHeight = compact ? 40 : 44;
   const minHeight = compact ? 184 : 202;
+  const radius = compact ? 25 : 28;
+  const printmark = resolveWalletPrintmark(wallet.logoKey, wallet.name);
+  const printSize = compact ? 88 : 104;
+  const isLightInk = palette.ink === "#ffffff";
 
   return (
     <Pressable
@@ -160,7 +164,7 @@ export function WalletFolder({
       <FolderSurface
         tab={0.6}
         tabHeight={tabHeight}
-        radius={compact ? 25 : 28}
+        radius={radius}
         notch
         topShadow={topShadow}
         fromColor={palette.from}
@@ -278,6 +282,48 @@ export function WalletFolder({
               )}
             </Pressable>
 
+            {/* Subtle Lower-Right Printmark */}
+            <View
+              pointerEvents="none"
+              style={[
+                styles.printmarkLayer,
+                {
+                  top: tabHeight,
+                  borderBottomLeftRadius: radius,
+                  borderBottomRightRadius: radius,
+                },
+              ]}
+            >
+              {printmark ? (
+                <Image
+                  source={printmark}
+                  style={[
+                    styles.printmarkImage,
+                    {
+                      width: printSize,
+                      height: printSize,
+                      tintColor: palette.ink,
+                      opacity: isLightInk ? 0.12 : 0.085,
+                    },
+                  ]}
+                  resizeMode="contain"
+                />
+              ) : (
+                <Text
+                  style={[
+                    styles.printmarkMonogram,
+                    {
+                      color: palette.ink,
+                      fontSize: compact ? 76 : 88,
+                      opacity: isLightInk ? 0.1 : 0.07,
+                    },
+                  ]}
+                >
+                  {wallet.mark}
+                </Text>
+              )}
+            </View>
+
             {/* Folder Body */}
             <View
               style={[
@@ -394,6 +440,26 @@ const styles = StyleSheet.create({
   },
   folderBody: {
     paddingHorizontal: 23,
+  },
+  printmarkLayer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: "hidden",
+    justifyContent: "flex-end",
+    alignItems: "flex-end",
+  },
+  printmarkImage: {
+    marginRight: -10,
+    marginBottom: -12,
+  },
+  printmarkMonogram: {
+    marginRight: 12,
+    marginBottom: -14,
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "900",
+    letterSpacing: -2,
   },
   folderLabel: {
     fontFamily: "Urbanist_700Bold",
