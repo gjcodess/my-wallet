@@ -131,9 +131,9 @@ export function HomeScreen({
           style={[
             styles.roundBtn,
             {
-              backgroundColor: theme.soft,
-              borderColor: theme.dark ? theme.line : "rgba(255,255,255,0.7)",
+              backgroundColor: theme.card,
             },
+            bevelStyle(theme.dark),
           ]}
         >
           <Icon
@@ -371,7 +371,7 @@ export function WalletsScreen({
             style={[
               styles.roundBtn,
               {
-                backgroundColor: theme.soft,
+                backgroundColor: theme.card,
               },
               bevelStyle(theme.dark),
             ]}
@@ -412,7 +412,7 @@ export function WalletsScreen({
               style={({ pressed }) => [
                 styles.walletTile,
                 {
-                  backgroundColor: theme.soft,
+                  backgroundColor: theme.card,
                   transform: [{ scale: pressed ? 0.985 : 1 }],
                 },
                 bevelStyle(theme.dark),
@@ -523,7 +523,7 @@ export function ActivityScreen({
             style={[
               styles.roundBtn,
               {
-                backgroundColor: theme.soft,
+                backgroundColor: theme.card,
               },
               bevelStyle(theme.dark),
             ]}
@@ -690,8 +690,8 @@ export function ActivityScreen({
               tab={0.58}
               tabHeight={18}
               radius={20}
-              fromColor={theme.dark ? "#1b2531" : theme.soft}
-              toColor={theme.dark ? "#121922" : theme.soft2}
+              fromColor={theme.dark ? "#1b2531" : theme.card}
+              toColor={theme.dark ? "#121922" : "#edf3fc"}
               minHeight={108}
             >
               <View style={styles.categoryContent}>
@@ -880,7 +880,7 @@ function SettingsGroup({
         style={[
           styles.settingsGroupBox,
           {
-            backgroundColor: theme.soft,
+            backgroundColor: theme.card,
           },
           bevelStyle(theme.dark),
         ]}
@@ -992,7 +992,7 @@ export function WalletDetailScreen({
             style={[
               styles.roundBtn,
               {
-                backgroundColor: theme.soft,
+                backgroundColor: theme.card,
               },
               bevelStyle(theme.dark),
             ]}
@@ -1010,7 +1010,7 @@ export function WalletDetailScreen({
           style={({ pressed }) => [
             styles.detailActionBtn,
             {
-              backgroundColor: theme.soft,
+              backgroundColor: theme.card,
               transform: [{ scale: pressed ? 0.97 : 1 }],
             },
             bevelStyle(theme.dark),
@@ -1027,7 +1027,7 @@ export function WalletDetailScreen({
           style={({ pressed }) => [
             styles.detailActionBtn,
             {
-              backgroundColor: theme.soft,
+              backgroundColor: theme.card,
               transform: [{ scale: pressed ? 0.97 : 1 }],
             },
             bevelStyle(theme.dark),
@@ -1053,9 +1053,9 @@ export function WalletDetailScreen({
           style={[
             styles.emptyState,
             {
-              backgroundColor: theme.soft,
-              borderColor: theme.line,
+              backgroundColor: theme.card,
             },
+            bevelStyle(theme.dark),
           ]}
         >
           <LinearGradient

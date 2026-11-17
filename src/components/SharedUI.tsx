@@ -8,6 +8,7 @@ export type ThemeColors = {
   dark: boolean;
   page: string;
   surface: string;
+  card: string;
   soft: string;
   soft2: string;
   ink: string;
@@ -27,6 +28,7 @@ export function getThemeColors(dark: boolean): ThemeColors {
       dark: true,
       page: "#090d12",
       surface: "#121821",
+      card: "#161f2c",
       soft: "#18212c",
       soft2: "#253140",
       ink: "#f4f7ef",
@@ -42,9 +44,10 @@ export function getThemeColors(dark: boolean): ThemeColors {
   }
   return {
     dark: false,
-    page: "#eef3fa",
+    page: "#e8eff8",
     surface: "#f8fbff",
-    soft: "#e2eaf5",
+    card: "#ffffff",
+    soft: "#dfe8f4",
     soft2: "#d3dfef",
     ink: "#121a2d",
     muted: "#6c7a91",
@@ -108,7 +111,7 @@ export function TxRow({
       style={[
         styles.txRow,
         {
-          backgroundColor: theme.soft,
+          backgroundColor: theme.card,
         },
         bevelStyle(theme.dark),
       ]}
@@ -169,7 +172,7 @@ export function ActionButton({
       style={({ pressed }) => [
         styles.actionButton,
         {
-          backgroundColor: theme.soft,
+          backgroundColor: theme.card,
           transform: [{ scale: pressed ? 0.95 : 1 }],
         },
         bevelStyle(theme.dark),
@@ -235,7 +238,7 @@ export function TopBar({
           style={[
             styles.roundButton,
             {
-              backgroundColor: theme.soft,
+              backgroundColor: theme.card,
             },
             bevelStyle(theme.dark),
           ]}
