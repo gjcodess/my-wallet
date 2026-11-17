@@ -79,12 +79,44 @@ export function HomeScreen({
   walletsLenRef.current = wallets.length;
   const isAnimatingRef = useRef(false);
   const skipNextCardAnimRef = useRef(false);
+  const pendingStepsRef = useRef(0);
+
+  const cycleWallet = (direction: 1 | -1, duration = 230) => {
+    const len = walletsLenRef.current;
+    if (len <= 1 || isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
+    Animated.timing(dragY, {
+      toValue: direction === 1 ? 130 : -70,
+      duration,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (!finished) {
+        isAnimatingRef.current = false;
+        pendingStepsRef.current = 0;
+        return;
+      }
+      skipNextCardAnimRef.current = true;
+      setFront((prev) => (prev + direction + len) % len);
+    });
+  };
+
+  const cycleSteps = (steps: number) => {
+    if (steps <= 0 || isAnimatingRef.current || walletsLenRef.current <= 1) return;
+    pendingStepsRef.current = steps - 1;
+    cycleWallet(1, steps > 1 ? 150 : 230);
+  };
 
   // Reset dragY atomically in the same React commit as safeFront changing
   // so the old card never flashes back at opacity 1 for a frame.
   useLayoutEffect(() => {
     dragY.setValue(0);
     isAnimatingRef.current = false;
+    if (pendingStepsRef.current > 0) {
+      pendingStepsRef.current -= 1;
+      const nextDuration = pendingStepsRef.current > 0 ? 150 : 175;
+      requestAnimationFrame(() => cycleWallet(1, nextDuration));
+    }
   }, [safeFront, dragY]);
 
   useEffect(() => {
@@ -101,25 +133,6 @@ export function HomeScreen({
       bounciness: 5,
     }).start();
   }, [safeFront, cardAnim]);
-
-  const cycleWallet = (direction: 1 | -1) => {
-    const len = walletsLenRef.current;
-    if (len <= 1 || isAnimatingRef.current) return;
-    isAnimatingRef.current = true;
-    Animated.timing(dragY, {
-      toValue: direction === 1 ? 130 : -70,
-      duration: 230,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (!finished) {
-        isAnimatingRef.current = false;
-        return;
-      }
-      skipNextCardAnimRef.current = true;
-      setFront((prev) => (prev + direction + len) % len);
-    });
-  };
 
   const panResponder = useMemo(
     () =>
@@ -353,8 +366,8 @@ export function HomeScreen({
               wallet={thirdWallet}
               hidden={hidden}
               topShadow
-              onPress={() => setFront((safeFront + 2) % wallets.length)}
-              onMenu={() => setFront((safeFront + 2) % wallets.length)}
+              onPress={() => cycleSteps(2)}
+              onMenu={() => cycleSteps(2)}
             />
           </Animated.View>
         ) : null}
@@ -464,7 +477,18 @@ export function HomeScreen({
           return (
             <Pressable
               key={w.id}
-              onPress={() => setFront(i)}
+              onPress={() => {
+                if (i === safeFront || isAnimatingRef.current) return;
+                const forward = (i - safeFront + wallets.length) % wallets.length;
+                const backward = (safeFront - i + wallets.length) % wallets.length;
+                if (forward <= 2) {
+                  cycleSteps(forward);
+                } else if (backward === 1) {
+                  cycleWallet(-1);
+                } else {
+                  setFront(i);
+                }
+              }}
               hitSlop={6}
               style={[
                 styles.dot,
