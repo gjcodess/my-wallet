@@ -745,16 +745,37 @@ export function HomeScreen({
       {/* Recent Transactions */}
       <View style={styles.section}>
         <SectionTitle
-          title="All transactions"
-          action="Today"
+          title="Recent transactions"
+          action="View all"
+          actionIcon="chevron"
+          actionColor={theme.accentText}
           onPress={() => setTab("activity")}
           theme={theme}
         />
         <View style={styles.txList}>
-          {activities.slice(0, 4).map((item) => (
+          {activities.slice(0, 10).map((item) => (
             <TxRow key={item.id} item={item} hidden={hidden} theme={theme} />
           ))}
         </View>
+        {activities.length > 10 ? (
+          <Pressable
+            onPress={() => setTab("activity")}
+            style={({ pressed }) => [
+              styles.viewAllBtn,
+              {
+                backgroundColor: theme.card,
+                transform: [{ scale: pressed ? 0.985 : 1 }],
+              },
+              bevelStyle(theme.dark),
+              cardShadow(theme.dark),
+            ]}
+          >
+            <Text style={[styles.viewAllText, { color: theme.accentText }]}>
+              View all transactions ({activities.length})
+            </Text>
+            <Icon name="chevron" size={15} color={theme.accentText} />
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -875,7 +896,33 @@ export function ActivityScreen({
   theme: ThemeColors;
 }) {
   const [range, setRange] = useState<"Month" | "Week">("Month");
+  const [page, setPage] = useState(1);
   const barProgress = useRef(new Animated.Value(0)).current;
+
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(activities.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pageStart = (safePage - 1) * pageSize;
+  const pageEnd = Math.min(activities.length, pageStart + pageSize);
+  const pageItems = activities.slice(pageStart, pageEnd);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const visiblePages = useMemo<(number | "dots-l" | "dots-r")[]>(() => {
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const list: (number | "dots-l" | "dots-r")[] = [1];
+    if (safePage > 3) list.push("dots-l");
+    const start = Math.max(2, safePage - 1);
+    const end = Math.min(totalPages - 1, safePage + 1);
+    for (let p = start; p <= end; p++) list.push(p);
+    if (safePage < totalPages - 2) list.push("dots-r");
+    list.push(totalPages);
+    return list;
+  }, [safePage, totalPages]);
 
   useEffect(() => {
     barProgress.setValue(0);
@@ -1116,14 +1163,114 @@ export function ActivityScreen({
         />
       </View>
 
-      {/* Recent Activity List */}
+      {/* All Transactions List (10 per page) */}
       <View style={styles.section}>
-        <SectionTitle title="Recent activity" action="Today" theme={theme} />
+        <SectionTitle
+          title="All transactions"
+          action={
+            activities.length
+              ? `${pageStart + 1}–${pageEnd} of ${activities.length}`
+              : undefined
+          }
+          actionIcon={null}
+          theme={theme}
+        />
         <View style={styles.txList}>
-          {activities.map((item) => (
+          {pageItems.map((item) => (
             <TxRow key={item.id} item={item} hidden={hidden} theme={theme} />
           ))}
         </View>
+
+        {totalPages > 1 ? (
+          <View style={styles.paginationBar}>
+            <Pressable
+              onPress={() => setPage(Math.max(1, safePage - 1))}
+              disabled={safePage === 1}
+              style={({ pressed }) => [
+                styles.pageNavBtn,
+                {
+                  backgroundColor: theme.card,
+                  opacity: safePage === 1 ? 0.4 : pressed ? 0.8 : 1,
+                },
+                bevelStyle(theme.dark),
+                cardShadow(theme.dark),
+              ]}
+            >
+              <Icon name="back" size={16} color={theme.ink} />
+            </Pressable>
+
+            <View style={styles.pageNumsRow}>
+              {visiblePages.map((entry) => {
+                if (entry === "dots-l" || entry === "dots-r") {
+                  return (
+                    <Text
+                      key={entry}
+                      style={[styles.pageDots, { color: theme.muted }]}
+                    >
+                      …
+                    </Text>
+                  );
+                }
+                const active = entry === safePage;
+                if (active) {
+                  return (
+                    <LinearGradient
+                      key={entry}
+                      colors={theme.accentGradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.pageNumBtn}
+                    >
+                      <Text
+                        style={[
+                          styles.pageNumText,
+                          { color: theme.accentInk },
+                        ]}
+                      >
+                        {entry}
+                      </Text>
+                    </LinearGradient>
+                  );
+                }
+                return (
+                  <Pressable
+                    key={entry}
+                    onPress={() => setPage(entry)}
+                    style={({ pressed }) => [
+                      styles.pageNumBtn,
+                      {
+                        backgroundColor: theme.card,
+                        transform: [{ scale: pressed ? 0.94 : 1 }],
+                      },
+                      bevelStyle(theme.dark),
+                      cardShadow(theme.dark),
+                    ]}
+                  >
+                    <Text style={[styles.pageNumText, { color: theme.ink }]}>
+                      {entry}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Pressable
+              onPress={() => setPage(Math.min(totalPages, safePage + 1))}
+              disabled={safePage === totalPages}
+              style={({ pressed }) => [
+                styles.pageNavBtn,
+                {
+                  backgroundColor: theme.card,
+                  opacity: safePage === totalPages ? 0.4 : pressed ? 0.8 : 1,
+                },
+                bevelStyle(theme.dark),
+                cardShadow(theme.dark),
+              ]}
+            >
+              <Icon name="chevron" size={16} color={theme.ink} />
+            </Pressable>
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -2085,5 +2232,62 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 12,
     textAlign: "center",
+  },
+  viewAllBtn: {
+    marginTop: 12,
+    height: 46,
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+  },
+  viewAllText: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  paginationBar: {
+    marginTop: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  pageNavBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pageNumsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  pageNumBtn: {
+    minWidth: 36,
+    height: 36,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pageNumText: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 13,
+  },
+  pageDots: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 14,
+    paddingHorizontal: 2,
   },
 });

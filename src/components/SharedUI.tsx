@@ -270,25 +270,40 @@ export function ActionButton({
 export function SectionTitle({
   title,
   action,
+  actionIcon = "down",
+  actionColor,
   onPress,
   theme,
 }: {
   title: string;
   action?: string;
+  actionIcon?: string | null;
+  actionColor?: string;
   onPress?: () => void;
   theme: ThemeColors;
 }) {
+  const resolvedColor = actionColor ?? theme.muted;
   return (
     <View style={styles.sectionTitle}>
       <Text style={[styles.sectionTitleText, { color: theme.ink }]}>
         {title}
       </Text>
       {action ? (
-        <Pressable onPress={onPress} style={styles.sectionActionBtn}>
-          <Text style={[styles.sectionActionText, { color: theme.muted }]}>
+        <Pressable
+          onPress={onPress}
+          disabled={!onPress}
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.sectionActionBtn,
+            pressed && onPress ? { opacity: 0.7 } : null,
+          ]}
+        >
+          <Text style={[styles.sectionActionText, { color: resolvedColor }]}>
             {action}
           </Text>
-          <Icon name="down" size={14} color={theme.muted} />
+          {actionIcon ? (
+            <Icon name={actionIcon} size={14} color={resolvedColor} />
+          ) : null}
         </Pressable>
       ) : null}
     </View>
