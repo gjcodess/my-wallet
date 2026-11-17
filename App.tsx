@@ -98,10 +98,13 @@ export default function App() {
   const lastScrollY = useRef(0);
   const navVisibleRef = useRef(true);
   const [navVisible, setNavVisible] = useState(true);
-  const [stackDragging, setStackDragging] = useState(false);
   const navAnim = useRef(new Animated.Value(1)).current;
   const tabAnim = useRef(new Animated.Value(1)).current;
   const toastAnim = useRef(new Animated.Value(0)).current;
+
+  const handleStackDragChange = useCallback((dragging: boolean) => {
+    scrollRef.current?.setNativeProps({ scrollEnabled: !dragging });
+  }, []);
 
   const setNavbarVisible = useCallback(
     (show: boolean) => {
@@ -367,7 +370,6 @@ export default function App() {
               ref={scrollRef}
               style={{ flex: 1 }}
               showsVerticalScrollIndicator={false}
-              scrollEnabled={!stackDragging}
               onScroll={handleScroll}
               scrollEventThrottle={16}
             >
@@ -394,7 +396,7 @@ export default function App() {
                     onWallet={(w) => setSelectedId(w.id)}
                     onSheet={openSheet}
                     setTab={handleTabChange}
-                    onStackDragChange={setStackDragging}
+                    onStackDragChange={handleStackDragChange}
                     profile={profile}
                     theme={theme}
                   />

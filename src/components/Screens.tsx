@@ -79,18 +79,22 @@ export function HomeScreen({
   const dragY = useRef(new Animated.Value(0)).current;
   const walletsLenRef = useRef(wallets.length);
   walletsLenRef.current = wallets.length;
+  const featuredRef = useRef(featured);
+  featuredRef.current = featured;
+  const onWalletRef = useRef(onWallet);
+  onWalletRef.current = onWallet;
   const isAnimatingRef = useRef(false);
   const skipNextCardAnimRef = useRef(false);
   const pendingStepsRef = useRef(0);
 
-  const cycleWallet = (direction: 1 | -1, duration = 230) => {
+  const cycleWallet = (direction: 1 | -1, duration = 280) => {
     const len = walletsLenRef.current;
     if (len <= 1 || isAnimatingRef.current) return;
     isAnimatingRef.current = true;
     Animated.timing(dragY, {
       toValue: direction === 1 ? 130 : -120,
       duration,
-      easing: Easing.out(Easing.cubic),
+      easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     }).start(({ finished }) => {
       if (!finished) {
@@ -139,28 +143,44 @@ export function HomeScreen({
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => false,
+        onStartShouldSetPanResponder: () => !isAnimatingRef.current,
         onStartShouldSetPanResponderCapture: () => false,
         onMoveShouldSetPanResponder: (_evt, g) =>
           walletsLenRef.current > 1 &&
           !isAnimatingRef.current &&
-          Math.abs(g.dy) > 5 &&
-          Math.abs(g.dy) > Math.abs(g.dx),
+          Math.abs(g.dy) > 3 &&
+          Math.abs(g.dy) >= Math.abs(g.dx),
         onMoveShouldSetPanResponderCapture: (_evt, g) =>
           walletsLenRef.current > 1 &&
           !isAnimatingRef.current &&
-          Math.abs(g.dy) > 5 &&
-          Math.abs(g.dy) > Math.abs(g.dx),
+          Math.abs(g.dy) > 4 &&
+          Math.abs(g.dy) >= Math.abs(g.dx),
         onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
           onStackDragChange?.(true);
         },
         onPanResponderMove: (_evt, g) => {
+          if (walletsLenRef.current <= 1) return;
           const clamped = Math.max(-120, Math.min(130, g.dy));
           dragY.setValue(clamped);
         },
         onPanResponderRelease: (_evt, g) => {
           onStackDragChange?.(false);
+          if (
+            Math.abs(g.dx) < 8 &&
+            Math.abs(g.dy) < 8 &&
+            Math.abs(g.vy) < 0.25
+          ) {
+            Animated.spring(dragY, {
+              toValue: 0,
+              useNativeDriver: true,
+            }).start();
+            if (featuredRef.current) {
+              onWalletRef.current(featuredRef.current);
+            }
+            return;
+          }
+
           const len = walletsLenRef.current;
           if (len <= 1) {
             Animated.spring(dragY, {
@@ -170,9 +190,9 @@ export function HomeScreen({
             return;
           }
 
-          if (g.dy > 52 || g.vy > 0.5) {
+          if (g.dy > 32 || g.vy > 0.25) {
             cycleWallet(1);
-          } else if (g.dy < -48 || g.vy < -0.5) {
+          } else if (g.dy < -32 || g.vy < -0.25) {
             cycleWallet(-1);
           } else {
             Animated.spring(dragY, {
@@ -430,8 +450,8 @@ export function HomeScreen({
                     outputRange: [0.65, 1],
                   }),
                   dragY.interpolate({
-                    inputRange: [-120, 0, 60, 130],
-                    outputRange: [1, 1, 0.78, 0],
+                    inputRange: [-120, 0, 75, 130],
+                    outputRange: [1, 1, 0.72, 0],
                     extrapolate: "clamp",
                   })
                 ),
@@ -470,7 +490,6 @@ export function HomeScreen({
               wallet={featured}
               hidden={hidden}
               topShadow
-              onPress={() => onWallet(featured)}
               onMenu={() => onSheet("update", featured)}
             />
           </Animated.View>
