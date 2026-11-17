@@ -84,10 +84,12 @@ export function EdgeFade({
   position,
   color,
   size = 28,
+  opacity,
 }: {
   position: "top" | "bottom" | "left" | "right";
   color: string;
   size?: number;
+  opacity?: number | Animated.Value | Animated.AnimatedInterpolation<number>;
 }) {
   const solid = hexToRgba(color, 0.98);
   const high = hexToRgba(color, 0.72);
@@ -113,14 +115,23 @@ export function EdgeFade({
           : { top: 0, bottom: 0, right: 0, width: size };
 
   return (
-    <LinearGradient
+    <Animated.View
       pointerEvents="none"
-      colors={colors}
-      locations={isStartEdge ? [0, 0.28, 0.65, 1] : [0, 0.35, 0.72, 1]}
-      start={start}
-      end={end}
-      style={[{ position: "absolute", zIndex: 15 }, posStyle]}
-    />
+      style={[
+        { position: "absolute", zIndex: 15 },
+        posStyle,
+        opacity !== undefined ? { opacity } : null,
+      ]}
+    >
+      <LinearGradient
+        pointerEvents="none"
+        colors={colors}
+        locations={isStartEdge ? [0, 0.28, 0.65, 1] : [0, 0.35, 0.72, 1]}
+        start={start}
+        end={end}
+        style={StyleSheet.absoluteFill}
+      />
+    </Animated.View>
   );
 }
 

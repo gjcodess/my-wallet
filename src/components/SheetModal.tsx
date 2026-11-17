@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -95,8 +96,10 @@ export function SheetModal({
   const [balance, setBalance] = useState(
     editTarget ? String(editTarget.balance) : ""
   );
+  const sheetScrollY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    sheetScrollY.setValue(0);
     if (type === "edit" && editTarget) {
       setSelectedPresetKey(editTarget.logoKey || "custom");
       setLogoKey(editTarget.logoKey);
@@ -431,10 +434,15 @@ export function SheetModal({
           <TopBar title={sheetTitle} onBack={onClose} theme={theme} />
 
           <View style={{ flexShrink: 1, position: "relative" }}>
-            <ScrollView
+            <Animated.ScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{ paddingTop: 6, paddingBottom: 32 }}
+              onScroll={Animated.event(
+                [{ nativeEvent: { contentOffset: { y: sheetScrollY } } }],
+                { useNativeDriver: true }
+              )}
+              scrollEventThrottle={16}
             >
             {/* ==================== ADD / EDIT WALLET SHEET ==================== */}
             {(type === "add" || type === "edit") && (
@@ -1703,8 +1711,17 @@ export function SheetModal({
                 )}
               </View>
             )}
-            </ScrollView>
-            <EdgeFade position="top" color={theme.page} size={18} />
+            </Animated.ScrollView>
+            <EdgeFade
+              position="top"
+              color={theme.page}
+              size={18}
+              opacity={sheetScrollY.interpolate({
+                inputRange: [0, 14],
+                outputRange: [0, 1],
+                extrapolate: "clamp",
+              })}
+            />
             <EdgeFade position="bottom" color={theme.page} size={28} />
           </View>
         </View>

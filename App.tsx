@@ -102,6 +102,7 @@ export default function App() {
 
   // Scroll-reactive bottom navbar & screen/toast animations
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
   const navVisibleRef = useRef(true);
   const [navVisible, setNavVisible] = useState(true);
@@ -132,10 +133,11 @@ export default function App() {
     (nextTab: Tab) => {
       setTab(nextTab);
       lastScrollY.current = 0;
+      scrollY.setValue(0);
       scrollRef.current?.scrollTo({ y: 0, animated: false });
       setNavbarVisible(true);
     },
-    [setNavbarVisible]
+    [setNavbarVisible, scrollY]
   );
 
   useEffect(() => {
@@ -381,13 +383,17 @@ export default function App() {
               onAddWallet={() => openSheet("add")}
               theme={theme}
             />
-            <ScrollView
-              ref={scrollRef}
-              style={{ flex: 1 }}
-              showsVerticalScrollIndicator={false}
-              onScroll={handleScroll}
-              scrollEventThrottle={16}
-            >
+            <View style={{ flex: 1 }}>
+              <Animated.ScrollView
+                ref={scrollRef}
+                style={{ flex: 1 }}
+                showsVerticalScrollIndicator={false}
+                onScroll={Animated.event(
+                  [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                  { useNativeDriver: true, listener: handleScroll }
+                )}
+                scrollEventThrottle={16}
+              >
               <Animated.View
                 style={{
                   opacity: tabAnim,
@@ -451,12 +457,22 @@ export default function App() {
                   />
                 )}
               </Animated.View>
-            </ScrollView>
+            </Animated.ScrollView>
 
+            <EdgeFade
+              position="top"
+              color={dark ? "#17243a" : "#f6f9fd"}
+              size={26}
+              opacity={scrollY.interpolate({
+                inputRange: [0, 16],
+                outputRange: [0, 1],
+                extrapolate: "clamp",
+              })}
+            />
             <EdgeFade
               position="bottom"
               color={dark ? "#090d12" : "#dce6f5"}
-              size={52}
+              size={108}
             />
 
             <BottomNav
@@ -467,6 +483,7 @@ export default function App() {
               visible={navVisible}
               theme={theme}
             />
+            </View>
           </View>
         )}
 

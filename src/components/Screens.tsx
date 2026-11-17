@@ -1359,15 +1359,17 @@ export function WalletDetailScreen({
 }) {
   const related = activities.filter((item) => item.wallet === wallet.name);
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const detailScrollY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    detailScrollY.setValue(0);
     Animated.timing(slideAnim, {
       toValue: 1,
       duration: 280,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  }, [wallet.id, slideAnim]);
+  }, [wallet.id, slideAnim, detailScrollY]);
 
   return (
     <Animated.View
@@ -1408,11 +1410,17 @@ export function WalletDetailScreen({
         />
       </View>
 
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={styles.detailScreen}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={{ flex: 1 }}>
+        <Animated.ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.detailScreen}
+          showsVerticalScrollIndicator={false}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: detailScrollY } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
+        >
 
       <WalletFolder wallet={wallet} hidden={hidden} onMenu={onEdit} />
 
@@ -1487,12 +1495,23 @@ export function WalletDetailScreen({
           </Text>
         </View>
       )}
-      </ScrollView>
+      </Animated.ScrollView>
+      <EdgeFade
+        position="top"
+        color={theme.dark ? "#17243a" : "#f6f9fd"}
+        size={24}
+        opacity={detailScrollY.interpolate({
+          inputRange: [0, 16],
+          outputRange: [0, 1],
+          extrapolate: "clamp",
+        })}
+      />
       <EdgeFade
         position="bottom"
         color={theme.dark ? "#090d12" : "#dce6f5"}
-        size={36}
+        size={48}
       />
+      </View>
     </Animated.View>
   );
 }
@@ -1500,18 +1519,18 @@ export function WalletDetailScreen({
 const styles = StyleSheet.create({
   page: {
     paddingHorizontal: 18,
-    paddingTop: 6,
+    paddingTop: 12,
     paddingBottom: 105,
   },
   fixedHomeHeader: {
     paddingHorizontal: 18,
     paddingTop: 10,
-    paddingBottom: 10,
+    paddingBottom: 4,
   },
   fixedTopBarHeader: {
     paddingHorizontal: 18,
     paddingTop: 10,
-    paddingBottom: 8,
+    paddingBottom: 4,
   },
   homeHeader: {
     flexDirection: "row",
@@ -1558,7 +1577,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   totalStrip: {
-    marginTop: 6,
+    marginTop: 2,
     marginBottom: 15,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -2011,7 +2030,7 @@ const styles = StyleSheet.create({
   },
   detailScreen: {
     paddingHorizontal: 18,
-    paddingTop: 6,
+    paddingTop: 12,
     paddingBottom: 40,
   },
   detailActions: {
