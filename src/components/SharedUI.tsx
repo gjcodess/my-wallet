@@ -171,13 +171,13 @@ export function TxRow({
   const isPositive = item.amount > 0;
   const iconBg = isPositive
     ? theme.dark
-      ? "rgba(247, 220, 25, 0.14)"
-      : "rgba(247, 220, 25, 0.32)"
+      ? "rgba(250, 204, 21, 0.16)"
+      : "#fef1a8"
     : theme.accentSoft;
   const iconColor = isPositive
     ? theme.dark
-      ? "#ffe75e"
-      : "#806e00"
+      ? "#fde047"
+      : "#9a6700"
     : theme.accentText;
 
   return (
@@ -525,11 +525,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#121a2d",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
   },
   rowMain: {
     flex: 1,
