@@ -639,8 +639,9 @@ export function ActivityScreen({
           colors={["#fff58a", "#f2c715"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.flowCard, bevelStyle(false), cardShadow(theme.dark)]}
+          style={[styles.flowCard, cardShadow(theme.dark)]}
         >
+          <View style={styles.flowCardBevel} pointerEvents="none" />
           <View style={styles.flowIconBox}>
             <Icon name="arrow-down" size={16} color="#172442" />
           </View>
@@ -656,8 +657,9 @@ export function ActivityScreen({
           colors={theme.accentGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.flowCard, bevelStyle(false), cardShadow(theme.dark)]}
+          style={[styles.flowCard, cardShadow(theme.dark)]}
         >
+          <View style={styles.flowCardBevel} pointerEvents="none" />
           <View style={styles.flowIconBox}>
             <Icon name="arrow-up" size={16} color={theme.accentInk} />
           </View>
@@ -1407,6 +1409,8 @@ const styles = StyleSheet.create({
     marginBottom: 25,
   },
   flowCard: {
+    position: "relative",
+    overflow: "hidden",
     flex: 1,
     minHeight: 64,
     flexDirection: "row",
@@ -1414,11 +1418,22 @@ const styles = StyleSheet.create({
     gap: 9,
     padding: 13,
     borderRadius: 18,
-    shadowColor: "#121a2d",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 14,
-    elevation: 4,
+  },
+  flowCardBevel: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 18,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 1.5,
+    borderTopColor: "rgba(255, 255, 255, 0.45)",
+    borderLeftColor: "rgba(255, 255, 255, 0.25)",
+    borderRightColor: "rgba(18, 26, 45, 0.08)",
+    borderBottomColor: "rgba(18, 26, 45, 0.12)",
   },
   flowIconBox: {
     width: 35,
