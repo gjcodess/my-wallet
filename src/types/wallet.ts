@@ -227,3 +227,70 @@ export const splitMoney = (value: number): { whole: string; cents: string } => {
   const [whole, cents = "00"] = formatted.split(".");
   return { whole: value < 0 ? `-${whole}` : whole, cents };
 };
+
+export function isTransferActivity(item: ActivityItem): boolean {
+  return item.kind === "Transfer";
+}
+
+export function isAdjustmentActivity(item: ActivityItem): boolean {
+  return item.kind === "Updated";
+}
+
+export function isExpenseActivity(item: ActivityItem): boolean {
+  return item.amount < 0 && !isTransferActivity(item) && !isAdjustmentActivity(item);
+}
+
+export function isIncomeActivity(item: ActivityItem): boolean {
+  return item.amount > 0 && !isTransferActivity(item) && !isAdjustmentActivity(item);
+}
+
+const MONTH_INDEX: Record<string, number> = {
+  jan: 0,
+  feb: 1,
+  mar: 2,
+  apr: 3,
+  may: 4,
+  jun: 5,
+  jul: 6,
+  aug: 7,
+  sep: 8,
+  oct: 9,
+  nov: 10,
+  dec: 11,
+};
+
+export function getActivityDate(
+  item: ActivityItem,
+  referenceDate: Date = new Date()
+): Date {
+  if (item.occurredAt) {
+    const parsed = new Date(item.occurredAt);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  const raw = item.date?.trim() || "";
+  const lower = raw.toLowerCase();
+  if (lower.startsWith("today")) {
+    return new Date(referenceDate);
+  }
+  if (lower.startsWith("yesterday")) {
+    const d = new Date(referenceDate);
+    d.setDate(d.getDate() - 1);
+    return d;
+  }
+  const match = /^([a-z]{3})\s+(\d{1,2})/i.exec(raw);
+  if (match) {
+    const month = MONTH_INDEX[match[1].toLowerCase()];
+    const day = Number(match[2]);
+    if (month !== undefined && day >= 1 && day <= 31) {
+      let year = referenceDate.getFullYear();
+      const candidate = new Date(year, month, day);
+      if (candidate.getTime() - referenceDate.getTime() > 86400000) {
+        year -= 1;
+      }
+      return new Date(year, month, day);
+    }
+  }
+  return new Date(referenceDate);
+}

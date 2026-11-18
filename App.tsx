@@ -78,6 +78,7 @@ export default function App() {
   const [sheetWalletId, setSheetWalletId] = useState<number | null>(null);
   const [sheetActivity, setSheetActivity] = useState<ActivityItem | null>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
+  const [showActivityFilters, setShowActivityFilters] = useState(false);
   const [toast, setToast] = useState("");
   const [dbReady, setDbReady] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -392,6 +393,10 @@ export default function App() {
               profile={profile}
               setTab={handleTabChange}
               onAddWallet={() => openSheet("add")}
+              onActivityFilter={() =>
+                setShowActivityFilters((prev) => !prev)
+              }
+              activityFilterActive={showActivityFilters}
               theme={theme}
             />
             <View style={{ flex: 1 }}>
@@ -450,6 +455,7 @@ export default function App() {
                     activities={activityItems}
                     hidden={hidden}
                     onTransaction={openTransactionSheet}
+                    showFilters={showActivityFilters}
                     theme={theme}
                   />
                 )}

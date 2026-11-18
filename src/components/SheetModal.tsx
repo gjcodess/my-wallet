@@ -245,7 +245,7 @@ export function SheetModal({
         wallet: entryWallet.name,
         amount: signedValue,
         icon: entryIcon,
-        kind: entryType === "expense" ? entryCategory : "Money in",
+        kind: entryCategory,
         occurredAt: now,
         updatedAt: now,
         synced: false,

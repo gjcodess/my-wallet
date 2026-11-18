@@ -12,6 +12,11 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ActivityItem,
+  getActivityDate,
+  isAdjustmentActivity,
+  isExpenseActivity,
+  isIncomeActivity,
+  isTransferActivity,
   money,
   Sheet,
   Tab,
@@ -39,12 +44,16 @@ export function TabHeader({
   profile,
   setTab,
   onAddWallet,
+  onActivityFilter,
+  activityFilterActive,
   theme,
 }: {
   tab: Tab;
   profile: UserProfile;
   setTab: (t: Tab) => void;
   onAddWallet: () => void;
+  onActivityFilter?: () => void;
+  activityFilterActive?: boolean;
   theme: ThemeColors;
 }) {
   const firstName = profile.fullName.split(" ")[0] || "Justin";
@@ -119,18 +128,26 @@ export function TabHeader({
           theme={theme}
           noMargin
           right={
-            <View
-              style={[
+            <Pressable
+              onPress={onActivityFilter}
+              style={({ pressed }) => [
                 styles.roundBtn,
                 {
-                  backgroundColor: theme.card,
+                  backgroundColor: activityFilterActive
+                    ? theme.accentSoft
+                    : theme.card,
+                  transform: [{ scale: pressed ? 0.94 : 1 }],
                 },
                 bevelStyle(theme.dark),
                 cardShadow(theme.dark),
               ]}
             >
-              <Icon name="more" size={20} color={theme.ink} />
-            </View>
+              <Icon
+                name="more"
+                size={20}
+                color={activityFilterActive ? theme.accentText : theme.ink}
+              />
+            </Pressable>
           }
         />
       )}
@@ -894,31 +911,83 @@ export function WalletsScreen({
   );
 }
 
+type ActivityTypeFilter = "All" | "Expenses" | "Income" | "Transfers" | "Adjusted";
+
+const DEFAULT_EXPENSE_CATEGORIES: { label: string; icon: string }[] = [
+  { label: "Food", icon: "cup" },
+  { label: "Bills", icon: "bolt" },
+  { label: "Shopping", icon: "bag" },
+  { label: "Transport", icon: "car" },
+  { label: "Health", icon: "heart" },
+  { label: "Transfers", icon: "swap" },
+];
+
+const DEFAULT_INCOME_CATEGORIES: { label: string; icon: string }[] = [
+  { label: "Salary", icon: "briefcase" },
+  { label: "Freelance", icon: "phone" },
+  { label: "Gift", icon: "gift" },
+  { label: "Refund", icon: "arrow-down" },
+  { label: "Other", icon: "plus" },
+];
+
 export function ActivityScreen({
   activities,
   hidden,
   onTransaction,
+  showFilters = false,
   theme,
 }: {
   activities: ActivityItem[];
   hidden: boolean;
   onTransaction?: (item: ActivityItem) => void;
+  showFilters?: boolean;
   theme: ThemeColors;
 }) {
   const [range, setRange] = useState<"Month" | "Week">("Month");
+  const [categoryMode, setCategoryMode] = useState<"Expense" | "Income">("Expense");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<ActivityTypeFilter>("All");
+  const [selectedBucketIdx, setSelectedBucketIdx] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const barProgress = useRef(new Animated.Value(0)).current;
 
+  const filteredActivities = useMemo(() => {
+    return activities.filter((item) => {
+      if (typeFilter === "Expenses" && !isExpenseActivity(item)) return false;
+      if (typeFilter === "Income" && !isIncomeActivity(item)) return false;
+      if (typeFilter === "Transfers" && !isTransferActivity(item)) return false;
+      if (typeFilter === "Adjusted" && !isAdjustmentActivity(item)) return false;
+
+      if (selectedCategory) {
+        if (selectedCategory === "Transfers") {
+          return isTransferActivity(item);
+        }
+        return item.kind === selectedCategory;
+      }
+      return true;
+    });
+  }, [activities, typeFilter, selectedCategory]);
+
   const pageSize = 10;
-  const totalPages = Math.max(1, Math.ceil(activities.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(filteredActivities.length / pageSize));
   const safePage = Math.min(page, totalPages);
   const pageStart = (safePage - 1) * pageSize;
-  const pageEnd = Math.min(activities.length, pageStart + pageSize);
-  const pageItems = activities.slice(pageStart, pageEnd);
+  const pageEnd = Math.min(filteredActivities.length, pageStart + pageSize);
+  const pageItems = filteredActivities.slice(pageStart, pageEnd);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
+
+  useEffect(() => {
+    barProgress.setValue(0);
+    Animated.timing(barProgress, {
+      toValue: 1,
+      duration: 520,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [range, barProgress, activities.length]);
 
   const visiblePages = useMemo<(number | "dots-l" | "dots-r")[]>(() => {
     if (totalPages <= 5) {
@@ -934,45 +1003,135 @@ export function ActivityScreen({
     return list;
   }, [safePage, totalPages]);
 
-  useEffect(() => {
-    barProgress.setValue(0);
-    Animated.timing(barProgress, {
-      toValue: 1,
-      duration: 520,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
-  }, [range, barProgress]);
+  const totalOut = useMemo(
+    () =>
+      activities
+        .filter(isExpenseActivity)
+        .reduce((sum, a) => sum + Math.abs(a.amount), 0),
+    [activities]
+  );
 
-  const bars: [number, number][] =
-    range === "Month"
-      ? [
-          [42, 58],
-          [62, 50],
-          [48, 85],
-          [38, 55],
-          [71, 66],
-          [56, 74],
-        ]
-      : [
-          [55, 40],
-          [35, 68],
-          [64, 52],
-          [48, 79],
-          [60, 44],
-          [75, 62],
-        ];
-  const labels =
-    range === "Month"
-      ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
-      : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const totalIn = useMemo(
+    () =>
+      activities
+        .filter(isIncomeActivity)
+        .reduce((sum, a) => sum + a.amount, 0),
+    [activities]
+  );
 
-  const totalOut = activities
-    .filter((a) => a.amount < 0)
-    .reduce((sum, a) => sum + Math.abs(a.amount), 0);
-  const totalIn = activities
-    .filter((a) => a.amount > 0)
-    .reduce((sum, a) => sum + a.amount, 0);
+  const chartData = useMemo(() => {
+    const now = new Date();
+    const buckets: { key: string; label: string; income: number; expense: number }[] = [];
+
+    if (range === "Month") {
+      for (let offset = 5; offset >= 0; offset--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        const label = d.toLocaleDateString("en-US", { month: "short" });
+        buckets.push({ key, label, income: 0, expense: 0 });
+      }
+      for (const item of activities) {
+        if (!isIncomeActivity(item) && !isExpenseActivity(item)) continue;
+        const d = getActivityDate(item, now);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        const bucket = buckets.find((b) => b.key === key);
+        if (!bucket) continue;
+        if (isIncomeActivity(item)) bucket.income += item.amount;
+        else bucket.expense += Math.abs(item.amount);
+      }
+    } else {
+      for (let offset = 5; offset >= 0; offset--) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset);
+        const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        const label =
+          offset === 0
+            ? "Today"
+            : d.toLocaleDateString("en-US", { weekday: "short" });
+        buckets.push({ key, label, income: 0, expense: 0 });
+      }
+      for (const item of activities) {
+        if (!isIncomeActivity(item) && !isExpenseActivity(item)) continue;
+        const d = getActivityDate(item, now);
+        const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        const bucket = buckets.find((b) => b.key === key);
+        if (!bucket) continue;
+        if (isIncomeActivity(item)) bucket.income += item.amount;
+        else bucket.expense += Math.abs(item.amount);
+      }
+    }
+
+    const rawMax = Math.max(
+      0,
+      ...buckets.map((b) => Math.max(b.income, b.expense))
+    );
+    const stepBase = rawMax <= 3000 ? 1000 : rawMax <= 15000 ? 5000 : 10000;
+    const yMax = Math.max(3000, Math.ceil(rawMax / (stepBase * 3)) * (stepBase * 3));
+    const gridLabels = [
+      money(yMax, true),
+      money((yMax * 2) / 3, true),
+      money(yMax / 3, true),
+      "₱0",
+    ];
+    const bars = buckets.map((b) => ({
+      ...b,
+      inPct: b.income > 0 ? Math.max(5, Math.round((b.income / yMax) * 100)) : 0,
+      outPct: b.expense > 0 ? Math.max(5, Math.round((b.expense / yMax) * 100)) : 0,
+    }));
+    return { gridLabels, bars };
+  }, [activities, range]);
+
+  const categoryCards = useMemo(() => {
+    const totals = new Map<string, { icon: string; label: string; amount: number }>();
+
+    if (categoryMode === "Expense") {
+      for (const def of DEFAULT_EXPENSE_CATEGORIES) {
+        totals.set(def.label, { icon: def.icon, label: def.label, amount: 0 });
+      }
+      for (const item of activities) {
+        if (isTransferActivity(item)) {
+          const cur = totals.get("Transfers")!;
+          cur.amount += Math.abs(item.amount);
+        } else if (isExpenseActivity(item)) {
+          const label = item.kind || "Other";
+          const existing = totals.get(label);
+          if (existing) {
+            existing.amount += Math.abs(item.amount);
+          } else {
+            totals.set(label, {
+              icon: item.icon || "bag",
+              label,
+              amount: Math.abs(item.amount),
+            });
+          }
+        }
+      }
+    } else {
+      for (const def of DEFAULT_INCOME_CATEGORIES) {
+        totals.set(def.label, { icon: def.icon, label: def.label, amount: 0 });
+      }
+      for (const item of activities) {
+        if (isIncomeActivity(item)) {
+          const label = item.kind || "Other";
+          const existing = totals.get(label);
+          if (existing) {
+            existing.amount += item.amount;
+          } else {
+            totals.set(label, {
+              icon: item.icon || "arrow-down",
+              label,
+              amount: item.amount,
+            });
+          }
+        }
+      }
+    }
+
+    return Array.from(totals.values()).sort((a, b) => b.amount - a.amount);
+  }, [activities, categoryMode]);
+
+  const activeBucket =
+    selectedBucketIdx !== null ? chartData.bars[selectedBucketIdx] : undefined;
+  const hasFilter = typeFilter !== "All" || selectedCategory !== null;
 
   return (
     <View style={styles.page}>
@@ -981,12 +1140,51 @@ export function ActivityScreen({
           Total spending
         </Text>
         <Amount
-          value={totalOut || 11376.9}
+          value={totalOut}
           hidden={hidden}
           size="lg"
           color={theme.ink}
         />
       </View>
+
+      {showFilters ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterChipRow}
+        >
+          {(["All", "Expenses", "Income", "Transfers", "Adjusted"] as const).map(
+            (opt) => {
+              const active = typeFilter === opt;
+              return (
+                <Pressable
+                  key={opt}
+                  onPress={() => {
+                    setTypeFilter(opt);
+                    setPage(1);
+                  }}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: active ? theme.accent : theme.card,
+                      borderColor: active ? theme.accent : theme.line,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      { color: active ? theme.accentInk : theme.ink },
+                    ]}
+                  >
+                    {opt}
+                  </Text>
+                </Pressable>
+              );
+            }
+          )}
+        </ScrollView>
+      ) : null}
 
       {/* Navy Folder Chart */}
       <View style={{ marginTop: 14 }}>
@@ -1001,8 +1199,43 @@ export function ActivityScreen({
         >
           {({ notchX, notchHeight }) => (
             <View style={{ minHeight: 232 }}>
+              {/* Chart Legend / Selected Bucket Summary in Folder Tab */}
+              <View style={[styles.chartTabLegend, { height: 42 }]}>
+                {activeBucket ? (
+                  <Text style={styles.chartTabSummary} numberOfLines={1}>
+                    {activeBucket.label}: +
+                    {hidden ? "••" : money(activeBucket.income, true)} / -
+                    {hidden ? "••" : money(activeBucket.expense, true)}
+                  </Text>
+                ) : (
+                  <View style={styles.chartLegendPills}>
+                    <View style={styles.chartLegendItem}>
+                      <View
+                        style={[
+                          styles.chartLegendDot,
+                          { backgroundColor: "#f5c414" },
+                        ]}
+                      />
+                      <Text style={styles.chartLegendText}>Money in</Text>
+                    </View>
+                    <View style={styles.chartLegendItem}>
+                      <View
+                        style={[
+                          styles.chartLegendDot,
+                          { backgroundColor: "#60a5fa" },
+                        ]}
+                      />
+                      <Text style={styles.chartLegendText}>Spending</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+
               <Pressable
-                onPress={() => setRange(range === "Month" ? "Week" : "Month")}
+                onPress={() => {
+                  setSelectedBucketIdx(null);
+                  setRange(range === "Month" ? "Week" : "Month");
+                }}
                 style={[
                   styles.rangePill,
                   { left: notchX, height: notchHeight },
@@ -1015,55 +1248,74 @@ export function ActivityScreen({
               {/* Chart Grid & Bars */}
               <View style={styles.chartBody}>
                 <View style={styles.chartGrid}>
-                  {["₱30k", "₱20k", "₱10k", "₱0"].map((lvl) => (
-                    <View key={lvl} style={styles.chartGridLine}>
+                  {chartData.gridLabels.map((lvl, idx) => (
+                    <View key={`${idx}-${lvl}`} style={styles.chartGridLine}>
                       <Text style={styles.chartGridText}>{lvl}</Text>
                     </View>
                   ))}
                 </View>
 
                 <View style={styles.barsContainer}>
-                  {bars.map(([a, b], i) => (
-                    <View key={i} style={styles.barGroup}>
-                      <View style={styles.barPair}>
-                        <Animated.View
+                  {chartData.bars.map((b, i) => {
+                    const isSelected = selectedBucketIdx === i;
+                    return (
+                      <Pressable
+                        key={b.key}
+                        onPress={() =>
+                          setSelectedBucketIdx(isSelected ? null : i)
+                        }
+                        style={[
+                          styles.barGroup,
+                          isSelected && styles.barGroupActive,
+                        ]}
+                      >
+                        <View style={styles.barPair}>
+                          <Animated.View
+                            style={[
+                              styles.bar,
+                              {
+                                height: barProgress.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: ["0%", `${b.inPct}%`],
+                                }),
+                                overflow: "hidden",
+                              },
+                            ]}
+                          >
+                            <LinearGradient
+                              colors={["#fff99a", "#f5c414"]}
+                              style={StyleSheet.absoluteFill}
+                            />
+                          </Animated.View>
+                          <Animated.View
+                            style={[
+                              styles.bar,
+                              {
+                                height: barProgress.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: ["0%", `${b.outPct}%`],
+                                }),
+                                overflow: "hidden",
+                              },
+                            ]}
+                          >
+                            <LinearGradient
+                              colors={["#a8ddff", "#3b82f6"]}
+                              style={StyleSheet.absoluteFill}
+                            />
+                          </Animated.View>
+                        </View>
+                        <Text
                           style={[
-                            styles.bar,
-                            {
-                              height: barProgress.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: ["0%", `${a}%`],
-                              }),
-                              overflow: "hidden",
-                            },
+                            styles.barLabel,
+                            isSelected && { color: "#ffffff", fontWeight: "800" },
                           ]}
                         >
-                          <LinearGradient
-                            colors={["#fff99a", "#f5c414"]}
-                            style={StyleSheet.absoluteFill}
-                          />
-                        </Animated.View>
-                        <Animated.View
-                          style={[
-                            styles.bar,
-                            {
-                              height: barProgress.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: ["0%", `${b}%`],
-                              }),
-                              overflow: "hidden",
-                            },
-                          ]}
-                        >
-                          <LinearGradient
-                            colors={["#a8ddff", "#3b82f6"]}
-                            style={StyleSheet.absoluteFill}
-                          />
-                        </Animated.View>
-                      </View>
-                      <Text style={styles.barLabel}>{labels[i]}</Text>
-                    </View>
-                  ))}
+                          {b.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
                 </View>
               </View>
             </View>
@@ -1086,7 +1338,7 @@ export function ActivityScreen({
           <View style={{ flex: 1 }}>
             <Text style={styles.flowLabel}>Money in</Text>
             <Text style={styles.flowValue} numberOfLines={1}>
-              {hidden ? "••••" : money(totalIn || 36007)}
+              {hidden ? "••••" : money(totalIn)}
             </Text>
           </View>
         </LinearGradient>
@@ -1109,14 +1361,24 @@ export function ActivityScreen({
               style={[styles.flowValue, { color: theme.accentInk }]}
               numberOfLines={1}
             >
-              {hidden ? "••••" : money(totalOut || 18070)}
+              {hidden ? "••••" : money(totalOut)}
             </Text>
           </View>
         </LinearGradient>
       </View>
 
       {/* Categories Horizontal Folder Cards */}
-      <SectionTitle title="Categories" action="Expense" theme={theme} />
+      <SectionTitle
+        title="Categories"
+        action={categoryMode}
+        actionColor={theme.accentText}
+        onPress={() => {
+          setCategoryMode((prev) => (prev === "Expense" ? "Income" : "Expense"));
+          setSelectedCategory(null);
+          setPage(1);
+        }}
+        theme={theme}
+      />
       <View style={{ position: "relative", marginHorizontal: -18 }}>
         <ScrollView
           horizontal
@@ -1126,40 +1388,71 @@ export function ActivityScreen({
             { paddingHorizontal: 18 },
           ]}
         >
-          {(
-            [
-              ["bag", "Groceries", 4207],
-              ["bolt", "Bills", 3241.6],
-              ["cup", "Food", 2185],
-              ["swap", "Transfers", 6200],
-            ] as const
-          ).map(([icon, label, amount]) => (
-            <View key={label} style={styles.categoryCardWrapper}>
-              <FolderSurface
-                tab={0.58}
-                tabHeight={18}
-                radius={20}
-                fromColor={theme.dark ? "#1b2531" : theme.card}
-                toColor={theme.dark ? "#121922" : "#edf3fc"}
-                minHeight={108}
+          {categoryCards.map(({ icon, label, amount }) => {
+            const active = selectedCategory === label;
+            return (
+              <Pressable
+                key={label}
+                onPress={() => {
+                  setSelectedCategory(active ? null : label);
+                  setPage(1);
+                }}
+                style={({ pressed }) => [
+                  styles.categoryCardWrapper,
+                  pressed ? { transform: [{ scale: 0.97 }] } : null,
+                ]}
               >
-                <View style={styles.categoryContent}>
-                  <View style={styles.categoryIconPos}>
-                    <Icon name={icon} size={20} color={theme.accentText} />
+                <FolderSurface
+                  tab={0.58}
+                  tabHeight={18}
+                  radius={20}
+                  fromColor={
+                    active
+                      ? theme.accentGradient[0]
+                      : theme.dark
+                        ? "#1b2531"
+                        : theme.card
+                  }
+                  toColor={
+                    active
+                      ? theme.accentGradient[1]
+                      : theme.dark
+                        ? "#121922"
+                        : "#edf3fc"
+                  }
+                  minHeight={108}
+                >
+                  <View style={styles.categoryContent}>
+                    <View style={styles.categoryIconPos}>
+                      <Icon
+                        name={icon}
+                        size={20}
+                        color={active ? theme.accentInk : theme.accentText}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.categoryLabel,
+                        { color: active ? theme.accentInk : theme.muted },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {label}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.categoryAmount,
+                        { color: active ? theme.accentInk : theme.ink },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {hidden ? "••••" : money(amount)}
+                    </Text>
                   </View>
-                  <Text style={[styles.categoryLabel, { color: theme.muted }]}>
-                    {label}
-                  </Text>
-                  <Text
-                    style={[styles.categoryAmount, { color: theme.ink }]}
-                    numberOfLines={1}
-                  >
-                    {hidden ? "••••" : money(amount)}
-                  </Text>
-                </View>
-              </FolderSurface>
-            </View>
-          ))}
+                </FolderSurface>
+              </Pressable>
+            );
+          })}
         </ScrollView>
         <EdgeFade
           position="left"
@@ -1176,26 +1469,68 @@ export function ActivityScreen({
       {/* All Transactions List (10 per page) */}
       <View style={styles.section}>
         <SectionTitle
-          title="All transactions"
+          title={
+            selectedCategory
+              ? `${selectedCategory} transactions`
+              : typeFilter !== "All"
+                ? `${typeFilter}`
+                : "All transactions"
+          }
           action={
-            activities.length
-              ? `${pageStart + 1}–${pageEnd} of ${activities.length}`
+            hasFilter
+              ? "Clear filter"
+              : filteredActivities.length
+                ? `${pageStart + 1}–${pageEnd} of ${filteredActivities.length}`
+                : undefined
+          }
+          actionIcon={hasFilter ? "close" : null}
+          actionColor={hasFilter ? theme.accentText : undefined}
+          onPress={
+            hasFilter
+              ? () => {
+                  setSelectedCategory(null);
+                  setTypeFilter("All");
+                  setPage(1);
+                }
               : undefined
           }
-          actionIcon={null}
           theme={theme}
         />
-        <View style={styles.txList}>
-          {pageItems.map((item) => (
-            <TxRow
-              key={item.id}
-              item={item}
-              hidden={hidden}
-              onPress={onTransaction ? () => onTransaction(item) : undefined}
-              theme={theme}
-            />
-          ))}
-        </View>
+        {pageItems.length ? (
+          <View style={styles.txList}>
+            {pageItems.map((item) => (
+              <TxRow
+                key={item.id}
+                item={item}
+                hidden={hidden}
+                onPress={onTransaction ? () => onTransaction(item) : undefined}
+                theme={theme}
+              />
+            ))}
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.emptyState,
+              { backgroundColor: theme.card },
+              bevelStyle(theme.dark),
+              cardShadow(theme.dark),
+            ]}
+          >
+            <LinearGradient
+              colors={theme.accentGradient}
+              style={styles.emptyStateIcon}
+            >
+              <Icon name="activity" size={22} color={theme.accentInk} />
+            </LinearGradient>
+            <Text style={[styles.emptyStateTitle, { color: theme.ink }]}>
+              No matching transactions
+            </Text>
+            <Text style={[styles.emptyStateSub, { color: theme.muted }]}>
+              Try clearing the filter or add a new transaction.
+            </Text>
+          </View>
+        )}
 
         {totalPages > 1 ? (
           <View style={styles.paginationBar}>
@@ -1954,6 +2289,61 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: -4,
     marginBottom: 6,
+  },
+  filterChipRow: {
+    gap: 8,
+    paddingTop: 6,
+    paddingBottom: 2,
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  filterChipText: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  chartTabLegend: {
+    position: "absolute",
+    left: 18,
+    top: 0,
+    maxWidth: "56%",
+    justifyContent: "center",
+  },
+  chartLegendPills: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  chartLegendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  chartLegendDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  chartLegendText: {
+    color: "rgba(255, 255, 255, 0.78)",
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 10.5,
+  },
+  chartTabSummary: {
+    color: "#ffffff",
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 10.5,
+  },
+  barGroupActive: {
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderRadius: 8,
+    paddingHorizontal: 5,
   },
   rangePill: {
     position: "absolute",
