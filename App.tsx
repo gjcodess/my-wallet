@@ -541,36 +541,34 @@ export default function App() {
         style={[styles.container, { backgroundColor: theme.page }]}
         edges={["top", "left", "right", "bottom"]}
       >
-        {/* Top Radial Gradient Background */}
+        {/* Top Background Gradient (clean vertical wash in dark mode, soft radial in light mode) */}
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <Svg width="100%" height="100%">
-            <Defs>
-              <SvgRadialGradient
-                id="bgRadial"
-                cx="50%"
-                cy="0%"
-                rx="85%"
-                ry="48%"
-              >
-                <Stop
-                  offset="0%"
-                  stopColor={dark ? "#1e3250" : "#ffffff"}
-                  stopOpacity="1"
-                />
-                <Stop
-                  offset="50%"
-                  stopColor={dark ? "#101724" : "#eef3fa"}
-                  stopOpacity="1"
-                />
-                <Stop
-                  offset="100%"
-                  stopColor={dark ? "#090d12" : "#dbe6f5"}
-                  stopOpacity="1"
-                />
-              </SvgRadialGradient>
-            </Defs>
-            <SvgRect x="0" y="0" width="100%" height="100%" fill="url(#bgRadial)" />
-          </Svg>
+          {dark ? (
+            <LinearGradient
+              colors={["#121923", "#0c1118", "#090d12"]}
+              locations={[0, 0.5, 1]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+          ) : (
+            <Svg width="100%" height="100%">
+              <Defs>
+                <SvgRadialGradient
+                  id="bgRadial"
+                  cx="50%"
+                  cy="0%"
+                  rx="85%"
+                  ry="48%"
+                >
+                  <Stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+                  <Stop offset="50%" stopColor="#eef3fa" stopOpacity="1" />
+                  <Stop offset="100%" stopColor="#dbe6f5" stopOpacity="1" />
+                </SvgRadialGradient>
+              </Defs>
+              <SvgRect x="0" y="0" width="100%" height="100%" fill="url(#bgRadial)" />
+            </Svg>
+          )}
         </View>
 
         <StatusBar style={dark ? "light" : "dark"} />
@@ -696,7 +694,7 @@ export default function App() {
 
             <EdgeFade
               position="top"
-              color={dark ? "#17243a" : "#f6f9fd"}
+              color={dark ? "#121923" : "#f6f9fd"}
               size={26}
               opacity={scrollY.interpolate({
                 inputRange: [0, 16],

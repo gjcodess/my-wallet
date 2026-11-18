@@ -2753,7 +2753,7 @@ export function WalletDetailScreen({
       </Animated.ScrollView>
       <EdgeFade
         position="top"
-        color={theme.dark ? "#17243a" : "#f6f9fd"}
+        color={theme.dark ? "#121923" : "#f6f9fd"}
         size={24}
         opacity={detailScrollY.interpolate({
           inputRange: [0, 16],
