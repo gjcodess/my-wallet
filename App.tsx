@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import * as LocalAuthentication from "expo-local-authentication";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import {
   useFonts,
@@ -91,6 +92,8 @@ export default function App() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [appLockPin, setAppLockPin] = useState<string | null>(null);
+  const [biometricsSupported, setBiometricsSupported] = useState(false);
+  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [lockModalMode, setLockModalMode] = useState<AppLockMode | null>(null);
   const appLockPinRef = useRef<string | null>(null);
@@ -213,6 +216,7 @@ export default function App() {
         setProfile(state.profile);
         setLastSyncedAt(state.lastSyncedAt);
         setAppLockPin(state.appLockPin);
+        setBiometricsEnabled(state.biometricsEnabled);
         if (state.appLockPin) {
           setIsLocked(true);
         }
@@ -221,6 +225,16 @@ export default function App() {
       .catch(() => {
         if (mounted) setDbReady(true);
       });
+
+    (async () => {
+      try {
+        const hasHw = await LocalAuthentication.hasHardwareAsync();
+        const enrolled = await LocalAuthentication.isEnrolledAsync();
+        if (mounted) setBiometricsSupported(hasHw && enrolled);
+      } catch {
+        if (mounted) setBiometricsSupported(false);
+      }
+    })();
     return () => {
       mounted = false;
     };
@@ -482,6 +496,33 @@ export default function App() {
     scheduleCloudSync();
   };
 
+  const handleToggleBiometrics = async () => {
+    if (!appLockPin) return;
+    if (biometricsEnabled) {
+      setBiometricsEnabled(false);
+      saveSettingToSQLite("app_lock_biometrics", "false").catch(() => {});
+      setToast("Biometric unlock disabled");
+      return;
+    }
+    try {
+      const res = await LocalAuthentication.authenticateAsync({
+        promptMessage: "Enable biometric unlock",
+        promptSubtitle: "Verify Fingerprint or Face ID",
+        cancelLabel: "Cancel",
+        disableDeviceFallback: true,
+      });
+      if (res.success) {
+        setBiometricsEnabled(true);
+        saveSettingToSQLite("app_lock_biometrics", "true").catch(() => {});
+        setToast("Biometric unlock enabled");
+      } else {
+        setToast("Biometric verification cancelled");
+      }
+    } catch {
+      setToast("Biometrics unavailable on this device");
+    }
+  };
+
   const handleUpdateProfile = (nextProfile: UserProfile) => {
     setProfile(nextProfile);
     saveSettingToSQLite("full_name", nextProfile.fullName).catch(() => {});
@@ -634,10 +675,13 @@ export default function App() {
                     userEmail={userEmail}
                     lastSyncedAt={lastSyncedAt}
                     appLockEnabled={Boolean(appLockPin)}
+                    biometricsSupported={biometricsSupported}
+                    biometricsEnabled={biometricsEnabled}
                     onToggleAppLock={() =>
                       setLockModalMode(appLockPin ? "disable" : "setup")
                     }
                     onChangeAppLockPin={() => setLockModalMode("change")}
+                    onToggleBiometrics={handleToggleBiometrics}
                     onOpenAuth={() => openSheet("auth")}
                     onSyncNow={handleSyncNow}
                     theme={theme}
@@ -756,6 +800,7 @@ export default function App() {
           visible={isLocked || lockModalMode !== null}
           mode={isLocked ? "unlock" : lockModalMode ?? "setup"}
           expectedPin={appLockPin}
+          biometricsEnabled={biometricsSupported && biometricsEnabled}
           onUnlock={() => setIsLocked(false)}
           onSavePin={(pin) => {
             setAppLockPin(pin);
@@ -766,8 +811,10 @@ export default function App() {
           }}
           onDisable={() => {
             setAppLockPin(null);
+            setBiometricsEnabled(false);
             setIsLocked(false);
             saveSettingToSQLite("app_lock_pin", "").catch(() => {});
+            saveSettingToSQLite("app_lock_biometrics", "false").catch(() => {});
             setLockModalMode(null);
             setToast("App Lock disabled");
           }}

@@ -136,6 +136,7 @@ export async function loadLocalState(): Promise<{
   profile: UserProfile;
   lastSyncedAt: string | null;
   appLockPin: string | null;
+  biometricsEnabled: boolean;
 }> {
   const db = await getDb();
   const walletRows = await db.getAllAsync<{
@@ -216,6 +217,7 @@ export async function loadLocalState(): Promise<{
     },
     lastSyncedAt: settingsMap.get("last_synced_at") || null,
     appLockPin: settingsMap.get("app_lock_pin") || null,
+    biometricsEnabled: settingsMap.get("app_lock_biometrics") === "true",
   };
 }
 

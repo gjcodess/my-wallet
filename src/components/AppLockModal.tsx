@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as LocalAuthentication from "expo-local-authentication";
 import { Icon } from "./Icon";
 import { bevelStyle, cardShadow, ThemeColors } from "./SharedUI";
 
@@ -25,6 +26,7 @@ export function AppLockModal({
   visible,
   mode,
   expectedPin,
+  biometricsEnabled = false,
   onUnlock,
   onSavePin,
   onDisable,
@@ -34,6 +36,7 @@ export function AppLockModal({
   visible: boolean;
   mode: AppLockMode;
   expectedPin: string | null;
+  biometricsEnabled?: boolean;
   onUnlock?: () => void;
   onSavePin?: (pin: string) => void;
   onDisable?: () => void;
@@ -45,6 +48,29 @@ export function AppLockModal({
   const [draftPin, setDraftPin] = useState("");
   const [error, setError] = useState("");
   const shakeX = useRef(new Animated.Value(0)).current;
+  const biometricBusyRef = useRef(false);
+
+  const triggerBiometrics = async () => {
+    if (biometricBusyRef.current || !biometricsEnabled) return;
+    biometricBusyRef.current = true;
+    try {
+      const res = await LocalAuthentication.authenticateAsync({
+        promptMessage: "Unlock My Wallet",
+        promptSubtitle: "Verify with Fingerprint or Face ID",
+        cancelLabel: "Use PIN",
+        disableDeviceFallback: true,
+      });
+      if (res.success) {
+        setDigits("");
+        setError("");
+        onUnlock?.();
+      }
+    } catch {
+      // Fall back silently to 4-digit PIN keypad
+    } finally {
+      biometricBusyRef.current = false;
+    }
+  };
 
   useEffect(() => {
     if (!visible) return;
@@ -56,7 +82,13 @@ export function AppLockModal({
     } else {
       setStep("enter");
     }
-  }, [visible, mode]);
+    if (mode === "unlock" && biometricsEnabled) {
+      const t = setTimeout(() => {
+        triggerBiometrics();
+      }, 150);
+      return () => clearTimeout(t);
+    }
+  }, [visible, mode, biometricsEnabled]);
 
   const triggerShake = (message: string) => {
     setError(message);
@@ -240,6 +272,31 @@ export function AppLockModal({
               {row.map((key) => {
                 if (key === "cancel") {
                   if (mode === "unlock") {
+                    if (biometricsEnabled) {
+                      return (
+                        <Pressable
+                          key={key}
+                          onPress={triggerBiometrics}
+                          style={({ pressed }) => [
+                            styles.keyBtn,
+                            {
+                              backgroundColor: pressed
+                                ? theme.soft2
+                                : theme.accentSoft,
+                              transform: [{ scale: pressed ? 0.94 : 1 }],
+                            },
+                            bevelStyle(theme.dark),
+                            cardShadow(theme.dark),
+                          ]}
+                        >
+                          <Icon
+                            name="fingerprint"
+                            size={24}
+                            color={theme.accentText}
+                          />
+                        </Pressable>
+                      );
+                    }
                     return <View key={key} style={styles.keySpacer} />;
                   }
                   return (

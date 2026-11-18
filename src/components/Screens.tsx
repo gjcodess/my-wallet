@@ -2162,8 +2162,11 @@ export function SettingsScreen({
   userEmail,
   lastSyncedAt,
   appLockEnabled,
+  biometricsSupported,
+  biometricsEnabled,
   onToggleAppLock,
   onChangeAppLockPin,
+  onToggleBiometrics,
   onOpenAuth,
   onSyncNow,
   theme,
@@ -2177,8 +2180,11 @@ export function SettingsScreen({
   userEmail: string | null;
   lastSyncedAt: string | null;
   appLockEnabled: boolean;
+  biometricsSupported: boolean;
+  biometricsEnabled: boolean;
   onToggleAppLock: () => void;
   onChangeAppLockPin: () => void;
+  onToggleBiometrics: () => void;
   onOpenAuth: () => void;
   onSyncNow: () => void;
   theme: ThemeColors;
@@ -2273,6 +2279,26 @@ export function SettingsScreen({
             title="Change PIN"
             subtitle="Update your 4-digit passcode"
             onPress={onChangeAppLockPin}
+            theme={theme}
+          />
+        ) : null}
+        {appLockEnabled && biometricsSupported ? (
+          <SettingRow
+            icon="fingerprint"
+            title="Biometric unlock"
+            subtitle={
+              biometricsEnabled
+                ? "Fingerprint or Face ID active"
+                : "Unlock faster with biometrics"
+            }
+            onPress={onToggleBiometrics}
+            control={
+              <SwitchControl
+                on={biometricsEnabled}
+                onPress={onToggleBiometrics}
+                theme={theme}
+              />
+            }
             theme={theme}
           />
         ) : null}
