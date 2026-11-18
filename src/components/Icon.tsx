@@ -277,6 +277,17 @@ export function Icon({
             <Circle cx="8.5" cy="8.5" r="1.2" fill={color} />
           </>
         );
+      case "card":
+        return (
+          <>
+            <Rect x="3" y="5.5" width="18" height="13" rx="2.5" />
+            <Path d="M3 10h18M7 14.5h3.5" />
+          </>
+        );
+      case "star":
+        return (
+          <Path d="m12 3.5 2.5 5.1 5.6.8-4 3.9.9 5.6-5-2.6-5 2.6.9-5.6-4-3.9 5.6-.8Z" />
+        );
       default:
         return <Circle cx="12" cy="12" r="6" />;
     }
