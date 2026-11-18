@@ -4,8 +4,202 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ActivityItem, money, Tab, Tone, tonePalette } from "../types/wallet";
 import { Icon } from "./Icon";
 
+export type AccentPaletteId =
+  | "blue"
+  | "emerald"
+  | "violet"
+  | "rose"
+  | "amber"
+  | "teal"
+  | "coral"
+  | "indigo";
+
+export type AccentPaletteSpec = {
+  id: AccentPaletteId;
+  label: string;
+  swatch: [string, string];
+  light: {
+    accent: string;
+    accentSoft: string;
+    accentInk: string;
+    accentText: string;
+    accentGradient: [string, string];
+  };
+  dark: {
+    accent: string;
+    accentSoft: string;
+    accentInk: string;
+    accentText: string;
+    accentGradient: [string, string];
+  };
+};
+
+export const ACCENT_PALETTES: AccentPaletteSpec[] = [
+  {
+    id: "blue",
+    label: "Blue",
+    swatch: ["#8fd0ff", "#2563eb"],
+    light: {
+      accent: "#2563eb",
+      accentSoft: "#dcebff",
+      accentInk: "#ffffff",
+      accentText: "#1d4ed8",
+      accentGradient: ["#8fd0ff", "#2563eb"],
+    },
+    dark: {
+      accent: "#60a5fa",
+      accentSoft: "rgba(96, 165, 250, 0.14)",
+      accentInk: "#06111f",
+      accentText: "#93c5fd",
+      accentGradient: ["#93ddff", "#3b82f6"],
+    },
+  },
+  {
+    id: "emerald",
+    label: "Emerald",
+    swatch: ["#6ee7b7", "#059669"],
+    light: {
+      accent: "#059669",
+      accentSoft: "#d1fae5",
+      accentInk: "#ffffff",
+      accentText: "#047857",
+      accentGradient: ["#34d399", "#059669"],
+    },
+    dark: {
+      accent: "#34d399",
+      accentSoft: "rgba(52, 211, 153, 0.15)",
+      accentInk: "#042317",
+      accentText: "#6ee7b7",
+      accentGradient: ["#6ee7b7", "#10b981"],
+    },
+  },
+  {
+    id: "violet",
+    label: "Violet",
+    swatch: ["#c4b5fd", "#7c3aed"],
+    light: {
+      accent: "#7c3aed",
+      accentSoft: "#ede9fe",
+      accentInk: "#ffffff",
+      accentText: "#6d28d9",
+      accentGradient: ["#a78bfa", "#6d28d9"],
+    },
+    dark: {
+      accent: "#a78bfa",
+      accentSoft: "rgba(167, 139, 250, 0.16)",
+      accentInk: "#160a2e",
+      accentText: "#c4b5fd",
+      accentGradient: ["#ddd6fe", "#a78bfa"],
+    },
+  },
+  {
+    id: "rose",
+    label: "Rose",
+    swatch: ["#fda4af", "#e11d48"],
+    light: {
+      accent: "#e11d48",
+      accentSoft: "#ffe4e6",
+      accentInk: "#ffffff",
+      accentText: "#be123c",
+      accentGradient: ["#fb7185", "#e11d48"],
+    },
+    dark: {
+      accent: "#fb7185",
+      accentSoft: "rgba(251, 113, 133, 0.15)",
+      accentInk: "#2b0712",
+      accentText: "#fda4af",
+      accentGradient: ["#fecdd3", "#fb7185"],
+    },
+  },
+  {
+    id: "amber",
+    label: "Amber",
+    swatch: ["#fcd34d", "#d97706"],
+    light: {
+      accent: "#d97706",
+      accentSoft: "#fef3c7",
+      accentInk: "#ffffff",
+      accentText: "#b45309",
+      accentGradient: ["#f59e0b", "#b45309"],
+    },
+    dark: {
+      accent: "#fbbf24",
+      accentSoft: "rgba(251, 191, 36, 0.15)",
+      accentInk: "#261602",
+      accentText: "#fde68a",
+      accentGradient: ["#fde68a", "#f59e0b"],
+    },
+  },
+  {
+    id: "teal",
+    label: "Teal",
+    swatch: ["#5eead4", "#0d9488"],
+    light: {
+      accent: "#0d9488",
+      accentSoft: "#ccfbf1",
+      accentInk: "#ffffff",
+      accentText: "#0f766e",
+      accentGradient: ["#2dd4bf", "#0d9488"],
+    },
+    dark: {
+      accent: "#2dd4bf",
+      accentSoft: "rgba(45, 212, 191, 0.15)",
+      accentInk: "#042320",
+      accentText: "#5eead4",
+      accentGradient: ["#5eead4", "#14b8a6"],
+    },
+  },
+  {
+    id: "coral",
+    label: "Coral",
+    swatch: ["#fdba74", "#ea580c"],
+    light: {
+      accent: "#ea580c",
+      accentSoft: "#ffedd5",
+      accentInk: "#ffffff",
+      accentText: "#c2410c",
+      accentGradient: ["#fb923c", "#ea580c"],
+    },
+    dark: {
+      accent: "#fb923c",
+      accentSoft: "rgba(251, 146, 60, 0.15)",
+      accentInk: "#291003",
+      accentText: "#fed7aa",
+      accentGradient: ["#fed7aa", "#fb923c"],
+    },
+  },
+  {
+    id: "indigo",
+    label: "Indigo",
+    swatch: ["#a5b4fc", "#4f46e5"],
+    light: {
+      accent: "#4f46e5",
+      accentSoft: "#e0e7ff",
+      accentInk: "#ffffff",
+      accentText: "#4338ca",
+      accentGradient: ["#818cf8", "#4338ca"],
+    },
+    dark: {
+      accent: "#818cf8",
+      accentSoft: "rgba(129, 140, 248, 0.16)",
+      accentInk: "#0c0f33",
+      accentText: "#c7d2fe",
+      accentGradient: ["#c7d2fe", "#818cf8"],
+    },
+  },
+];
+
+export function isAccentPaletteId(val?: string | null): val is AccentPaletteId {
+  return ACCENT_PALETTES.some((p) => p.id === val);
+}
+
+export function getAccentPalette(id: AccentPaletteId): AccentPaletteSpec {
+  return ACCENT_PALETTES.find((p) => p.id === id) || ACCENT_PALETTES[0];
+}
+
 export type ThemeColors = {
   dark: boolean;
+  accentId: AccentPaletteId;
   page: string;
   surface: string;
   card: string;
@@ -22,10 +216,17 @@ export type ThemeColors = {
   accentGradient: [string, string];
 };
 
-export function getThemeColors(dark: boolean): ThemeColors {
+export function getThemeColors(
+  dark: boolean,
+  accentId: AccentPaletteId = "blue"
+): ThemeColors {
+  const spec = getAccentPalette(accentId);
+  const accentSet = dark ? spec.dark : spec.light;
+
   if (dark) {
     return {
       dark: true,
+      accentId: spec.id,
       page: "#090d12",
       surface: "#121821",
       card: "#161f2c",
@@ -35,15 +236,12 @@ export function getThemeColors(dark: boolean): ThemeColors {
       muted: "#8f9aa8",
       line: "rgba(255, 255, 255, 0.08)",
       navy: "#1b2a48",
-      accent: "#60a5fa",
-      accentSoft: "rgba(96, 165, 250, 0.14)",
-      accentInk: "#06111f",
-      accentText: "#93c5fd",
-      accentGradient: ["#93ddff", "#3b82f6"],
+      ...accentSet,
     };
   }
   return {
     dark: false,
+    accentId: spec.id,
     page: "#e8eff8",
     surface: "#f8fbff",
     card: "#ffffff",
@@ -53,11 +251,7 @@ export function getThemeColors(dark: boolean): ThemeColors {
     muted: "#6c7a91",
     line: "rgba(18, 26, 45, 0.08)",
     navy: "#172442",
-    accent: "#2563eb",
-    accentSoft: "#dcebff",
-    accentInk: "#ffffff",
-    accentText: "#1d4ed8",
-    accentGradient: ["#8fd0ff", "#2563eb"],
+    ...accentSet,
   };
 }
 

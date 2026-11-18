@@ -1,5 +1,6 @@
 import * as SQLite from "expo-sqlite";
 import { supabase } from "./supabase";
+import { AccentPaletteId, isAccentPaletteId } from "../components/SharedUI";
 import {
   ActivityItem,
   initialActivities,
@@ -133,6 +134,7 @@ export async function loadLocalState(): Promise<{
   activities: ActivityItem[];
   dark: boolean;
   hidden: boolean;
+  accentColor: AccentPaletteId;
   profile: UserProfile;
   lastSyncedAt: string | null;
   appLockPin: string | null;
@@ -211,11 +213,17 @@ export async function loadLocalState(): Promise<{
   const monthlyBudget =
     Number.isFinite(rawBudget) && rawBudget > 0 ? rawBudget : null;
 
+  const rawAccent = settingsMap.get("accent_color");
+  const accentColor: AccentPaletteId = isAccentPaletteId(rawAccent)
+    ? rawAccent
+    : "blue";
+
   return {
     wallets: wallets.length || isSeeded ? wallets : initialWallets,
     activities: activities.length || isSeeded ? activities : initialActivities,
     dark: settingsMap.get("dark_mode") === "true",
     hidden: settingsMap.get("hide_balances") === "true",
+    accentColor,
     profile: {
       fullName: settingsMap.get("full_name") || "Justin Santos",
       initials: settingsMap.get("initials") || "JS",

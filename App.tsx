@@ -49,7 +49,12 @@ import {
   syncWithSupabase,
 } from "./src/lib/sqlite";
 import { supabase } from "./src/lib/supabase";
-import { BottomNav, EdgeFade, getThemeColors } from "./src/components/SharedUI";
+import {
+  AccentPaletteId,
+  BottomNav,
+  EdgeFade,
+  getThemeColors,
+} from "./src/components/SharedUI";
 import {
   ActivityScreen,
   HomeScreen,
@@ -77,6 +82,7 @@ export default function App() {
     useState<ActivityItem[]>(initialActivities);
   const [hidden, setHidden] = useState(false);
   const [dark, setDark] = useState(false);
+  const [accentColor, setAccentColor] = useState<AccentPaletteId>("blue");
   const [profile, setProfile] = useState<UserProfile>({
     fullName: "Justin Santos",
     initials: "JS",
@@ -115,7 +121,10 @@ export default function App() {
     [wallets]
   );
 
-  const theme = useMemo(() => getThemeColors(dark), [dark]);
+  const theme = useMemo(
+    () => getThemeColors(dark, accentColor),
+    [dark, accentColor]
+  );
 
   // Scroll-reactive bottom navbar & screen/toast animations
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
@@ -214,6 +223,7 @@ export default function App() {
         setActivityItems(state.activities);
         setDark(state.dark);
         setHidden(state.hidden);
+        setAccentColor(state.accentColor);
         setProfile(state.profile);
         setLastSyncedAt(state.lastSyncedAt);
         setAppLockPin(state.appLockPin);
@@ -295,6 +305,11 @@ export default function App() {
       () => {}
     );
   }, [hidden, dbReady]);
+
+  useEffect(() => {
+    if (!dbReady) return;
+    saveSettingToSQLite("accent_color", accentColor).catch(() => {});
+  }, [accentColor, dbReady]);
 
   // 4. Cloud Sync helper with Supabase PostgreSQL
   const handleSyncNow = useCallback(async () => {
@@ -670,6 +685,8 @@ export default function App() {
                   <SettingsScreen
                     dark={dark}
                     setDark={setDark}
+                    accentColor={accentColor}
+                    setAccentColor={setAccentColor}
                     hidden={hidden}
                     setHidden={setHidden}
                     showToast={setToast}

@@ -288,6 +288,15 @@ export function Icon({
         return (
           <Path d="m12 3.5 2.5 5.1 5.6.8-4 3.9.9 5.6-5-2.6-5 2.6.9-5.6-4-3.9 5.6-.8Z" />
         );
+      case "palette":
+        return (
+          <>
+            <Path d="M12 3a9 9 0 0 0-9 9 9 9 0 0 0 9 9c1.2 0 2-.8 2-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8Z" />
+            <Circle cx="7.5" cy="11.5" r="1" fill={color} />
+            <Circle cx="10.5" cy="7.5" r="1" fill={color} />
+            <Circle cx="15" cy="8.5" r="1" fill={color} />
+          </>
+        );
       default:
         return <Circle cx="12" cy="12" r="6" />;
     }

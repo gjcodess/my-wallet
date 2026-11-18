@@ -33,10 +33,13 @@ import {
 import { FolderSurface } from "./FolderSurface";
 import { Icon } from "./Icon";
 import {
+  ACCENT_PALETTES,
+  AccentPaletteId,
   ActionButton,
   bevelStyle,
   cardShadow,
   EdgeFade,
+  getAccentPalette,
   SectionTitle,
   SwitchControl,
   ThemeColors,
@@ -1724,7 +1727,7 @@ export function ActivityScreen({
                       <View
                         style={[
                           styles.chartLegendDot,
-                          { backgroundColor: "#60a5fa" },
+                          { backgroundColor: theme.accent },
                         ]}
                       />
                       <Text style={styles.chartLegendText}>Spending</Text>
@@ -1802,7 +1805,7 @@ export function ActivityScreen({
                             ]}
                           >
                             <LinearGradient
-                              colors={["#a8ddff", "#3b82f6"]}
+                              colors={theme.accentGradient}
                               style={StyleSheet.absoluteFill}
                             />
                           </Animated.View>
@@ -2283,6 +2286,8 @@ export function ActivityScreen({
 export function SettingsScreen({
   dark,
   setDark,
+  accentColor,
+  setAccentColor,
   hidden,
   setHidden,
   showToast,
@@ -2301,6 +2306,8 @@ export function SettingsScreen({
 }: {
   dark: boolean;
   setDark: (v: boolean) => void;
+  accentColor: AccentPaletteId;
+  setAccentColor: (v: AccentPaletteId) => void;
   hidden: boolean;
   setHidden: (v: boolean) => void;
   showToast: (s: string) => void;
@@ -2317,6 +2324,9 @@ export function SettingsScreen({
   onSyncNow: () => void;
   theme: ThemeColors;
 }) {
+  const activeAccentSpec = getAccentPalette(accentColor);
+  const accentRows = [ACCENT_PALETTES.slice(0, 4), ACCENT_PALETTES.slice(4, 8)];
+
   return (
     <View style={styles.page}>
       {/* Profile Card (Opens Supabase Auth / Cloud Sync Sheet) */}
@@ -2325,7 +2335,7 @@ export function SettingsScreen({
           colors={theme.accentGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.profileCard}
+          style={[styles.profileCard, { shadowColor: theme.accent }]}
         >
           <View style={styles.profileCardAvatar}>
             <Text
@@ -2364,6 +2374,108 @@ export function SettingsScreen({
           }
           theme={theme}
         />
+
+        <View
+          style={[
+            styles.accentPickerBlock,
+            {
+              borderBottomWidth: 1,
+              borderBottomColor: theme.line,
+            },
+          ]}
+        >
+          <View style={styles.accentPickerHeader}>
+            <LinearGradient
+              colors={theme.accentGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.settingIconBox}
+            >
+              <Icon name="palette" size={18} color={theme.accentInk} />
+            </LinearGradient>
+            <View style={styles.rowMain}>
+              <Text style={[styles.rowTitle, { color: theme.ink }]}>
+                Accent color
+              </Text>
+              <Text style={[styles.rowSub, { color: theme.muted }]}>
+                Theme highlights, buttons & tabs
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.accentBadge,
+                { backgroundColor: theme.accentSoft },
+              ]}
+            >
+              <Text
+                style={[styles.accentBadgeText, { color: theme.accentText }]}
+              >
+                {activeAccentSpec.label}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.accentGrid}>
+            {accentRows.map((row, rowIdx) => (
+              <View key={rowIdx} style={styles.accentGridRow}>
+                {row.map((item) => {
+                  const selected = item.id === accentColor;
+                  const modePalette = dark ? item.dark : item.light;
+                  return (
+                    <Pressable
+                      key={item.id}
+                      onPress={() => {
+                        if (item.id !== accentColor) {
+                          setAccentColor(item.id);
+                          showToast(`Accent color set to ${item.label}`);
+                        }
+                      }}
+                      style={({ pressed }) => [
+                        styles.accentTile,
+                        {
+                          backgroundColor: selected
+                            ? theme.accentSoft
+                            : theme.soft,
+                          borderColor: selected
+                            ? modePalette.accent
+                            : theme.line,
+                          transform: [{ scale: pressed ? 0.96 : 1 }],
+                        },
+                      ]}
+                    >
+                      <LinearGradient
+                        colors={modePalette.accentGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.accentSwatch}
+                      >
+                        {selected ? (
+                          <Icon
+                            name="check"
+                            size={13}
+                            color={modePalette.accentInk}
+                          />
+                        ) : null}
+                      </LinearGradient>
+                      <Text
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.85}
+                        style={[
+                          styles.accentTileLabel,
+                          { color: selected ? theme.accentText : theme.ink },
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+        </View>
+
         <SettingRow
           icon="eye"
           title="Hide balances"
@@ -3447,6 +3559,55 @@ const styles = StyleSheet.create({
     fontFamily: "Urbanist_600SemiBold",
     fontWeight: "600",
     fontSize: 11,
+  },
+  accentPickerBlock: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 12,
+  },
+  accentPickerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  accentBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  accentBadgeText: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 11,
+  },
+  accentGrid: {
+    gap: 8,
+  },
+  accentGridRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  accentTile: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingVertical: 9,
+    paddingHorizontal: 4,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  accentSwatch: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  accentTileLabel: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 10.5,
   },
   detailScreen: {
     paddingHorizontal: 18,
