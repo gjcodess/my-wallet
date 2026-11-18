@@ -348,9 +348,13 @@ export default function App() {
       minute: "2-digit",
     }).format(new Date(nowIso));
     const date = `Today, ${timeStr}`;
+    const maxId = activitiesRef.current.reduce(
+      (max, a) => (a.id > max ? a.id : max),
+      0
+    );
     const newItem: ActivityItem = {
       ...item,
-      id: Date.now(),
+      id: Math.max(Date.now(), maxId + 1),
       date,
       occurredAt: nowIso,
     };

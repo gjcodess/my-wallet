@@ -144,6 +144,8 @@ export function SheetModal({
     sheetScrollY.setValue(0);
     setShowOpeningKeypad(false);
     setWalletConfirmDelete(false);
+    setTransferFee(0);
+    setPickingTransferSide(null);
     if (type === "edit" && editTarget) {
       setSelectedPresetKey(editTarget.logoKey || "custom");
       setLogoKey(editTarget.logoKey);
@@ -168,6 +170,10 @@ export function SheetModal({
   const [entryType, setEntryType] = useState<"expense" | "income">("expense");
   const [entryCategory, setEntryCategory] = useState("Food");
   const [note, setNote] = useState("");
+  const [transferFee, setTransferFee] = useState<number>(0);
+  const [pickingTransferSide, setPickingTransferSide] = useState<
+    "from" | "to" | null
+  >(null);
 
   // Transaction Detail Edit / Delete states
   const [txEditing, setTxEditing] = useState(false);
@@ -261,6 +267,9 @@ export function SheetModal({
   };
 
   const transferValue = Number(amount);
+  const transferTotalDebit = Number(
+    ((transferValue || 0) + transferFee).toFixed(2)
+  );
   const entryValue = Number(amount);
   const entryWallet = wallets.find((w) => w.id === walletId) || wallets[0];
 
@@ -276,8 +285,9 @@ export function SheetModal({
 
   const transferInvalid =
     !transferValue ||
+    transferValue <= 0 ||
     source === destination ||
-    transferValue > (sourceWallet?.balance || 0);
+    transferTotalDebit > (sourceWallet?.balance || 0);
 
   const save = () => {
     const now = new Date().toISOString();
@@ -384,7 +394,7 @@ export function SheetModal({
         w.id === source
           ? {
               ...w,
-              balance: Number((w.balance - transferValue).toFixed(2)),
+              balance: Number((w.balance - transferTotalDebit).toFixed(2)),
               updatedAt: now,
               synced: false,
             }
@@ -411,7 +421,25 @@ export function SheetModal({
         updatedAt: now,
         synced: false,
       });
-      onDone(`${money(transferValue)} transferred`);
+      if (transferFee > 0) {
+        onRecordActivity({
+          localId: `tx-${Date.now()}-fee`,
+          walletLocalId: getWalletLocalId(sourceWallet),
+          title: `Transfer fee (${sourceWallet.name} to ${destWallet.name})`,
+          wallet: sourceWallet.name,
+          amount: -transferFee,
+          icon: "bolt",
+          kind: "Other",
+          occurredAt: now,
+          updatedAt: now,
+          synced: false,
+        });
+      }
+      onDone(
+        transferFee > 0
+          ? `${money(transferValue)} transferred (+${money(transferFee)} fee)`
+          : `${money(transferValue)} transferred`
+      );
     }
   };
 
@@ -1474,59 +1502,146 @@ export function SheetModal({
             {/* ==================== TRANSFER SHEET ==================== */}
             {type === "transfer" && sourceWallet && destWallet && (
               <View>
-                <View style={styles.transferRoute}>
-                  {/* From Wallet */}
-                  <View
+                {/* Side-by-Side From -> To Wallet Cards with Floating Swap */}
+                <View style={styles.transferSideRow}>
+                  <Pressable
+                    onPress={() =>
+                      setPickingTransferSide(
+                        pickingTransferSide === "from" ? null : "from"
+                      )
+                    }
                     style={[
-                      styles.transferBox,
-                      { backgroundColor: theme.soft, borderColor: theme.line },
+                      styles.transferSideCard,
+                      {
+                        backgroundColor:
+                          pickingTransferSide === "from"
+                            ? theme.surface
+                            : theme.soft,
+                        borderColor:
+                          pickingTransferSide === "from"
+                            ? theme.accent
+                            : theme.line,
+                      },
                     ]}
                   >
-                    <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                      From
+                    <Text style={[styles.transferSideRole, { color: theme.muted }]}>
+                      FROM · TAP TO CHANGE
                     </Text>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={{ gap: 8, marginTop: 6 }}
+                    <View style={styles.transferSideIdentity}>
+                      <WalletLogoBadge
+                        logoKey={sourceWallet.logoKey}
+                        name={sourceWallet.name}
+                        mark={sourceWallet.mark}
+                        size={28}
+                        radius={9}
+                        ink={theme.ink}
+                        fontSize={9}
+                      />
+                      <Text
+                        style={[styles.transferSideName, { color: theme.ink }]}
+                        numberOfLines={1}
+                      >
+                        {sourceWallet.name}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[styles.transferSideBal, { color: theme.muted }]}
+                      numberOfLines={1}
                     >
-                      {wallets.map((w) => {
-                        const active = w.id === source;
-                        return (
-                          <Pressable
-                            key={w.id}
-                            onPress={() => setSource(w.id)}
-                            style={[
-                              styles.walletSelectChip,
-                              {
-                                backgroundColor: active
-                                  ? theme.accent
-                                  : theme.soft2,
-                              },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.walletSelectChipText,
-                                { color: active ? "#ffffff" : theme.ink },
-                              ]}
-                            >
-                              {w.name}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </ScrollView>
-                  </View>
+                      {money(sourceWallet.balance)}
+                    </Text>
+                    {transferValue > 0 ? (
+                      <Text
+                        style={[
+                          styles.transferSideAfter,
+                          {
+                            color:
+                              transferTotalDebit > sourceWallet.balance
+                                ? "#c04444"
+                                : theme.accentText,
+                          },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        After:{" "}
+                        {money(
+                          Number(
+                            (sourceWallet.balance - transferTotalDebit).toFixed(2)
+                          )
+                        )}
+                      </Text>
+                    ) : null}
+                  </Pressable>
 
-                  {/* Swap Button */}
+                  <Pressable
+                    onPress={() =>
+                      setPickingTransferSide(
+                        pickingTransferSide === "to" ? null : "to"
+                      )
+                    }
+                    style={[
+                      styles.transferSideCard,
+                      {
+                        backgroundColor:
+                          pickingTransferSide === "to"
+                            ? theme.surface
+                            : theme.soft,
+                        borderColor:
+                          pickingTransferSide === "to"
+                            ? theme.accent
+                            : theme.line,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.transferSideRole, { color: theme.muted }]}>
+                      TO · TAP TO CHANGE
+                    </Text>
+                    <View style={styles.transferSideIdentity}>
+                      <WalletLogoBadge
+                        logoKey={destWallet.logoKey}
+                        name={destWallet.name}
+                        mark={destWallet.mark}
+                        size={28}
+                        radius={9}
+                        ink={theme.ink}
+                        fontSize={9}
+                      />
+                      <Text
+                        style={[styles.transferSideName, { color: theme.ink }]}
+                        numberOfLines={1}
+                      >
+                        {destWallet.name}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[styles.transferSideBal, { color: theme.muted }]}
+                      numberOfLines={1}
+                    >
+                      {money(destWallet.balance)}
+                    </Text>
+                    {transferValue > 0 ? (
+                      <Text
+                        style={[
+                          styles.transferSideAfter,
+                          { color: theme.accentText },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        After:{" "}
+                        {money(
+                          Number((destWallet.balance + transferValue).toFixed(2))
+                        )}
+                      </Text>
+                    ) : null}
+                  </Pressable>
+
                   <Pressable
                     onPress={() => {
                       setSource(destination);
                       setDestination(source);
                     }}
                     style={[
-                      styles.transferSwapBtn,
+                      styles.transferCenterSwapBtn,
                       { borderColor: theme.page },
                     ]}
                   >
@@ -1534,40 +1649,76 @@ export function SheetModal({
                       colors={theme.accentGradient}
                       style={styles.transferSwapInner}
                     >
-                      <Icon name="swap" size={18} color={theme.accentInk} />
+                      <Icon name="swap" size={16} color={theme.accentInk} />
                     </LinearGradient>
                   </Pressable>
+                </View>
 
-                  {/* To Wallet */}
+                {pickingTransferSide ? (
                   <View
                     style={[
-                      styles.transferBox,
+                      styles.transferPickerDrawer,
                       { backgroundColor: theme.soft, borderColor: theme.line },
                     ]}
                   >
-                    <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                      To
+                    <Text
+                      style={[
+                        styles.fieldLabel,
+                        { color: theme.muted, marginBottom: 6 },
+                      ]}
+                    >
+                      {pickingTransferSide === "from"
+                        ? "Select source wallet"
+                        : "Select destination wallet"}
                     </Text>
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={{ gap: 8, marginTop: 6 }}
+                      contentContainerStyle={{ gap: 8 }}
                     >
                       {wallets.map((w) => {
-                        const active = w.id === destination;
+                        const active =
+                          pickingTransferSide === "from"
+                            ? w.id === source
+                            : w.id === destination;
                         return (
                           <Pressable
                             key={w.id}
-                            onPress={() => setDestination(w.id)}
+                            onPress={() => {
+                              if (pickingTransferSide === "from") {
+                                if (w.id === destination) {
+                                  setDestination(source);
+                                }
+                                setSource(w.id);
+                              } else {
+                                if (w.id === source) {
+                                  setSource(destination);
+                                }
+                                setDestination(w.id);
+                              }
+                              setPickingTransferSide(null);
+                            }}
                             style={[
                               styles.walletSelectChip,
                               {
                                 backgroundColor: active
                                   ? theme.accent
-                                  : theme.soft2,
+                                  : theme.card,
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 6,
                               },
                             ]}
                           >
+                            <WalletLogoBadge
+                              logoKey={w.logoKey}
+                              name={w.name}
+                              mark={w.mark}
+                              size={18}
+                              radius={6}
+                              ink={active ? "#ffffff" : theme.ink}
+                              fontSize={7}
+                            />
                             <Text
                               style={[
                                 styles.walletSelectChipText,
@@ -1581,17 +1732,54 @@ export function SheetModal({
                       })}
                     </ScrollView>
                   </View>
-                </View>
+                ) : null}
 
+                {/* Amount Display Box with Send-All Chip */}
                 <View
                   style={[
                     styles.amountEntryBox,
-                    { backgroundColor: theme.soft, borderColor: theme.line },
+                    {
+                      backgroundColor: theme.soft,
+                      borderColor: theme.line,
+                      marginTop: 12,
+                      marginBottom: 8,
+                    },
                   ]}
                 >
-                  <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                    Amount to transfer
-                  </Text>
+                  <View style={styles.transferAmountHeadRow}>
+                    <Text style={[styles.fieldLabel, { color: theme.muted }]}>
+                      Amount to transfer
+                    </Text>
+                    {sourceWallet.balance > transferFee ? (
+                      <Pressable
+                        onPress={() =>
+                          setAmount(
+                            String(
+                              Math.max(
+                                0,
+                                Number(
+                                  (sourceWallet.balance - transferFee).toFixed(2)
+                                )
+                              )
+                            )
+                          )
+                        }
+                        style={[
+                          styles.sendAllChip,
+                          { backgroundColor: theme.accentSoft },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.sendAllChipText,
+                            { color: theme.accentText },
+                          ]}
+                        >
+                          Send max
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
                   <View style={styles.amountEntryRow}>
                     <Text style={[styles.amountEntrySign, { color: theme.ink }]}>
                       ₱
@@ -1608,8 +1796,44 @@ export function SheetModal({
                     </Text>
                   </View>
                   <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                    Available: {money(sourceWallet.balance)}
+                    {transferFee > 0
+                      ? `Total deducted: ${money(transferTotalDebit)} (incl. ${money(transferFee)} fee)`
+                      : `Available in ${sourceWallet.name}: ${money(sourceWallet.balance)}`}
                   </Text>
+                </View>
+
+                {/* Optional Transfer Fee Chips */}
+                <View style={styles.feeRow}>
+                  <Text style={[styles.feeLabel, { color: theme.muted }]}>
+                    Fee
+                  </Text>
+                  {[0, 10, 15, 25].map((feeAmt) => {
+                    const active = transferFee === feeAmt;
+                    return (
+                      <Pressable
+                        key={feeAmt}
+                        onPress={() => setTransferFee(feeAmt)}
+                        style={[
+                          styles.feeChip,
+                          {
+                            backgroundColor: active
+                              ? theme.accent
+                              : theme.soft,
+                            borderColor: active ? theme.accent : theme.line,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.feeChipText,
+                            { color: active ? theme.accentInk : theme.ink },
+                          ]}
+                        >
+                          {feeAmt === 0 ? "Free" : `₱${feeAmt}`}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
                 </View>
 
                 <AmountKeypad
@@ -1625,27 +1849,20 @@ export function SheetModal({
                     Choose two different wallets.
                   </Text>
                 )}
-                {transferValue > sourceWallet.balance && (
+                {transferTotalDebit > sourceWallet.balance && (
                   <Text style={styles.errorText}>
-                    Amount is higher than the available balance.
+                    {transferFee > 0
+                      ? "Amount + fee exceeds the available balance."
+                      : "Amount is higher than the available balance."}
                   </Text>
                 )}
 
-                <LinearGradient
-                  colors={["#22385f", "#101827"]}
-                  style={styles.confirmPanel}
-                >
-                  <Text style={styles.confirmSub}>You will send</Text>
-                  <Text style={styles.confirmAmount}>
-                    {transferValue ? money(transferValue) : "₱0.00"}
-                  </Text>
-                  <Text style={styles.confirmSub}>
-                    {sourceWallet.name} → {destWallet.name}
-                  </Text>
-                </LinearGradient>
-
                 <PrimaryButton
-                  label="Confirm transfer"
+                  label={
+                    transferValue > 0
+                      ? `Send ${money(transferValue)} to ${destWallet.name}`
+                      : "Confirm transfer"
+                  }
                   disabled={transferInvalid}
                   onPress={save}
                   theme={theme}
@@ -3155,6 +3372,108 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  transferSideRow: {
+    position: "relative",
+    flexDirection: "row",
+    gap: 10,
+  },
+  transferSideCard: {
+    flex: 1,
+    minHeight: 96,
+    padding: 13,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    justifyContent: "space-between",
+    gap: 4,
+  },
+  transferSideRole: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 9,
+    letterSpacing: 0.4,
+  },
+  transferSideIdentity: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    marginTop: 2,
+  },
+  transferSideName: {
+    flex: 1,
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 14,
+  },
+  transferSideBal: {
+    fontFamily: "Urbanist_600SemiBold",
+    fontWeight: "600",
+    fontSize: 11,
+  },
+  transferSideAfter: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 11,
+  },
+  transferCenterSwapBtn: {
+    position: "absolute",
+    zIndex: 6,
+    left: "50%",
+    top: "50%",
+    marginLeft: -20,
+    marginTop: -20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 3.5,
+    overflow: "hidden",
+  },
+  transferPickerDrawer: {
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  transferAmountHeadRow: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  sendAllChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  sendAllChipText: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 10.5,
+  },
+  feeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    marginBottom: 2,
+  },
+  feeLabel: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 11.5,
+    marginRight: 2,
+  },
+  feeChip: {
+    flex: 1,
+    height: 32,
+    borderRadius: 11,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  feeChipText: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 11,
   },
   confirmPanel: {
     marginTop: 10,
