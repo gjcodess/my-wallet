@@ -533,6 +533,69 @@ export function SheetModal({
   const heroTone: Tone = entryType === "expense" ? "blue" : "yellow";
   const heroPal = tonePalette[heroTone];
 
+  const renderCategoryGrid = (
+    items: [string, string][],
+    selectedLabel: string,
+    onSelect: (label: string) => void
+  ) => {
+    const rows: [string, string][][] = [];
+    for (let i = 0; i < items.length; i += 3) {
+      rows.push(items.slice(i, i + 3));
+    }
+    return (
+      <View style={styles.categoryPickerGrid}>
+        {rows.map((row, rowIdx) => (
+          <View key={rowIdx} style={styles.categoryGridRow}>
+            {row.map(([label, icon]) => {
+              const active = selectedLabel === label;
+              return (
+                <Pressable
+                  key={label}
+                  onPress={() => onSelect(label)}
+                  style={[
+                    styles.categoryChip,
+                    {
+                      backgroundColor: active ? theme.surface : theme.soft,
+                      borderColor: active ? theme.accent : theme.line,
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={
+                      active
+                        ? theme.accentGradient
+                        : [theme.accentSoft, theme.accentSoft]
+                    }
+                    style={styles.categoryChipIcon}
+                  >
+                    <Icon
+                      name={icon}
+                      size={14}
+                      color={active ? theme.accentInk : theme.accentText}
+                    />
+                  </LinearGradient>
+                  <Text
+                    style={[styles.categoryChipText, { color: theme.ink }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.82}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+            {row.length < 3
+              ? Array.from({ length: 3 - row.length }).map((_, emptyIdx) => (
+                  <View key={`empty-${emptyIdx}`} style={{ flex: 1 }} />
+                ))
+              : null}
+          </View>
+        ))}
+      </View>
+    );
+  };
+
   return (
     <Modal
       visible
@@ -1315,54 +1378,11 @@ export function SheetModal({
                       {entryType === "expense" ? "Where it went" : "Source"}
                     </Text>
                   </View>
-                  <View style={styles.categoryPickerGrid}>
-                    {entryCategories.map(([label, icon]) => {
-                      const active = entryCategory === label;
-                      return (
-                        <Pressable
-                          key={label}
-                          onPress={() => setEntryCategory(label)}
-                          style={[
-                            styles.categoryChip,
-                            {
-                              backgroundColor: active
-                                ? theme.surface
-                                : theme.soft,
-                              borderColor: active
-                                ? theme.accent
-                                : theme.line,
-                            },
-                          ]}
-                        >
-                          <LinearGradient
-                            colors={
-                              active
-                                ? theme.accentGradient
-                                : [theme.accentSoft, theme.accentSoft]
-                            }
-                            style={styles.categoryChipIcon}
-                          >
-                            <Icon
-                              name={icon}
-                              size={16}
-                              color={
-                                active ? theme.accentInk : theme.accentText
-                              }
-                            />
-                          </LinearGradient>
-                          <Text
-                            style={[
-                              styles.categoryChipText,
-                              { color: theme.ink },
-                            ]}
-                            numberOfLines={1}
-                          >
-                            {label}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
+                  {renderCategoryGrid(
+                    entryCategories,
+                    entryCategory,
+                    setEntryCategory
+                  )}
                 </View>
 
                 {/* Note Input */}
@@ -2405,54 +2425,11 @@ export function SheetModal({
                         >
                           Category
                         </Text>
-                        <View style={styles.categoryPickerGrid}>
-                          {editCats.map(([label, icon]) => {
-                            const active = txCategory === label;
-                            return (
-                              <Pressable
-                                key={label}
-                                onPress={() => setTxCategory(label)}
-                                style={[
-                                  styles.categoryChip,
-                                  {
-                                    backgroundColor: active
-                                      ? theme.surface
-                                      : theme.soft,
-                                    borderColor: active
-                                      ? theme.accent
-                                      : theme.line,
-                                  },
-                                ]}
-                              >
-                                <LinearGradient
-                                  colors={
-                                    active
-                                      ? theme.accentGradient
-                                      : [theme.accentSoft, theme.accentSoft]
-                                  }
-                                  style={styles.categoryChipIcon}
-                                >
-                                  <Icon
-                                    name={icon}
-                                    size={16}
-                                    color={
-                                      active ? theme.accentInk : theme.accentText
-                                    }
-                                  />
-                                </LinearGradient>
-                                <Text
-                                  style={[
-                                    styles.categoryChipText,
-                                    { color: theme.ink },
-                                  ]}
-                                  numberOfLines={1}
-                                >
-                                  {label}
-                                </Text>
-                              </Pressable>
-                            );
-                          })}
-                        </View>
+                        {renderCategoryGrid(
+                          editCats,
+                          txCategory,
+                          setTxCategory
+                        )}
                       </View>
                     ) : null}
 
@@ -3516,25 +3493,27 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   categoryPickerGrid: {
+    gap: 8,
+  },
+  categoryGridRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: 8,
   },
   categoryChip: {
-    width: "31%",
-    minHeight: 50,
-    borderRadius: 17,
+    flex: 1,
+    minHeight: 46,
+    borderRadius: 15,
     borderWidth: 1.5,
     paddingVertical: 7,
-    paddingHorizontal: 9,
+    paddingHorizontal: 8,
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
+    gap: 6,
   },
   categoryChipIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
+    width: 26,
+    height: 26,
+    borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -3542,7 +3521,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: "Urbanist_800ExtraBold",
     fontWeight: "800",
-    fontSize: 11,
+    fontSize: 10.5,
   },
   entryNoteBox: {
     minHeight: 56,

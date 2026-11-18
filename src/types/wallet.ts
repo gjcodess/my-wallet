@@ -12,7 +12,7 @@ export const EXPENSE_CATEGORIES: [string, string][] = [
   ["Debt", "card"],
   ["Loan", "bank"],
   ["Leisure", "film"],
-  ["Subscriptions", "sync"],
+  ["Subs", "sync"],
   ["Education", "book"],
   ["Family", "users"],
   ["Other", "adjust"],
