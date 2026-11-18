@@ -1,0 +1,388 @@
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Icon } from "./Icon";
+import { bevelStyle, cardShadow, ThemeColors } from "./SharedUI";
+
+export type AppLockMode = "unlock" | "setup" | "change" | "disable";
+
+const PIN_ROWS: string[][] = [
+  ["1", "2", "3"],
+  ["4", "5", "6"],
+  ["7", "8", "9"],
+  ["cancel", "0", "backspace"],
+];
+
+export function AppLockModal({
+  visible,
+  mode,
+  expectedPin,
+  onUnlock,
+  onSavePin,
+  onDisable,
+  onCancel,
+  theme,
+}: {
+  visible: boolean;
+  mode: AppLockMode;
+  expectedPin: string | null;
+  onUnlock?: () => void;
+  onSavePin?: (pin: string) => void;
+  onDisable?: () => void;
+  onCancel?: () => void;
+  theme: ThemeColors;
+}) {
+  const [digits, setDigits] = useState("");
+  const [step, setStep] = useState<"verify" | "enter" | "confirm">("enter");
+  const [draftPin, setDraftPin] = useState("");
+  const [error, setError] = useState("");
+  const shakeX = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!visible) return;
+    setDigits("");
+    setDraftPin("");
+    setError("");
+    if (mode === "unlock" || mode === "disable" || mode === "change") {
+      setStep("verify");
+    } else {
+      setStep("enter");
+    }
+  }, [visible, mode]);
+
+  const triggerShake = (message: string) => {
+    setError(message);
+    setDigits("");
+    shakeX.setValue(0);
+    Animated.sequence([
+      Animated.timing(shakeX, {
+        toValue: -12,
+        duration: 55,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeX, {
+        toValue: 12,
+        duration: 55,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeX, {
+        toValue: -8,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeX, {
+        toValue: 8,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeX, {
+        toValue: 0,
+        duration: 45,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const evaluatePin = (completed: string) => {
+    if (step === "verify") {
+      if (completed !== expectedPin) {
+        triggerShake("Incorrect PIN. Please try again.");
+        return;
+      }
+      if (mode === "unlock") {
+        setDigits("");
+        setError("");
+        onUnlock?.();
+      } else if (mode === "disable") {
+        setDigits("");
+        setError("");
+        onDisable?.();
+      } else if (mode === "change") {
+        setDigits("");
+        setError("");
+        setStep("enter");
+      }
+      return;
+    }
+
+    if (step === "enter") {
+      setDraftPin(completed);
+      setDigits("");
+      setError("");
+      setStep("confirm");
+      return;
+    }
+
+    if (step === "confirm") {
+      if (completed !== draftPin) {
+        triggerShake("PINs did not match. Try again.");
+        setDraftPin("");
+        setStep("enter");
+        return;
+      }
+      setDigits("");
+      setError("");
+      onSavePin?.(completed);
+    }
+  };
+
+  const handlePressKey = (key: string) => {
+    if (key === "cancel") {
+      if (mode !== "unlock") {
+        onCancel?.();
+      }
+      return;
+    }
+    if (key === "backspace") {
+      setError("");
+      setDigits((prev) => prev.slice(0, -1));
+      return;
+    }
+    if (digits.length >= 4) return;
+    const next = `${digits}${key}`;
+    setError("");
+    setDigits(next);
+    if (next.length === 4) {
+      setTimeout(() => evaluatePin(next), 90);
+    }
+  };
+
+  const titleText = (() => {
+    if (mode === "unlock") return "My Wallet Locked";
+    if (mode === "disable") return "Disable App Lock";
+    if (mode === "change") {
+      if (step === "verify") return "Verify Current PIN";
+      if (step === "enter") return "Choose New PIN";
+      return "Confirm New PIN";
+    }
+    return step === "enter" ? "Set App Lock PIN" : "Confirm 4-Digit PIN";
+  })();
+
+  const subText = (() => {
+    if (mode === "unlock") return "Enter your 4-digit PIN to unlock";
+    if (mode === "disable") return "Enter your PIN to turn off App Lock";
+    if (mode === "change") {
+      if (step === "verify") return "Enter your existing 4-digit PIN";
+      if (step === "enter") return "Enter a new 4-digit PIN";
+      return "Re-enter your new 4-digit PIN";
+    }
+    return step === "enter"
+      ? "Protect your wallets and balances with a 4-digit PIN"
+      : "Re-enter the 4-digit PIN to confirm";
+  })();
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent={false}
+      onRequestClose={() => {
+        if (mode !== "unlock") onCancel?.();
+      }}
+    >
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: theme.page }]}
+        edges={["top", "left", "right", "bottom"]}
+      >
+        <View style={styles.headerBlock}>
+          <LinearGradient
+            colors={theme.accentGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.lockBadge}
+          >
+            <Icon name="lock" size={26} color={theme.accentInk} />
+          </LinearGradient>
+          <Text style={[styles.title, { color: theme.ink }]}>{titleText}</Text>
+          <Text style={[styles.subtitle, { color: theme.muted }]}>
+            {subText}
+          </Text>
+
+          <Animated.View
+            style={[styles.dotsRow, { transform: [{ translateX: shakeX }] }]}
+          >
+            {[0, 1, 2, 3].map((idx) => {
+              const filled = idx < digits.length;
+              return (
+                <View
+                  key={idx}
+                  style={[
+                    styles.pinDot,
+                    {
+                      backgroundColor: filled ? theme.accent : theme.soft2,
+                      borderColor: error
+                        ? "#c04444"
+                        : filled
+                          ? theme.accent
+                          : theme.line,
+                      transform: [{ scale: filled ? 1.12 : 1 }],
+                    },
+                  ]}
+                />
+              );
+            })}
+          </Animated.View>
+
+          <Text style={styles.errorText}>{error || " "}</Text>
+        </View>
+
+        <View style={styles.keypad}>
+          {PIN_ROWS.map((row, rowIdx) => (
+            <View key={rowIdx} style={styles.keypadRow}>
+              {row.map((key) => {
+                if (key === "cancel") {
+                  if (mode === "unlock") {
+                    return <View key={key} style={styles.keySpacer} />;
+                  }
+                  return (
+                    <Pressable
+                      key={key}
+                      onPress={() => handlePressKey(key)}
+                      style={({ pressed }) => [
+                        styles.keyGhost,
+                        { opacity: pressed ? 0.6 : 1 },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.cancelText, { color: theme.muted }]}
+                      >
+                        Cancel
+                      </Text>
+                    </Pressable>
+                  );
+                }
+                const isBack = key === "backspace";
+                return (
+                  <Pressable
+                    key={key}
+                    onPress={() => handlePressKey(key)}
+                    style={({ pressed }) => [
+                      styles.keyBtn,
+                      {
+                        backgroundColor: pressed
+                          ? theme.soft2
+                          : isBack
+                            ? theme.soft
+                            : theme.card,
+                        transform: [{ scale: pressed ? 0.94 : 1 }],
+                      },
+                      bevelStyle(theme.dark),
+                      cardShadow(theme.dark),
+                    ]}
+                  >
+                    {isBack ? (
+                      <Icon name="backspace" size={22} color={theme.ink} />
+                    ) : (
+                      <Text style={[styles.keyText, { color: theme.ink }]}>
+                        {key}
+                      </Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          ))}
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "space-between",
+    paddingHorizontal: 28,
+    paddingVertical: 32,
+  },
+  headerBlock: {
+    alignItems: "center",
+    marginTop: 28,
+  },
+  lockBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 18,
+  },
+  title: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 24,
+    letterSpacing: -0.6,
+    textAlign: "center",
+  },
+  subtitle: {
+    fontFamily: "Urbanist_600SemiBold",
+    fontWeight: "600",
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 6,
+  },
+  dotsRow: {
+    flexDirection: "row",
+    gap: 18,
+    marginTop: 30,
+    marginBottom: 14,
+  },
+  pinDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1.5,
+  },
+  errorText: {
+    minHeight: 18,
+    color: "#c04444",
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 12,
+    textAlign: "center",
+  },
+  keypad: {
+    gap: 12,
+    marginBottom: 12,
+  },
+  keypadRow: {
+    flexDirection: "row",
+    gap: 14,
+  },
+  keyBtn: {
+    flex: 1,
+    height: 62,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  keySpacer: {
+    flex: 1,
+    height: 62,
+  },
+  keyGhost: {
+    flex: 1,
+    height: 62,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  keyText: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 24,
+  },
+  cancelText: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+});

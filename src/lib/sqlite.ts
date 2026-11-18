@@ -135,6 +135,7 @@ export async function loadLocalState(): Promise<{
   hidden: boolean;
   profile: UserProfile;
   lastSyncedAt: string | null;
+  appLockPin: string | null;
 }> {
   const db = await getDb();
   const walletRows = await db.getAllAsync<{
@@ -214,6 +215,7 @@ export async function loadLocalState(): Promise<{
       initials: settingsMap.get("initials") || "JS",
     },
     lastSyncedAt: settingsMap.get("last_synced_at") || null,
+    appLockPin: settingsMap.get("app_lock_pin") || null,
   };
 }
 

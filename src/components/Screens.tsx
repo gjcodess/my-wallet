@@ -2161,6 +2161,9 @@ export function SettingsScreen({
   profile,
   userEmail,
   lastSyncedAt,
+  appLockEnabled,
+  onToggleAppLock,
+  onChangeAppLockPin,
   onOpenAuth,
   onSyncNow,
   theme,
@@ -2173,6 +2176,9 @@ export function SettingsScreen({
   profile: UserProfile;
   userEmail: string | null;
   lastSyncedAt: string | null;
+  appLockEnabled: boolean;
+  onToggleAppLock: () => void;
+  onChangeAppLockPin: () => void;
   onOpenAuth: () => void;
   onSyncNow: () => void;
   theme: ThemeColors;
@@ -2246,10 +2252,30 @@ export function SettingsScreen({
         <SettingRow
           icon="lock"
           title="App lock"
-          subtitle="Fingerprint or screen lock"
-          onPress={() => showToast("App lock is ready")}
+          subtitle={
+            appLockEnabled
+              ? "4-digit PIN active on launch & resume"
+              : "Protect with a 4-digit PIN"
+          }
+          onPress={onToggleAppLock}
+          control={
+            <SwitchControl
+              on={appLockEnabled}
+              onPress={onToggleAppLock}
+              theme={theme}
+            />
+          }
           theme={theme}
         />
+        {appLockEnabled ? (
+          <SettingRow
+            icon="edit"
+            title="Change PIN"
+            subtitle="Update your 4-digit passcode"
+            onPress={onChangeAppLockPin}
+            theme={theme}
+          />
+        ) : null}
         <SettingRow
           icon="shield"
           title="Privacy"

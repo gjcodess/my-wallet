@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
+  AppState,
   Easing,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -57,6 +58,7 @@ import {
   WalletsScreen,
 } from "./src/components/Screens";
 import { SheetModal } from "./src/components/SheetModal";
+import { AppLockModal, AppLockMode } from "./src/components/AppLockModal";
 import { Icon } from "./src/components/Icon";
 
 export default function App() {
@@ -88,6 +90,11 @@ export default function App() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [appLockPin, setAppLockPin] = useState<string | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockModalMode, setLockModalMode] = useState<AppLockMode | null>(null);
+  const appLockPinRef = useRef<string | null>(null);
+  appLockPinRef.current = appLockPin;
 
   const selected = useMemo(
     () => wallets.find((w) => w.id === selectedId) || null,
@@ -205,6 +212,10 @@ export default function App() {
         setHidden(state.hidden);
         setProfile(state.profile);
         setLastSyncedAt(state.lastSyncedAt);
+        setAppLockPin(state.appLockPin);
+        if (state.appLockPin) {
+          setIsLocked(true);
+        }
         setDbReady(true);
       })
       .catch(() => {
@@ -231,6 +242,18 @@ export default function App() {
 
     return () => {
       authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // 2b. Re-lock when app goes to background while App Lock PIN is active
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "background" && appLockPinRef.current) {
+        setIsLocked(true);
+      }
+    });
+    return () => {
+      sub.remove();
     };
   }, []);
 
@@ -610,6 +633,11 @@ export default function App() {
                     profile={profile}
                     userEmail={userEmail}
                     lastSyncedAt={lastSyncedAt}
+                    appLockEnabled={Boolean(appLockPin)}
+                    onToggleAppLock={() =>
+                      setLockModalMode(appLockPin ? "disable" : "setup")
+                    }
+                    onChangeAppLockPin={() => setLockModalMode("change")}
                     onOpenAuth={() => openSheet("auth")}
                     onSyncNow={handleSyncNow}
                     theme={theme}
@@ -723,6 +751,29 @@ export default function App() {
             <Text style={styles.toastText}>{toast}</Text>
           </Animated.View>
         ) : null}
+
+        <AppLockModal
+          visible={isLocked || lockModalMode !== null}
+          mode={isLocked ? "unlock" : lockModalMode ?? "setup"}
+          expectedPin={appLockPin}
+          onUnlock={() => setIsLocked(false)}
+          onSavePin={(pin) => {
+            setAppLockPin(pin);
+            saveSettingToSQLite("app_lock_pin", pin).catch(() => {});
+            const wasChange = lockModalMode === "change";
+            setLockModalMode(null);
+            setToast(wasChange ? "App Lock PIN updated" : "App Lock enabled");
+          }}
+          onDisable={() => {
+            setAppLockPin(null);
+            setIsLocked(false);
+            saveSettingToSQLite("app_lock_pin", "").catch(() => {});
+            setLockModalMode(null);
+            setToast("App Lock disabled");
+          }}
+          onCancel={() => setLockModalMode(null)}
+          theme={theme}
+        />
       </SafeAreaView>
     </SafeAreaProvider>
   );
