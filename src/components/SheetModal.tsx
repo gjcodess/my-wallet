@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -13,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { AmountKeypad, formatAmountInput } from "./AmountKeypad";
 import {
   ActivityItem,
   getWalletLocalId,
@@ -65,15 +67,6 @@ const INCOME_CATEGORIES: [string, string][] = [
   ["Refund", "arrow-down"],
   ["Other", "plus"],
 ];
-
-function sanitizeDecimal(raw: string): string {
-  const cleaned = raw.replace(/[^\d.]/g, "");
-  const dotIdx = cleaned.indexOf(".");
-  if (dotIdx === -1) return cleaned;
-  const intPart = cleaned.slice(0, dotIdx);
-  const decPart = cleaned.slice(dotIdx + 1).replace(/\./g, "").slice(0, 2);
-  return `${intPart}.${decPart}`;
-}
 
 export function SheetModal({
   type,
@@ -143,11 +136,13 @@ export function SheetModal({
   const [balance, setBalance] = useState(
     editTarget ? String(editTarget.balance) : ""
   );
+  const [showOpeningKeypad, setShowOpeningKeypad] = useState(false);
   const [walletConfirmDelete, setWalletConfirmDelete] = useState(false);
   const sheetScrollY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     sheetScrollY.setValue(0);
+    setShowOpeningKeypad(false);
     setWalletConfirmDelete(false);
     if (type === "edit" && editTarget) {
       setSelectedPresetKey(editTarget.logoKey || "custom");
@@ -694,6 +689,7 @@ export function SheetModal({
                   <TextInput
                     value={name}
                     onChangeText={setName}
+                    onFocus={() => setShowOpeningKeypad(false)}
                     placeholder="e.g. UnionBank"
                     placeholderTextColor={theme.muted}
                     style={[styles.fieldInput, { color: theme.ink }]}
@@ -712,6 +708,7 @@ export function SheetModal({
                   <TextInput
                     value={accountLabel}
                     onChangeText={setAccountLabel}
+                    onFocus={() => setShowOpeningKeypad(false)}
                     placeholder="e.g. Personal, Payroll, Savings"
                     placeholderTextColor={theme.muted}
                     style={[styles.fieldInput, { color: theme.ink }]}
@@ -769,30 +766,51 @@ export function SheetModal({
                   </View>
 
                   {type === "add" ? (
-                    <View
+                    <Pressable
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        setShowOpeningKeypad((prev) => !prev);
+                      }}
                       style={[
                         styles.softField,
                         {
                           flex: 1,
-                          backgroundColor: theme.soft,
-                          borderColor: theme.line,
+                          backgroundColor: showOpeningKeypad
+                            ? theme.surface
+                            : theme.soft,
+                          borderColor: showOpeningKeypad
+                            ? theme.accent
+                            : theme.line,
                         },
                       ]}
                     >
                       <Text style={[styles.fieldLabel, { color: theme.muted }]}>
                         Opening balance
                       </Text>
-                      <TextInput
-                        value={balance}
-                        onChangeText={(t) => setBalance(sanitizeDecimal(t))}
-                        keyboardType="decimal-pad"
-                        placeholder="₱0.00"
-                        placeholderTextColor={theme.muted}
-                        style={[styles.fieldInput, { color: theme.ink }]}
-                      />
-                    </View>
+                      <Text
+                        style={[
+                          styles.fieldInput,
+                          {
+                            color: balance ? theme.ink : theme.muted,
+                          },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {balance ? `₱${formatAmountInput(balance)}` : "₱0.00"}
+                      </Text>
+                    </Pressable>
                   ) : null}
                 </View>
+
+                {type === "add" && showOpeningKeypad ? (
+                  <AmountKeypad
+                    value={balance}
+                    onChange={setBalance}
+                    quickAmounts={[500, 1000, 5000]}
+                    compact
+                    theme={theme}
+                  />
+                ) : null}
 
                 {/* 12-Tone Color Picker */}
                 <View style={styles.colorHeaderRow}>
@@ -1055,21 +1073,19 @@ export function SheetModal({
                           >
                             ₱
                           </Text>
-                          <TextInput
-                            value={amount}
-                            onChangeText={(t) => setAmount(sanitizeDecimal(t))}
-                            keyboardType="decimal-pad"
-                            placeholder="0.00"
-                            placeholderTextColor={
-                              entryType === "expense"
-                                ? "rgba(255,255,255,0.45)"
-                                : "rgba(33,27,7,0.4)"
-                            }
+                          <Text
                             style={[
                               styles.entryBigInput,
-                              { color: heroPal.ink },
+                              {
+                                color: heroPal.ink,
+                                opacity: amount ? 1 : 0.42,
+                              },
                             ]}
-                          />
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                          >
+                            {amount ? formatAmountInput(amount) : "0.00"}
+                          </Text>
                         </View>
 
                         <View
@@ -1109,30 +1125,14 @@ export function SheetModal({
                   )}
                 </FolderSurface>
 
-                {/* Quick Amounts */}
-                <View style={styles.entryQuickRow}>
-                  {[100, 500, 1000, 5000].map((v) => (
-                    <Pressable
-                      key={v}
-                      onPress={() =>
-                        setAmount(String((entryValue || 0) + v))
-                      }
-                      style={[
-                        styles.entryQuickBtn,
-                        {
-                          backgroundColor: theme.soft,
-                          borderColor: theme.line,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[styles.entryQuickText, { color: theme.ink }]}
-                      >
-                        +{money(v, true)}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
+                {/* Built-In Amount Keypad */}
+                <AmountKeypad
+                  value={amount}
+                  onChange={setAmount}
+                  quickAmounts={[100, 500, 1000, 5000]}
+                  compact
+                  theme={theme}
+                />
 
                 {/* From Wallet Horizontal Scroll */}
                 <View style={styles.entrySection}>
@@ -1437,38 +1437,30 @@ export function SheetModal({
                     <Text style={[styles.amountEntrySign, { color: theme.ink }]}>
                       ₱
                     </Text>
-                    <TextInput
-                      value={amount}
-                      onChangeText={(t) => setAmount(sanitizeDecimal(t))}
-                      keyboardType="decimal-pad"
-                      placeholder="0.00"
-                      placeholderTextColor={theme.muted}
-                      style={[styles.amountEntryInput, { color: theme.ink }]}
-                    />
+                    <Text
+                      style={[
+                        styles.amountEntryInput,
+                        { color: amount ? theme.ink : theme.muted },
+                      ]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {amount ? formatAmountInput(amount) : "0.00"}
+                    </Text>
                   </View>
                   <Text style={[styles.fieldLabel, { color: theme.muted }]}>
                     Current: {money(current.balance)}
                   </Text>
                 </View>
 
-                <View style={styles.quickAmountsGrid}>
-                  {[500, 1000, 5000].map((v) => (
-                    <Pressable
-                      key={v}
-                      onPress={() => setAmount(String(current.balance + v))}
-                      style={[
-                        styles.quickAmountBtn,
-                        { backgroundColor: theme.soft2 },
-                      ]}
-                    >
-                      <Text
-                        style={[styles.entryQuickText, { color: theme.ink }]}
-                      >
-                        + {money(v, true)}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
+                <AmountKeypad
+                  value={amount}
+                  onChange={setAmount}
+                  quickAmounts={[500, 1000, 5000]}
+                  quickBase={current.balance}
+                  compact
+                  theme={theme}
+                />
 
                 <PrimaryButton
                   label="Save new balance"
@@ -1604,19 +1596,29 @@ export function SheetModal({
                     <Text style={[styles.amountEntrySign, { color: theme.ink }]}>
                       ₱
                     </Text>
-                    <TextInput
-                      value={amount}
-                      onChangeText={(t) => setAmount(sanitizeDecimal(t))}
-                      keyboardType="decimal-pad"
-                      placeholder="0.00"
-                      placeholderTextColor={theme.muted}
-                      style={[styles.amountEntryInput, { color: theme.ink }]}
-                    />
+                    <Text
+                      style={[
+                        styles.amountEntryInput,
+                        { color: amount ? theme.ink : theme.muted },
+                      ]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {amount ? formatAmountInput(amount) : "0.00"}
+                    </Text>
                   </View>
                   <Text style={[styles.fieldLabel, { color: theme.muted }]}>
                     Available: {money(sourceWallet.balance)}
                   </Text>
                 </View>
+
+                <AmountKeypad
+                  value={amount}
+                  onChange={setAmount}
+                  quickAmounts={[500, 1000, 5000]}
+                  compact
+                  theme={theme}
+                />
 
                 {source === destination && (
                   <Text style={styles.errorText}>
@@ -1858,16 +1860,26 @@ export function SheetModal({
                         <Text style={[styles.amountEntrySign, { color: theme.ink }]}>
                           ₱
                         </Text>
-                        <TextInput
-                          value={txAmount}
-                          onChangeText={(t) => setTxAmount(sanitizeDecimal(t))}
-                          keyboardType="decimal-pad"
-                          placeholder="0.00"
-                          placeholderTextColor={theme.muted}
-                          style={[styles.amountEntryInput, { color: theme.ink }]}
-                        />
+                        <Text
+                          style={[
+                            styles.amountEntryInput,
+                            { color: txAmount ? theme.ink : theme.muted },
+                          ]}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                        >
+                          {txAmount ? formatAmountInput(txAmount) : "0.00"}
+                        </Text>
                       </View>
                     </View>
+
+                    <AmountKeypad
+                      value={txAmount}
+                      onChange={setTxAmount}
+                      quickAmounts={[100, 500, 1000]}
+                      compact
+                      theme={theme}
+                    />
 
                     <View
                       style={[

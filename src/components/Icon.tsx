@@ -206,6 +206,13 @@ export function Icon({
             <Circle cx="15" cy="17.5" r="1.2" fill={color} />
           </>
         );
+      case "backspace":
+        return (
+          <>
+            <Path d="M20 6H9l-6 6 6 6h11a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 20 6Z" />
+            <Path d="m11.5 9.5 5 5M16.5 9.5l-5 5" />
+          </>
+        );
       default:
         return <Circle cx="12" cy="12" r="6" />;
     }
