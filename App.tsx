@@ -591,8 +591,10 @@ export default function App() {
                 {tab === "activity" && (
                   <ActivityScreen
                     activities={activityItems}
+                    wallets={wallets}
                     hidden={hidden}
                     onTransaction={openTransactionSheet}
+                    onShowToast={setToast}
                     showFilters={showActivityFilters}
                     theme={theme}
                   />

@@ -3,10 +3,13 @@ import {
   Animated,
   Easing,
   PanResponder,
+  Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -1231,26 +1234,33 @@ const DEFAULT_INCOME_CATEGORIES: { label: string; icon: string }[] = [
 
 export function ActivityScreen({
   activities,
+  wallets = [],
   hidden,
   onTransaction,
+  onShowToast,
   showFilters = false,
   theme,
 }: {
   activities: ActivityItem[];
+  wallets?: Wallet[];
   hidden: boolean;
   onTransaction?: (item: ActivityItem) => void;
+  onShowToast?: (msg: string) => void;
   showFilters?: boolean;
   theme: ThemeColors;
 }) {
   const [range, setRange] = useState<"Month" | "Week">("Month");
   const [categoryMode, setCategoryMode] = useState<"Expense" | "Income">("Expense");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedWalletFilter, setSelectedWalletFilter] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<ActivityTypeFilter>("All");
   const [selectedBucketIdx, setSelectedBucketIdx] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const barProgress = useRef(new Animated.Value(0)).current;
 
   const filteredActivities = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
     return activities.filter((item) => {
       if (typeFilter === "Expenses" && !isExpenseActivity(item)) return false;
       if (typeFilter === "Income" && !isIncomeActivity(item)) return false;
@@ -1259,13 +1269,38 @@ export function ActivityScreen({
 
       if (selectedCategory) {
         if (selectedCategory === "Transfers") {
-          return isTransferActivity(item);
+          if (!isTransferActivity(item)) return false;
+        } else if (item.kind !== selectedCategory) {
+          return false;
         }
-        return item.kind === selectedCategory;
+      }
+
+      if (selectedWalletFilter) {
+        const matchedW = wallets.find(
+          (w) => (w.localId || `wallet-${w.id}`) === selectedWalletFilter
+        );
+        if (matchedW) {
+          if (!isActivityForWallet(item, matchedW).matched) return false;
+        } else if (item.walletLocalId !== selectedWalletFilter) {
+          return false;
+        }
+      }
+
+      if (q) {
+        const haystack =
+          `${item.title} ${item.wallet} ${item.kind} ${item.date}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
       }
       return true;
     });
-  }, [activities, typeFilter, selectedCategory]);
+  }, [
+    activities,
+    wallets,
+    typeFilter,
+    selectedCategory,
+    selectedWalletFilter,
+    searchQuery,
+  ]);
 
   const pageSize = 10;
   const totalPages = Math.max(1, Math.ceil(filteredActivities.length / pageSize));
@@ -1430,7 +1465,64 @@ export function ActivityScreen({
 
   const activeBucket =
     selectedBucketIdx !== null ? chartData.bars[selectedBucketIdx] : undefined;
-  const hasFilter = typeFilter !== "All" || selectedCategory !== null;
+  const hasFilter =
+    typeFilter !== "All" ||
+    selectedCategory !== null ||
+    selectedWalletFilter !== null ||
+    searchQuery.trim().length > 0;
+
+  const handleExportCsv = async () => {
+    if (!filteredActivities.length) {
+      onShowToast?.("No transactions to export");
+      return;
+    }
+    const esc = (v: string | number) => {
+      const s = String(v ?? "");
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const header = "Date,Title,Wallet,Category,Direction,Amount,Synced";
+    const rows = filteredActivities.map((item) => {
+      const dateStr = item.occurredAt || item.date;
+      const dir = isTransferActivity(item)
+        ? "Transfer"
+        : item.amount >= 0
+          ? "Money in"
+          : "Expense";
+      return [
+        esc(dateStr),
+        esc(item.title),
+        esc(item.wallet),
+        esc(item.kind),
+        esc(dir),
+        esc(item.amount.toFixed(2)),
+        esc(item.synced ? "Supabase" : "Local"),
+      ].join(",");
+    });
+    const csv = [header, ...rows].join("\n");
+
+    try {
+      if (Platform.OS === "web" && typeof document !== "undefined") {
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        const stamp = new Date().toISOString().slice(0, 10);
+        link.href = url;
+        link.download = `my-wallet-activity-${stamp}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        onShowToast?.(`Exported ${filteredActivities.length} transactions`);
+        return;
+      }
+      await Share.share({
+        title: "My Wallet Activity (CSV)",
+        message: csv,
+      });
+    } catch {
+      onShowToast?.("Could not share CSV export");
+    }
+  };
 
   return (
     <View style={styles.page}>
@@ -1447,42 +1539,141 @@ export function ActivityScreen({
       </View>
 
       {showFilters ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterChipRow}
+        <View
+          style={[
+            styles.activityFilterPanel,
+            { backgroundColor: theme.card, borderColor: theme.line },
+            bevelStyle(theme.dark),
+            cardShadow(theme.dark),
+          ]}
         >
-          {(["All", "Expenses", "Income", "Transfers", "Adjusted"] as const).map(
-            (opt) => {
-              const active = typeFilter === opt;
-              return (
-                <Pressable
-                  key={opt}
-                  onPress={() => {
-                    setTypeFilter(opt);
-                    setPage(1);
-                  }}
+          <View style={styles.activityFilterHeader}>
+            <Text style={[styles.activityFilterTitle, { color: theme.muted }]}>
+              FILTER & EXPORT
+            </Text>
+            <Pressable
+              onPress={handleExportCsv}
+              style={({ pressed }) => [
+                styles.exportCsvPill,
+                {
+                  backgroundColor: theme.accentSoft,
+                  opacity: pressed ? 0.78 : 1,
+                },
+              ]}
+            >
+              <Icon name="arrow-out" size={12} color={theme.accentText} />
+              <Text
+                style={[styles.exportCsvText, { color: theme.accentText }]}
+              >
+                Export CSV ({filteredActivities.length})
+              </Text>
+            </Pressable>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterChipRow}
+          >
+            {(["All", "Expenses", "Income", "Transfers", "Adjusted"] as const).map(
+              (opt) => {
+                const active = typeFilter === opt;
+                return (
+                  <Pressable
+                    key={opt}
+                    onPress={() => {
+                      setTypeFilter(opt);
+                      setPage(1);
+                    }}
+                    style={[
+                      styles.filterChip,
+                      {
+                        backgroundColor: active ? theme.accent : theme.soft,
+                        borderColor: active ? theme.accent : theme.line,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        { color: active ? theme.accentInk : theme.ink },
+                      ]}
+                    >
+                      {opt}
+                    </Text>
+                  </Pressable>
+                );
+              }
+            )}
+          </ScrollView>
+
+          {wallets.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={[styles.filterChipRow, { paddingTop: 8 }]}
+            >
+              <Pressable
+                onPress={() => {
+                  setSelectedWalletFilter(null);
+                  setPage(1);
+                }}
+                style={[
+                  styles.filterChip,
+                  {
+                    backgroundColor:
+                      selectedWalletFilter === null ? theme.accent : theme.soft,
+                    borderColor:
+                      selectedWalletFilter === null ? theme.accent : theme.line,
+                  },
+                ]}
+              >
+                <Text
                   style={[
-                    styles.filterChip,
+                    styles.filterChipText,
                     {
-                      backgroundColor: active ? theme.accent : theme.card,
-                      borderColor: active ? theme.accent : theme.line,
+                      color:
+                        selectedWalletFilter === null
+                          ? theme.accentInk
+                          : theme.ink,
                     },
                   ]}
                 >
-                  <Text
+                  All wallets
+                </Text>
+              </Pressable>
+              {wallets.map((w) => {
+                const wKey = w.localId || `wallet-${w.id}`;
+                const active = selectedWalletFilter === wKey;
+                return (
+                  <Pressable
+                    key={w.id}
+                    onPress={() => {
+                      setSelectedWalletFilter(active ? null : wKey);
+                      setPage(1);
+                    }}
                     style={[
-                      styles.filterChipText,
-                      { color: active ? theme.accentInk : theme.ink },
+                      styles.filterChip,
+                      {
+                        backgroundColor: active ? theme.accent : theme.soft,
+                        borderColor: active ? theme.accent : theme.line,
+                      },
                     ]}
                   >
-                    {opt}
-                  </Text>
-                </Pressable>
-              );
-            }
-          )}
-        </ScrollView>
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        { color: active ? theme.accentInk : theme.ink },
+                      ]}
+                    >
+                      {w.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          ) : null}
+        </View>
       ) : null}
 
       {/* Navy Folder Chart */}
@@ -1788,6 +1979,8 @@ export function ActivityScreen({
             hasFilter
               ? () => {
                   setSelectedCategory(null);
+                  setSelectedWalletFilter(null);
+                  setSearchQuery("");
                   setTypeFilter("All");
                   setPage(1);
                 }
@@ -1795,6 +1988,39 @@ export function ActivityScreen({
           }
           theme={theme}
         />
+
+        {/* Always-accessible Search Bar */}
+        <View
+          style={[
+            styles.activitySearchBox,
+            { backgroundColor: theme.card, borderColor: theme.line },
+            bevelStyle(theme.dark),
+            cardShadow(theme.dark),
+          ]}
+        >
+          <Icon name="search" size={16} color={theme.muted} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={(t) => {
+              setSearchQuery(t);
+              setPage(1);
+            }}
+            placeholder="Search merchant, category, or wallet..."
+            placeholderTextColor={theme.muted}
+            style={[styles.activitySearchInput, { color: theme.ink }]}
+          />
+          {searchQuery ? (
+            <Pressable
+              onPress={() => {
+                setSearchQuery("");
+                setPage(1);
+              }}
+              hitSlop={8}
+            >
+              <Icon name="close" size={14} color={theme.muted} />
+            </Pressable>
+          ) : null}
+        </View>
         {pageItems.length ? (
           <View style={styles.txList}>
             {pageItems.map((item) => (
@@ -2648,8 +2874,56 @@ const styles = StyleSheet.create({
   },
   filterChipRow: {
     gap: 8,
-    paddingTop: 6,
+    paddingTop: 4,
     paddingBottom: 2,
+  },
+  activityFilterPanel: {
+    marginTop: 8,
+    padding: 13,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  activityFilterHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  activityFilterTitle: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 10,
+    letterSpacing: 0.6,
+  },
+  exportCsvPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 11,
+  },
+  exportCsvText: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 11,
+  },
+  activitySearchBox: {
+    height: 44,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    marginBottom: 12,
+  },
+  activitySearchInput: {
+    flex: 1,
+    fontFamily: "Urbanist_600SemiBold",
+    fontWeight: "600",
+    fontSize: 13,
+    paddingVertical: 0,
   },
   filterChip: {
     paddingHorizontal: 14,
