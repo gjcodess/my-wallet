@@ -38,6 +38,7 @@ export const walletLogoAssets: Record<string, ImageSourcePropType> = {
   tonik: require("../../assets/logos/tonik.webp"),
   unobank: require("../../assets/logos/unobank.webp"),
   ownbank: require("../../assets/logos/ownbank.webp"),
+  cash: require("../../assets/logos/cash.webp"),
 };
 
 export const walletPrintmarkAssets: Record<string, ImageSourcePropType> = {
