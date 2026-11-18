@@ -9,7 +9,11 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import { resolveWalletLogo, resolveWalletPrintmark } from "../data/walletPresets";
+import {
+  resolveWalletCardDesign,
+  resolveWalletLogo,
+  resolveWalletPrintmark,
+} from "../data/walletPresets";
 import { splitMoney, tonePalette, Wallet } from "../types/wallet";
 import { FolderSurface } from "./FolderSurface";
 import { Icon } from "./Icon";
@@ -143,12 +147,17 @@ export function WalletFolder({
   style?: StyleProp<ViewStyle>;
 }) {
   const palette = tonePalette[wallet.tone] || tonePalette.blue;
+  const cardDesign = resolveWalletCardDesign(wallet.logoKey, wallet.name);
+  const cardBackground = cardDesign?.source;
+  const ink = cardDesign ? cardDesign.ink : palette.ink;
   const tabHeight = compact ? 40 : 44;
   const minHeight = compact ? 184 : 202;
   const radius = compact ? 25 : 28;
-  const printmark = resolveWalletPrintmark(wallet.logoKey, wallet.name);
+  const printmark = cardBackground
+    ? undefined
+    : resolveWalletPrintmark(wallet.logoKey, wallet.name);
   const printSize = compact ? 88 : 104;
-  const isLightInk = palette.ink === "#ffffff";
+  const isLightInk = ink === "#ffffff";
 
   return (
     <Pressable
@@ -169,6 +178,8 @@ export function WalletFolder({
         topShadow={topShadow}
         fromColor={palette.from}
         toColor={palette.to}
+        backgroundImage={cardBackground}
+        isDarkSurface={cardDesign?.isDark}
         minHeight={minHeight}
       >
         {({ notchX, notchHeight }) => (
@@ -188,13 +199,13 @@ export function WalletFolder({
                 mark={wallet.mark}
                 size={31}
                 radius={11}
-                ink={palette.ink}
+                ink={ink}
                 fontSize={10}
               />
               <Text
                 style={[
                   styles.folderName,
-                  { color: palette.ink, fontSize: compact ? 17 : 18 },
+                  { color: ink, fontSize: compact ? 17 : 18 },
                 ]}
                 numberOfLines={1}
               >
@@ -247,7 +258,7 @@ export function WalletFolder({
                       },
                     ]}
                   >
-                    <Icon name="swap" size={15} color={palette.ink} />
+                    <Icon name="swap" size={15} color={ink} />
                   </Animated.View>
                   <Animated.View
                     style={[
@@ -270,59 +281,61 @@ export function WalletFolder({
                       },
                     ]}
                   >
-                    <Icon name="more" size={18} color={palette.ink} />
+                    <Icon name="more" size={18} color={ink} />
                   </Animated.View>
                 </View>
               ) : (
                 <Icon
                   name={menuIcon}
                   size={menuIcon === "swap" ? 15 : 18}
-                  color={palette.ink}
+                  color={ink}
                 />
               )}
             </Pressable>
 
             {/* Subtle Lower-Right Printmark */}
-            <View
-              pointerEvents="none"
-              style={[
-                styles.printmarkLayer,
-                {
-                  top: tabHeight,
-                  borderBottomLeftRadius: radius,
-                  borderBottomRightRadius: radius,
-                },
-              ]}
-            >
-              {printmark ? (
-                <Image
-                  source={printmark}
-                  style={[
-                    styles.printmarkImage,
-                    {
-                      width: printSize,
-                      height: printSize,
-                      tintColor: palette.ink,
-                      opacity: isLightInk ? 0.12 : 0.085,
-                    },
-                  ]}
-                  resizeMode="contain"
-                />
-              ) : (
-                <Text
-                  style={[
-                    styles.printmarkMonogram,
-                    {
-                      color: palette.ink,
-                      fontSize: compact ? 76 : 88,
-                      opacity: isLightInk ? 0.1 : 0.07,
-                    },
-                  ]}
-                >
-                  {wallet.mark}
-                </Text>
-              )}
-            </View>
+            {!cardBackground && (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.printmarkLayer,
+                  {
+                    top: tabHeight,
+                    borderBottomLeftRadius: radius,
+                    borderBottomRightRadius: radius,
+                  },
+                ]}
+              >
+                {printmark ? (
+                  <Image
+                    source={printmark}
+                    style={[
+                      styles.printmarkImage,
+                      {
+                        width: printSize,
+                        height: printSize,
+                        tintColor: ink,
+                        opacity: isLightInk ? 0.12 : 0.085,
+                      },
+                    ]}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <Text
+                    style={[
+                      styles.printmarkMonogram,
+                      {
+                        color: ink,
+                        fontSize: compact ? 76 : 88,
+                        opacity: isLightInk ? 0.1 : 0.07,
+                      },
+                    ]}
+                  >
+                    {wallet.mark}
+                  </Text>
+                )}
+              </View>
+            )}
 
             {/* Folder Body */}
             <View
@@ -334,7 +347,7 @@ export function WalletFolder({
                 },
               ]}
             >
-              <Text style={[styles.folderLabel, { color: palette.ink }]}>
+              <Text style={[styles.folderLabel, { color: ink }]}>
                 Available balance
               </Text>
               <View style={{ marginTop: 2, marginBottom: compact ? 14 : 18 }}>
@@ -342,27 +355,27 @@ export function WalletFolder({
                   value={wallet.balance}
                   hidden={hidden}
                   size={compact ? "md" : "lg"}
-                  color={palette.ink}
+                  color={ink}
                 />
               </View>
               <View style={styles.folderMeta}>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.metaLabel, { color: palette.ink }]}>
+                  <Text style={[styles.metaLabel, { color: ink }]}>
                     Wallet type
                   </Text>
                   <Text
-                    style={[styles.metaValue, { color: palette.ink }]}
+                    style={[styles.metaValue, { color: ink }]}
                     numberOfLines={1}
                   >
                     {wallet.type}
                   </Text>
                 </View>
                 <View style={{ flex: 1, alignItems: "flex-end" }}>
-                  <Text style={[styles.metaLabel, { color: palette.ink }]}>
+                  <Text style={[styles.metaLabel, { color: ink }]}>
                     Label
                   </Text>
                   <Text
-                    style={[styles.metaValue, { color: palette.ink }]}
+                    style={[styles.metaValue, { color: ink }]}
                     numberOfLines={1}
                   >
                     {wallet.account}

@@ -67,6 +67,42 @@ export const walletPrintmarkAssets: Record<string, ImageSourcePropType> = {
   ownbank: require("../../assets/printmarks/ownbank.webp"),
 };
 
+export const walletCardBackgroundAssets: Record<string, ImageSourcePropType> = {
+  gcash: require("../../assets/cards/gcash.webp"),
+  maya: require("../../assets/cards/maya.webp"),
+  shopeepay: require("../../assets/cards/shopeepay.webp"),
+  grabpay: require("../../assets/cards/grabpay.webp"),
+  coinsph: require("../../assets/cards/coinsph.webp"),
+  paypal: require("../../assets/cards/paypal.webp"),
+  wise: require("../../assets/cards/wise.webp"),
+  gotyme: require("../../assets/cards/gotyme.webp"),
+  maribank: require("../../assets/cards/maribank.webp"),
+  cimb: require("../../assets/cards/cimb.webp"),
+  tonik: require("../../assets/cards/tonik.webp"),
+  unobank: require("../../assets/cards/unobank.webp"),
+  ownbank: require("../../assets/cards/ownbank.webp"),
+  bpi: require("../../assets/cards/bpi.webp"),
+  bdo: require("../../assets/cards/bdo.webp"),
+  unionbank: require("../../assets/cards/unionbank.webp"),
+  metrobank: require("../../assets/cards/metrobank.webp"),
+  rcbc: require("../../assets/cards/rcbc.webp"),
+  landbank: require("../../assets/cards/landbank.webp"),
+  securitybank: require("../../assets/cards/securitybank.webp"),
+  chinabank: require("../../assets/cards/chinabank.webp"),
+  pnb: require("../../assets/cards/pnb.webp"),
+  eastwest: require("../../assets/cards/eastwest.webp"),
+  psbank: require("../../assets/cards/psbank.webp"),
+  cash: require("../../assets/cards/cash.webp"),
+};
+
+const LIGHT_CARD_KEYS = new Set(["wise"]);
+
+export type WalletCardDesign = {
+  source: ImageSourcePropType;
+  ink: string;
+  isDark: boolean;
+};
+
 export const walletPresets: WalletPreset[] = [
   // E-Wallets
   { key: "gcash", name: "GCash", type: "E-wallet", mark: "G", recommendedTone: "blue", account: "Personal", group: "E-wallet" },
@@ -116,23 +152,65 @@ export function resolveWalletPrintmark(
   return resolveFromMap(walletPrintmarkAssets, logoKey, walletName);
 }
 
-function resolveFromMap(
-  map: Record<string, ImageSourcePropType>,
+export function resolveWalletCardBackground(
   logoKey?: string,
   walletName?: string
 ): ImageSourcePropType | undefined {
+  return resolveFromMap(walletCardBackgroundAssets, logoKey, walletName);
+}
+
+export function resolveWalletCardDesign(
+  logoKey?: string,
+  walletName?: string
+): WalletCardDesign | undefined {
+  const key = resolvePresetKey(walletCardBackgroundAssets, logoKey, walletName);
+  if (!key) return undefined;
+  const isLight = LIGHT_CARD_KEYS.has(key);
+  return {
+    source: walletCardBackgroundAssets[key],
+    ink: isLight ? "#14201a" : "#ffffff",
+    isDark: !isLight,
+  };
+}
+
+export function resolveWalletPreset(
+  logoKey?: string,
+  walletName?: string
+): WalletPreset | undefined {
+  const key = resolvePresetKey(
+    Object.fromEntries(walletPresets.map((p) => [p.key, p])),
+    logoKey,
+    walletName
+  );
+  return key ? walletPresets.find((p) => p.key === key) : undefined;
+}
+
+function resolvePresetKey<T>(
+  map: Record<string, T>,
+  logoKey?: string,
+  walletName?: string
+): string | undefined {
   const aliasKey = logoKey === "seabank" ? "maribank" : logoKey;
   if (aliasKey && map[aliasKey]) {
-    return map[aliasKey];
+    return aliasKey;
   }
   if (!walletName) return undefined;
   const normalized = walletName.toLowerCase().replace(/[^a-z0-9]/g, "");
-  if (normalized.includes("seabank") && map.maribank) return map.maribank;
-  if (map[normalized]) return map[normalized];
+  if (normalized.includes("seabank") && map.maribank) return "maribank";
+  if (map[normalized]) return normalized;
   const matched = walletPresets.find(
     (p) =>
       normalized.includes(p.key) ||
       p.name.toLowerCase().replace(/[^a-z0-9]/g, "") === normalized
   );
-  return matched ? map[matched.key] : undefined;
+  return matched && map[matched.key] ? matched.key : undefined;
+}
+
+function resolveFromMap<T>(
+  map: Record<string, T>,
+  logoKey?: string,
+  walletName?: string
+): T | undefined {
+  const key = resolvePresetKey(map, logoKey, walletName);
+  return key ? map[key] : undefined;
 }

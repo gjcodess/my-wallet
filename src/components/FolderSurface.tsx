@@ -1,9 +1,17 @@
-import React, { useState } from "react";
-import { LayoutChangeEvent, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import React, { useId, useState } from "react";
+import {
+  ImageSourcePropType,
+  LayoutChangeEvent,
+  StyleProp,
+  StyleSheet,
+  View,
+  ViewStyle,
+} from "react-native";
 import Svg, {
   ClipPath,
   Defs,
   G,
+  Image as SvgImage,
   LinearGradient,
   Path,
   Stop,
@@ -73,6 +81,8 @@ export function FolderSurface({
   contentStyle,
   fromColor = "#8fd0ff",
   toColor = "#2563eb",
+  backgroundImage,
+  isDarkSurface,
   tab = 0.62,
   tabHeight = 34,
   radius = 26,
@@ -95,6 +105,8 @@ export function FolderSurface({
   contentStyle?: StyleProp<ViewStyle>;
   fromColor?: string;
   toColor?: string;
+  backgroundImage?: ImageSourcePropType;
+  isDarkSurface?: boolean;
   tab?: number;
   tabHeight?: number;
   radius?: number;
@@ -104,6 +116,10 @@ export function FolderSurface({
   gap?: number;
   minHeight?: number;
 }) {
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const gradId = `folderGrad-${uid}`;
+  const folderClipId = `folderClip-${uid}`;
+  const notchClipId = `notchClip-${uid}`;
   const [size, setSize] = useState({ width: 350, height: minHeight });
 
   const onLayout = (e: LayoutChangeEvent) => {
@@ -125,7 +141,7 @@ export function FolderSurface({
   );
 
   const effectiveHeight = Math.max(size.height, minHeight);
-  const darkSurface = isDarkHex(toColor);
+  const darkSurface = isDarkSurface ?? isDarkHex(toColor);
   const resolvedGloss =
     notchGloss ??
     (darkSurface
@@ -160,14 +176,14 @@ export function FolderSurface({
           viewBox={`0 -${topOffset} ${size.width} ${totalSvgHeight}`}
         >
           <Defs>
-            <LinearGradient id="folderGrad" x1="0" y1="0" x2="1" y2="1">
+            <LinearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
               <Stop offset="0%" stopColor={fromColor} />
               <Stop offset="100%" stopColor={toColor} />
             </LinearGradient>
-            <ClipPath id="folderClip">
+            <ClipPath id={folderClipId}>
               <Path d={geometry.folder} />
             </ClipPath>
-            <ClipPath id="notchClip">
+            <ClipPath id={notchClipId}>
               <Path d={geometry.notch} />
             </ClipPath>
           </Defs>
@@ -199,9 +215,20 @@ export function FolderSurface({
               <Path d={geometry.folder} fill={`rgba(18, 26, 45, ${s.op})`} />
             </G>
           ))}
-          <Path d={geometry.folder} fill="url(#folderGrad)" />
+          <Path d={geometry.folder} fill={`url(#${gradId})`} />
+          {backgroundImage && (
+            <SvgImage
+              href={backgroundImage}
+              x={0}
+              y={0}
+              width={size.width}
+              height={effectiveHeight}
+              preserveAspectRatio="xMaxYMid slice"
+              clipPath={`url(#${folderClipId})`}
+            />
+          )}
           {/* Subtle inner bevel highlight (top-left) & soft rim (bottom-right) */}
-          <G clipPath="url(#folderClip)">
+          <G clipPath={`url(#${folderClipId})`}>
             <Path
               d={geometry.folder}
               fill="none"
@@ -219,9 +246,20 @@ export function FolderSurface({
           </G>
           {notch && (
             <>
-              <Path d={geometry.notch} fill="url(#folderGrad)" />
+              <Path d={geometry.notch} fill={`url(#${gradId})`} />
+              {backgroundImage && (
+                <SvgImage
+                  href={backgroundImage}
+                  x={0}
+                  y={0}
+                  width={size.width}
+                  height={effectiveHeight}
+                  preserveAspectRatio="xMaxYMid slice"
+                  clipPath={`url(#${notchClipId})`}
+                />
+              )}
               <Path d={geometry.notch} fill={resolvedGloss} />
-              <G clipPath="url(#notchClip)">
+              <G clipPath={`url(#${notchClipId})`}>
                 <Path
                   d={geometry.notch}
                   fill="none"
