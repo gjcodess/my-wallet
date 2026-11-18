@@ -15,7 +15,9 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ActivityItem,
+  EXPENSE_CATEGORIES,
   getActivityDate,
+  INCOME_CATEGORIES,
   isActivityForWallet,
   isAdjustmentActivity,
   isExpenseActivity,
@@ -1216,21 +1218,12 @@ export function WalletsScreen({
 type ActivityTypeFilter = "All" | "Expenses" | "Income" | "Transfers" | "Adjusted";
 
 const DEFAULT_EXPENSE_CATEGORIES: { label: string; icon: string }[] = [
-  { label: "Food", icon: "cup" },
-  { label: "Bills", icon: "bolt" },
-  { label: "Shopping", icon: "bag" },
-  { label: "Transport", icon: "car" },
-  { label: "Health", icon: "heart" },
+  ...EXPENSE_CATEGORIES.map(([label, icon]) => ({ label, icon })),
   { label: "Transfers", icon: "swap" },
 ];
 
-const DEFAULT_INCOME_CATEGORIES: { label: string; icon: string }[] = [
-  { label: "Salary", icon: "briefcase" },
-  { label: "Freelance", icon: "phone" },
-  { label: "Gift", icon: "gift" },
-  { label: "Refund", icon: "arrow-down" },
-  { label: "Other", icon: "plus" },
-];
+const DEFAULT_INCOME_CATEGORIES: { label: string; icon: string }[] =
+  INCOME_CATEGORIES.map(([label, icon]) => ({ label, icon }));
 
 export function ActivityScreen({
   activities,

@@ -223,6 +223,60 @@ export function Icon({
             <Path d="M8.5 16.5c.3-1.1.5-2.3.5-3.5" />
           </>
         );
+      case "cart":
+        return (
+          <>
+            <Path d="M3 4.5h2.2l2 9.5h10.5l2-6.5H6.2" />
+            <Circle cx="9" cy="18.5" r="1.5" />
+            <Circle cx="16.5" cy="18.5" r="1.5" />
+          </>
+        );
+      case "wifi":
+        return (
+          <>
+            <Path d="M3.5 9.5a12.5 12.5 0 0 1 17 0" />
+            <Path d="M6.8 13a8 8 0 0 1 10.4 0" />
+            <Path d="M10.1 16.5a3.5 3.5 0 0 1 3.8 0" />
+            <Circle cx="12" cy="19.5" r="1" fill={color} />
+          </>
+        );
+      case "film":
+        return (
+          <>
+            <Rect x="3.5" y="5" width="17" height="14" rx="2.5" />
+            <Path d="M7.5 5v14M16.5 5v14M3.5 9.5h4M3.5 14.5h4M16.5 9.5h4M16.5 14.5h4" />
+          </>
+        );
+      case "book":
+        return (
+          <>
+            <Path d="M4.5 5.5A2.5 2.5 0 0 1 7 3h12.5v16.5H7a2.5 2.5 0 0 0-2.5 2.5Z" />
+            <Path d="M4.5 5.5v14.5M8.5 7.5h7M8.5 11h5" />
+          </>
+        );
+      case "users":
+        return (
+          <>
+            <Circle cx="9" cy="8.5" r="3" />
+            <Path d="M3.5 19a5.5 5.5 0 0 1 11 0" />
+            <Circle cx="16.5" cy="9.5" r="2.3" />
+            <Path d="M15.5 19h5a4 4 0 0 0-3.5-4" />
+          </>
+        );
+      case "trend":
+        return (
+          <>
+            <Path d="m3.5 16.5 5.5-5.5 4 4 7.5-7.5" />
+            <Path d="M15 7.5h5.5V13" />
+          </>
+        );
+      case "tag":
+        return (
+          <>
+            <Path d="M4 12V5.5A1.5 1.5 0 0 1 5.5 4H12l8 8-6.5 6.5Z" />
+            <Circle cx="8.5" cy="8.5" r="1.2" fill={color} />
+          </>
+        );
       default:
         return <Circle cx="12" cy="12" r="6" />;
     }

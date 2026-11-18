@@ -17,7 +17,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { AmountKeypad, formatAmountInput } from "./AmountKeypad";
 import {
   ActivityItem,
+  EXPENSE_CATEGORIES,
   getWalletLocalId,
+  INCOME_CATEGORIES,
   isAdjustmentActivity,
   isTransferActivity,
   money,
@@ -52,21 +54,6 @@ const PRESET_GROUPS: ("All" | WalletPresetGroup)[] = [
   "Digital Bank",
   "Bank",
   "Cash",
-];
-const EXPENSE_CATEGORIES: [string, string][] = [
-  ["Food", "cup"],
-  ["Transport", "car"],
-  ["Bills", "bolt"],
-  ["Shopping", "bag"],
-  ["Health", "heart"],
-  ["Other", "adjust"],
-];
-const INCOME_CATEGORIES: [string, string][] = [
-  ["Salary", "briefcase"],
-  ["Freelance", "phone"],
-  ["Gift", "gift"],
-  ["Refund", "arrow-down"],
-  ["Other", "plus"],
 ];
 
 export function SheetModal({

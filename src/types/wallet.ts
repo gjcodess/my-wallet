@@ -1,4 +1,31 @@
 export type Tab = "home" | "wallets" | "activity" | "settings";
+
+export const EXPENSE_CATEGORIES: [string, string][] = [
+  ["Food", "cup"],
+  ["Groceries", "cart"],
+  ["Transport", "car"],
+  ["Bills", "bolt"],
+  ["Internet", "wifi"],
+  ["Rent", "home"],
+  ["Shopping", "bag"],
+  ["Health", "heart"],
+  ["Leisure", "film"],
+  ["Education", "book"],
+  ["Family", "users"],
+  ["Other", "adjust"],
+];
+
+export const INCOME_CATEGORIES: [string, string][] = [
+  ["Salary", "briefcase"],
+  ["Freelance", "phone"],
+  ["Business", "cash"],
+  ["Allowance", "wallet"],
+  ["Interest", "trend"],
+  ["Cashback", "tag"],
+  ["Gift", "gift"],
+  ["Refund", "arrow-down"],
+  ["Other", "plus"],
+];
 export type Sheet =
   | "add"
   | "entry"
