@@ -40,6 +40,7 @@ import {
 import {
   loadLocalState,
   queueDeletedActivityIds,
+  queueDeletedWalletIds,
   saveActivitiesToSQLite,
   saveSettingToSQLite,
   saveWalletsToSQLite,
@@ -305,6 +306,14 @@ export default function App() {
   }, [toast]);
 
   const openSheet = (next: Sheet, wallet?: Wallet) => {
+    if (next && (next === "entry" || next === "update") && walletsRef.current.length === 0) {
+      setToast("Add a wallet first");
+      return;
+    }
+    if (next === "transfer" && walletsRef.current.length < 2) {
+      setToast("Add at least 2 wallets to transfer");
+      return;
+    }
     setSheetActivity(null);
     setSheetWalletId(wallet ? wallet.id : null);
     setSheet(next);
@@ -418,6 +427,31 @@ export default function App() {
     setActivityItems(nextActivities);
     const localId = deletedItem.localId || `tx-${deletedItem.id}`;
     queueDeletedActivityIds([localId]).catch(() => {});
+    scheduleCloudSync();
+  };
+
+  const handleDeleteWallet = (targetWallet: Wallet) => {
+    const nextWallets = walletsRef.current.filter(
+      (w) => w.id !== targetWallet.id
+    );
+    walletsRef.current = nextWallets;
+    setWallets(nextWallets);
+    if (selectedId === targetWallet.id) {
+      setSelectedId(null);
+    }
+    queueDeletedWalletIds([getWalletLocalId(targetWallet)]).catch(() => {});
+    scheduleCloudSync();
+  };
+
+  const handleReorderWallets = (nextWallets: Wallet[]) => {
+    const nowIso = new Date().toISOString();
+    const stamped = nextWallets.map((w) => ({
+      ...w,
+      updatedAt: nowIso,
+      synced: false,
+    }));
+    walletsRef.current = stamped;
+    setWallets(stamped);
     scheduleCloudSync();
   };
 
@@ -542,6 +576,9 @@ export default function App() {
                     total={total}
                     hidden={hidden}
                     onWallet={(w) => setSelectedId(w.id)}
+                    onReorderWallets={handleReorderWallets}
+                    onAddWallet={() => openSheet("add")}
+                    onDragChange={handleStackDragChange}
                     isCloudSynced={Boolean(userEmail)}
                     theme={theme}
                   />
@@ -615,6 +652,7 @@ export default function App() {
               setWallets(nextWallets);
               scheduleCloudSync();
             }}
+            onDeleteWallet={handleDeleteWallet}
             onRecordActivity={(item) => {
               recordActivity(item);
             }}

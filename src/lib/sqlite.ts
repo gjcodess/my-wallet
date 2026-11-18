@@ -228,28 +228,42 @@ export async function saveSettingToSQLite(key: string, value: string): Promise<v
 export async function saveWalletsToSQLite(wallets: Wallet[]): Promise<void> {
   const db = await getDb();
   const now = new Date().toISOString();
-  for (let i = 0; i < wallets.length; i++) {
-    const w = wallets[i];
-    const localId = w.localId || `wallet-${w.id}`;
-    await db.runAsync(
-      `INSERT OR REPLACE INTO wallets (id, local_id, name, type, balance, mark, tone, account, logo_key, sort_order, updated_at, synced)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        w.id,
-        localId,
-        w.name,
-        w.type,
-        w.balance,
-        w.mark,
-        w.tone,
-        w.account,
-        w.logoKey || "",
-        i,
-        w.updatedAt || now,
-        w.synced ? 1 : 0,
-      ]
+  await db.withTransactionAsync(async () => {
+    const keepIds = new Set<string>();
+    for (let i = 0; i < wallets.length; i++) {
+      const w = wallets[i];
+      const localId = w.localId || `wallet-${w.id}`;
+      keepIds.add(localId);
+      await db.runAsync(
+        `INSERT OR REPLACE INTO wallets (id, local_id, name, type, balance, mark, tone, account, logo_key, sort_order, updated_at, synced)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          w.id,
+          localId,
+          w.name,
+          w.type,
+          w.balance,
+          w.mark,
+          w.tone,
+          w.account,
+          w.logoKey || "",
+          i,
+          w.updatedAt || now,
+          w.synced ? 1 : 0,
+        ]
+      );
+    }
+    const existingRows = await db.getAllAsync<{ local_id: string }>(
+      "SELECT local_id FROM wallets"
     );
-  }
+    for (const row of existingRows) {
+      if (!keepIds.has(row.local_id)) {
+        await db.runAsync("DELETE FROM wallets WHERE local_id = ?", [
+          row.local_id,
+        ]);
+      }
+    }
+  });
 }
 
 export async function saveActivitiesToSQLite(activities: ActivityItem[]): Promise<void> {
@@ -313,6 +327,13 @@ export async function queueDeletedActivityIds(localIds: string[]): Promise<void>
   const existing = await getQueuedDeletedIds("deleted_activity_ids");
   const merged = Array.from(new Set([...existing, ...localIds]));
   await saveSettingToSQLite("deleted_activity_ids", JSON.stringify(merged));
+}
+
+export async function queueDeletedWalletIds(localIds: string[]): Promise<void> {
+  if (!localIds.length) return;
+  const existing = await getQueuedDeletedIds("deleted_wallet_ids");
+  const merged = Array.from(new Set([...existing, ...localIds]));
+  await saveSettingToSQLite("deleted_wallet_ids", JSON.stringify(merged));
 }
 
 export async function syncWithSupabase(params: {
@@ -391,7 +412,18 @@ export async function syncWithSupabase(params: {
       if (activityError) throw activityError;
     }
 
-    // 3b. Soft-delete any locally removed activities in Supabase
+    // 3b. Soft-delete any locally removed wallets & activities in Supabase
+    const deletedWalletIds = await getQueuedDeletedIds("deleted_wallet_ids");
+    if (deletedWalletIds.length > 0) {
+      const { error: delWalletErr } = await supabase
+        .from("wallets")
+        .update({ deleted_at: now, updated_at: now })
+        .eq("user_id", userId)
+        .in("local_id", deletedWalletIds);
+      if (delWalletErr) throw delWalletErr;
+      await saveSettingToSQLite("deleted_wallet_ids", "[]");
+    }
+
     const deletedActIds = await getQueuedDeletedIds("deleted_activity_ids");
     if (deletedActIds.length > 0) {
       const { error: delActErr } = await supabase
@@ -462,9 +494,7 @@ export async function syncWithSupabase(params: {
       }
     );
 
-    if (mergedWallets.length > 0) {
-      await saveWalletsToSQLite(mergedWallets);
-    }
+    await saveWalletsToSQLite(mergedWallets);
     await saveActivitiesToSQLite(mergedActivities);
 
     const syncedTimeLabel = new Intl.DateTimeFormat("en-PH", {
@@ -476,7 +506,7 @@ export async function syncWithSupabase(params: {
     return {
       ok: true,
       message: "Synced with Supabase Cloud",
-      wallets: mergedWallets.length ? mergedWallets : wallets,
+      wallets: mergedWallets,
       activities: mergedActivities,
       syncedAt: syncedTimeLabel,
     };

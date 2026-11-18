@@ -195,6 +195,17 @@ export function Icon({
             <Path d="M18.5 12A6.5 6.5 0 0 0 6.7 8M5.5 12a6.5 6.5 0 0 0 11.8 4" />
           </>
         );
+      case "grip":
+        return (
+          <>
+            <Circle cx="9" cy="6.5" r="1.2" fill={color} />
+            <Circle cx="15" cy="6.5" r="1.2" fill={color} />
+            <Circle cx="9" cy="12" r="1.2" fill={color} />
+            <Circle cx="15" cy="12" r="1.2" fill={color} />
+            <Circle cx="9" cy="17.5" r="1.2" fill={color} />
+            <Circle cx="15" cy="17.5" r="1.2" fill={color} />
+          </>
+        );
       default:
         return <Circle cx="12" cy="12" r="6" />;
     }

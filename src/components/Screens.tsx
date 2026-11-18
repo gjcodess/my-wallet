@@ -807,11 +807,18 @@ export function HomeScreen({
   );
 }
 
+const WALLET_TILE_HEIGHT = 80;
+const WALLET_TILE_GAP = 9;
+const WALLET_SLOT_HEIGHT = WALLET_TILE_HEIGHT + WALLET_TILE_GAP;
+
 export function WalletsScreen({
   wallets,
   total,
   hidden,
   onWallet,
+  onReorderWallets,
+  onAddWallet,
+  onDragChange,
   isCloudSynced,
   theme,
 }: {
@@ -819,12 +826,190 @@ export function WalletsScreen({
   total: number;
   hidden: boolean;
   onWallet: (w: Wallet) => void;
+  onReorderWallets?: (next: Wallet[]) => void;
+  onAddWallet?: () => void;
+  onDragChange?: (dragging: boolean) => void;
   isCloudSynced: boolean;
   theme: ThemeColors;
 }) {
+  const [reordering, setReordering] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+
+  const dragOffsetY = useRef(new Animated.Value(0)).current;
+  const liftAnim = useRef(new Animated.Value(0)).current;
+  const shiftMapRef = useRef<Map<number, Animated.Value>>(new Map());
+  const dragIndexRef = useRef<number | null>(null);
+  const hoverIndexRef = useRef<number | null>(null);
+  const isDroppingRef = useRef(false);
+  const reorderingRef = useRef(reordering);
+  reorderingRef.current = reordering;
+  const walletsRef = useRef(wallets);
+  walletsRef.current = wallets;
+
+  const getShiftAnim = (id: number) => {
+    let anim = shiftMapRef.current.get(id);
+    if (!anim) {
+      anim = new Animated.Value(0);
+      shiftMapRef.current.set(id, anim);
+    }
+    return anim;
+  };
+
+  useLayoutEffect(() => {
+    dragOffsetY.setValue(0);
+    liftAnim.setValue(0);
+    dragIndexRef.current = null;
+    hoverIndexRef.current = null;
+    isDroppingRef.current = false;
+    setDragIndex(null);
+    setHoverIndex(null);
+    for (const anim of shiftMapRef.current.values()) {
+      anim.setValue(0);
+    }
+  }, [wallets, dragOffsetY, liftAnim]);
+
+  useEffect(() => {
+    if (dragIndex === null || hoverIndex === null) return;
+    wallets.forEach((w, idx) => {
+      if (idx === dragIndex) return;
+      let targetShift = 0;
+      if (dragIndex < hoverIndex && idx > dragIndex && idx <= hoverIndex) {
+        targetShift = -WALLET_SLOT_HEIGHT;
+      } else if (dragIndex > hoverIndex && idx >= hoverIndex && idx < dragIndex) {
+        targetShift = WALLET_SLOT_HEIGHT;
+      }
+      Animated.spring(getShiftAnim(w.id), {
+        toValue: targetShift,
+        useNativeDriver: true,
+        speed: 26,
+        bounciness: 4,
+      }).start();
+    });
+  }, [dragIndex, hoverIndex, wallets]);
+
+  const startDrag = (index: number) => {
+    if (isDroppingRef.current || !onReorderWallets || walletsRef.current.length <= 1) {
+      return;
+    }
+    dragIndexRef.current = index;
+    hoverIndexRef.current = index;
+    setDragIndex(index);
+    setHoverIndex(index);
+    dragOffsetY.setValue(0);
+    onDragChange?.(true);
+    Animated.spring(liftAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 28,
+      bounciness: 6,
+    }).start();
+  };
+
+  const updateDrag = (dy: number) => {
+    const startIdx = dragIndexRef.current;
+    if (startIdx === null || isDroppingRef.current) return;
+    const list = walletsRef.current;
+    const minDy = -startIdx * WALLET_SLOT_HEIGHT;
+    const maxDy = (list.length - 1 - startIdx) * WALLET_SLOT_HEIGHT;
+    const clampedDy = Math.max(minDy, Math.min(maxDy, dy));
+    dragOffsetY.setValue(clampedDy);
+
+    const nextHover = Math.max(
+      0,
+      Math.min(
+        list.length - 1,
+        Math.round(startIdx + clampedDy / WALLET_SLOT_HEIGHT)
+      )
+    );
+    if (nextHover !== hoverIndexRef.current) {
+      hoverIndexRef.current = nextHover;
+      setHoverIndex(nextHover);
+    }
+  };
+
+  const finishDrag = () => {
+    const startIdx = dragIndexRef.current;
+    const endIdx = hoverIndexRef.current;
+    onDragChange?.(false);
+    if (startIdx === null || endIdx === null || isDroppingRef.current) return;
+    isDroppingRef.current = true;
+
+    const snapDelta = (endIdx - startIdx) * WALLET_SLOT_HEIGHT;
+    Animated.parallel([
+      Animated.spring(dragOffsetY, {
+        toValue: snapDelta,
+        useNativeDriver: true,
+        speed: 30,
+        bounciness: 4,
+      }),
+      Animated.spring(liftAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        speed: 30,
+        bounciness: 4,
+      }),
+    ]).start(() => {
+      const list = walletsRef.current;
+      if (startIdx !== endIdx && onReorderWallets && startIdx < list.length && endIdx < list.length) {
+        const next = [...list];
+        const [moved] = next.splice(startIdx, 1);
+        next.splice(endIdx, 0, moved);
+        onReorderWallets(next);
+      } else {
+        dragOffsetY.setValue(0);
+        liftAnim.setValue(0);
+        dragIndexRef.current = null;
+        hoverIndexRef.current = null;
+        isDroppingRef.current = false;
+        setDragIndex(null);
+        setHoverIndex(null);
+        for (const anim of shiftMapRef.current.values()) {
+          anim.setValue(0);
+        }
+      }
+    });
+  };
+
+  const startDragRef = useRef(startDrag);
+  startDragRef.current = startDrag;
+  const updateDragRef = useRef(updateDrag);
+  updateDragRef.current = updateDrag;
+  const finishDragRef = useRef(finishDrag);
+  finishDragRef.current = finishDrag;
+
+  const rowPanResponders = useMemo(
+    () =>
+      Array.from({ length: wallets.length }, (_, index) =>
+        PanResponder.create({
+          onStartShouldSetPanResponder: () =>
+            reorderingRef.current && !isDroppingRef.current,
+          onStartShouldSetPanResponderCapture: () =>
+            reorderingRef.current && !isDroppingRef.current,
+          onMoveShouldSetPanResponder: () =>
+            reorderingRef.current && !isDroppingRef.current,
+          onMoveShouldSetPanResponderCapture: () =>
+            reorderingRef.current && !isDroppingRef.current,
+          onPanResponderTerminationRequest: () => false,
+          onPanResponderGrant: () => {
+            startDragRef.current(index);
+          },
+          onPanResponderMove: (_evt, g) => {
+            updateDragRef.current(g.dy);
+          },
+          onPanResponderRelease: () => {
+            finishDragRef.current();
+          },
+          onPanResponderTerminate: () => {
+            finishDragRef.current();
+          },
+        })
+      ),
+    [wallets.length]
+  );
+
   return (
     <View style={styles.page}>
-
       <View style={styles.walletsTotal}>
         <Text style={[styles.walletsTotalSub, { color: theme.muted }]}>
           Combined balance
@@ -841,73 +1026,186 @@ export function WalletsScreen({
           <Icon name="sync" size={14} color={theme.accentText} />
           <Text style={[styles.syncBadgeText, { color: theme.accentText }]}>
             {isCloudSynced ? "Synced with Supabase" : "Synced locally"} ·{" "}
-            {wallets.length} wallets
+            {wallets.length} {wallets.length === 1 ? "wallet" : "wallets"}
           </Text>
         </View>
       </View>
 
-      <View style={styles.walletList}>
-        {wallets.map((wallet) => {
-          const pal = tonePalette[wallet.tone] || tonePalette.blue;
-          return (
+      {wallets.length > 1 && onReorderWallets ? (
+        <SectionTitle
+          title={reordering ? "Drag to reorder" : "Your wallets"}
+          action={reordering ? "Done" : "Reorder"}
+          actionIcon={reordering ? "check" : "grip"}
+          actionColor={theme.accentText}
+          onPress={() => {
+            if (dragIndexRef.current !== null) return;
+            setReordering((prev) => !prev);
+          }}
+          theme={theme}
+        />
+      ) : null}
+
+      {wallets.length === 0 ? (
+        <View
+          style={[
+            styles.emptyState,
+            { backgroundColor: theme.card },
+            bevelStyle(theme.dark),
+            cardShadow(theme.dark),
+          ]}
+        >
+          <LinearGradient
+            colors={theme.accentGradient}
+            style={styles.emptyStateIcon}
+          >
+            <Icon name="wallet" size={22} color={theme.accentInk} />
+          </LinearGradient>
+          <Text style={[styles.emptyStateTitle, { color: theme.ink }]}>
+            No wallets yet
+          </Text>
+          <Text style={[styles.emptyStateSub, { color: theme.muted }]}>
+            Tap below to add your first e-wallet, bank, or cash card.
+          </Text>
+          {onAddWallet ? (
             <Pressable
-              key={wallet.id}
-              onPress={() => onWallet(wallet)}
-              style={({ pressed }) => [
-                styles.walletTile,
+              onPress={onAddWallet}
+              style={[
+                styles.viewAllBtn,
                 {
-                  backgroundColor: theme.card,
-                  transform: [{ scale: pressed ? 0.985 : 1 }],
+                  backgroundColor: theme.accentSoft,
+                  paddingHorizontal: 18,
+                  marginTop: 14,
                 },
-                bevelStyle(theme.dark),
-                cardShadow(theme.dark),
               ]}
             >
-              <LinearGradient
-                colors={[pal.from, pal.to]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.tileBadge}
-              >
-                <WalletLogoBadge
-                  logoKey={wallet.logoKey}
-                  name={wallet.name}
-                  mark={wallet.mark}
-                  size={48}
-                  radius={16}
-                  ink={pal.ink}
-                  fontSize={11}
-                />
-              </LinearGradient>
-
-              <View style={styles.tileMain}>
-                <Text
-                  style={[styles.tileName, { color: theme.ink }]}
-                  numberOfLines={1}
-                >
-                  {wallet.name}
-                </Text>
-                <Text
-                  style={[styles.tileSub, { color: theme.muted }]}
-                  numberOfLines={1}
-                >
-                  {wallet.type} · {wallet.account}
-                </Text>
-              </View>
-
-              <View style={styles.tileValueRow}>
-                <Amount
-                  value={wallet.balance}
-                  hidden={hidden}
-                  size="sm"
-                  color={theme.ink}
-                />
-                <Icon name="chevron" size={16} color={theme.muted} />
-              </View>
+              <Icon name="plus" size={15} color={theme.accentText} />
+              <Text style={[styles.viewAllText, { color: theme.accentText }]}>
+                Add wallet
+              </Text>
             </Pressable>
-          );
-        })}
-      </View>
+          ) : null}
+        </View>
+      ) : (
+        <View style={styles.walletList}>
+          {wallets.map((wallet, idx) => {
+            const pal = tonePalette[wallet.tone] || tonePalette.blue;
+            const isDragged = dragIndex === idx;
+            const shiftAnim = getShiftAnim(wallet.id);
+            const rowPan = rowPanResponders[idx];
+
+            return (
+              <Animated.View
+                key={wallet.id}
+                style={[
+                  {
+                    zIndex: isDragged ? 20 : 1,
+                    transform: [
+                      { translateY: isDragged ? dragOffsetY : shiftAnim },
+                      {
+                        scale: isDragged
+                          ? liftAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [1, 1.03],
+                            })
+                          : 1,
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <Pressable
+                  onPress={reordering ? undefined : () => onWallet(wallet)}
+                  style={({ pressed }) => [
+                    styles.walletTile,
+                    {
+                      height: WALLET_TILE_HEIGHT,
+                      backgroundColor: theme.card,
+                      borderColor: isDragged ? theme.accent : undefined,
+                      transform: [
+                        { scale: !reordering && pressed ? 0.985 : 1 },
+                      ],
+                    },
+                    bevelStyle(theme.dark),
+                    cardShadow(theme.dark),
+                    isDragged && {
+                      borderColor: theme.accent,
+                      shadowOpacity: theme.dark ? 0.55 : 0.24,
+                      shadowRadius: 20,
+                      elevation: 12,
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={[pal.from, pal.to]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.tileBadge}
+                  >
+                    <WalletLogoBadge
+                      logoKey={wallet.logoKey}
+                      name={wallet.name}
+                      mark={wallet.mark}
+                      size={48}
+                      radius={16}
+                      ink={pal.ink}
+                      fontSize={11}
+                    />
+                  </LinearGradient>
+
+                  <View style={styles.tileMain}>
+                    <Text
+                      style={[styles.tileName, { color: theme.ink }]}
+                      numberOfLines={1}
+                    >
+                      {wallet.name}
+                    </Text>
+                    <Text
+                      style={[styles.tileSub, { color: theme.muted }]}
+                      numberOfLines={1}
+                    >
+                      {wallet.type} · {wallet.account}
+                    </Text>
+                  </View>
+
+                  {reordering ? (
+                    <View
+                      {...(rowPan ? rowPan.panHandlers : {})}
+                      style={styles.dragHandleHitArea}
+                    >
+                      <View
+                        style={[
+                          styles.dragHandleBox,
+                          {
+                            backgroundColor: isDragged
+                              ? theme.accentSoft
+                              : theme.soft,
+                          },
+                        ]}
+                      >
+                        <Icon
+                          name="grip"
+                          size={18}
+                          color={isDragged ? theme.accentText : theme.muted}
+                        />
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.tileValueRow}>
+                      <Amount
+                        value={wallet.balance}
+                        hidden={hidden}
+                        size="sm"
+                        color={theme.ink}
+                      />
+                      <Icon name="chevron" size={16} color={theme.muted} />
+                    </View>
+                  )}
+                </Pressable>
+              </Animated.View>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 }
@@ -2329,6 +2627,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+  },
+  dragHandleHitArea: {
+    width: 48,
+    height: 56,
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+  dragHandleBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
   },
   spendingHead: {
     alignItems: "center",

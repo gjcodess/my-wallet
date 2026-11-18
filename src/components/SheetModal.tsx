@@ -82,6 +82,7 @@ export function SheetModal({
   activity,
   hidden = false,
   onSaveWallets,
+  onDeleteWallet,
   onRecordActivity,
   onUpdateActivity,
   onDeleteActivity,
@@ -102,6 +103,7 @@ export function SheetModal({
   activity?: ActivityItem | null;
   hidden?: boolean;
   onSaveWallets: (next: Wallet[]) => void;
+  onDeleteWallet?: (wallet: Wallet) => void;
   onRecordActivity: (item: Omit<ActivityItem, "id" | "date">) => void;
   onUpdateActivity?: (item: ActivityItem, nextWallets: Wallet[]) => void;
   onDeleteActivity?: (item: ActivityItem, nextWallets: Wallet[]) => void;
@@ -141,10 +143,12 @@ export function SheetModal({
   const [balance, setBalance] = useState(
     editTarget ? String(editTarget.balance) : ""
   );
+  const [walletConfirmDelete, setWalletConfirmDelete] = useState(false);
   const sheetScrollY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     sheetScrollY.setValue(0);
+    setWalletConfirmDelete(false);
     if (type === "edit" && editTarget) {
       setSelectedPresetKey(editTarget.logoKey || "custom");
       setLogoKey(editTarget.logoKey);
@@ -838,6 +842,85 @@ export function SheetModal({
                   onPress={save}
                   theme={theme}
                 />
+
+                {type === "edit" && editTarget && onDeleteWallet ? (
+                  walletConfirmDelete ? (
+                    <View
+                      style={[
+                        styles.txConfirmDeleteBox,
+                        {
+                          marginTop: 12,
+                          backgroundColor: theme.dark
+                            ? "rgba(192, 68, 68, 0.16)"
+                            : "#fdeaea",
+                          borderColor: "rgba(192, 68, 68, 0.35)",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.txConfirmDeleteTitle,
+                          { color: theme.dark ? "#fca5a5" : "#991b1b" },
+                        ]}
+                      >
+                        Delete "{editTarget.name}"? Past activity logs will stay in Activity.
+                      </Text>
+                      <View style={styles.txActionPair}>
+                        <Pressable
+                          onPress={() => setWalletConfirmDelete(false)}
+                          style={[
+                            styles.txActionHalfBtn,
+                            { backgroundColor: theme.card },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.secondaryButtonText, { color: theme.ink }]}
+                          >
+                            Cancel
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => {
+                            onDeleteWallet(editTarget);
+                            onDone(`${editTarget.name} deleted`);
+                          }}
+                          style={[
+                            styles.txActionHalfBtn,
+                            { backgroundColor: "#c04444" },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.secondaryButtonText, { color: "#ffffff" }]}
+                          >
+                            Confirm delete
+                          </Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ) : (
+                    <Pressable
+                      onPress={() => setWalletConfirmDelete(true)}
+                      style={[
+                        styles.secondaryButton,
+                        {
+                          marginTop: 10,
+                          backgroundColor: theme.dark
+                            ? "rgba(192, 68, 68, 0.16)"
+                            : "#fdeaea",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.secondaryButtonText,
+                          { color: "#c04444" },
+                        ]}
+                      >
+                        Delete wallet
+                      </Text>
+                    </Pressable>
+                  )
+                ) : null}
               </View>
             )}
 
