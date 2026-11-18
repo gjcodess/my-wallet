@@ -70,7 +70,10 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
   const countRow = await dbInstance.getFirstAsync<{ count: number }>(
     "SELECT COUNT(*) as count FROM wallets"
   );
-  if (!countRow || countRow.count === 0) {
+  const seededRow = await dbInstance.getFirstAsync<{ value: string }>(
+    "SELECT value FROM kv_settings WHERE key = 'seeded'"
+  );
+  if ((!countRow || countRow.count === 0) && !seededRow) {
     const now = new Date().toISOString();
     for (let i = 0; i < initialWallets.length; i++) {
       const w = initialWallets[i];
@@ -113,6 +116,13 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
         ]
       );
     }
+    await dbInstance.runAsync(
+      "INSERT OR REPLACE INTO kv_settings (key, value) VALUES ('seeded', '1')"
+    );
+  } else if (countRow && countRow.count > 0 && !seededRow) {
+    await dbInstance.runAsync(
+      "INSERT OR REPLACE INTO kv_settings (key, value) VALUES ('seeded', '1')"
+    );
   }
 
   return dbInstance;
@@ -192,9 +202,11 @@ export async function loadLocalState(): Promise<{
     synced: r.synced === 1,
   }));
 
+  const isSeeded = settingsMap.get("seeded") === "1";
+
   return {
-    wallets: wallets.length ? wallets : initialWallets,
-    activities: activities.length ? activities : initialActivities,
+    wallets: wallets.length || isSeeded ? wallets : initialWallets,
+    activities: activities.length || isSeeded ? activities : initialActivities,
     dark: settingsMap.get("dark_mode") === "true",
     hidden: settingsMap.get("hide_balances") === "true",
     profile: {
@@ -243,28 +255,64 @@ export async function saveWalletsToSQLite(wallets: Wallet[]): Promise<void> {
 export async function saveActivitiesToSQLite(activities: ActivityItem[]): Promise<void> {
   const db = await getDb();
   const now = new Date().toISOString();
-  for (const a of activities) {
-    const localId = a.localId || `tx-${a.id}`;
-    await db.runAsync(
-      `INSERT OR REPLACE INTO activities (id, local_id, wallet_local_id, dest_wallet_local_id, title, wallet, date, amount, icon, kind, occurred_at, updated_at, synced)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        a.id,
-        localId,
-        a.walletLocalId || "",
-        a.destWalletLocalId || "",
-        a.title,
-        a.wallet,
-        a.date,
-        a.amount,
-        a.icon,
-        a.kind,
-        a.occurredAt || now,
-        a.updatedAt || now,
-        a.synced ? 1 : 0,
-      ]
+  await db.withTransactionAsync(async () => {
+    const keepIds = new Set<string>();
+    for (const a of activities) {
+      const localId = a.localId || `tx-${a.id}`;
+      keepIds.add(localId);
+      await db.runAsync(
+        `INSERT OR REPLACE INTO activities (id, local_id, wallet_local_id, dest_wallet_local_id, title, wallet, date, amount, icon, kind, occurred_at, updated_at, synced)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          a.id,
+          localId,
+          a.walletLocalId || "",
+          a.destWalletLocalId || "",
+          a.title,
+          a.wallet,
+          a.date,
+          a.amount,
+          a.icon,
+          a.kind,
+          a.occurredAt || now,
+          a.updatedAt || now,
+          a.synced ? 1 : 0,
+        ]
+      );
+    }
+    const existingRows = await db.getAllAsync<{ local_id: string }>(
+      "SELECT local_id FROM activities"
     );
+    for (const row of existingRows) {
+      if (!keepIds.has(row.local_id)) {
+        await db.runAsync("DELETE FROM activities WHERE local_id = ?", [
+          row.local_id,
+        ]);
+      }
+    }
+  });
+}
+
+async function getQueuedDeletedIds(key: string): Promise<string[]> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ value: string }>(
+    "SELECT value FROM kv_settings WHERE key = ?",
+    [key]
+  );
+  if (!row?.value) return [];
+  try {
+    const parsed = JSON.parse(row.value);
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
   }
+}
+
+export async function queueDeletedActivityIds(localIds: string[]): Promise<void> {
+  if (!localIds.length) return;
+  const existing = await getQueuedDeletedIds("deleted_activity_ids");
+  const merged = Array.from(new Set([...existing, ...localIds]));
+  await saveSettingToSQLite("deleted_activity_ids", JSON.stringify(merged));
 }
 
 export async function syncWithSupabase(params: {
@@ -343,6 +391,18 @@ export async function syncWithSupabase(params: {
       if (activityError) throw activityError;
     }
 
+    // 3b. Soft-delete any locally removed activities in Supabase
+    const deletedActIds = await getQueuedDeletedIds("deleted_activity_ids");
+    if (deletedActIds.length > 0) {
+      const { error: delActErr } = await supabase
+        .from("activities")
+        .update({ deleted_at: now, updated_at: now })
+        .eq("user_id", userId)
+        .in("local_id", deletedActIds);
+      if (delActErr) throw delActErr;
+      await saveSettingToSQLite("deleted_activity_ids", "[]");
+    }
+
     // 4. Fetch canonical merged wallets & activities from Supabase PostgreSQL
     const { data: remoteWallets, error: fetchWalletsErr } = await supabase
       .from("wallets")
@@ -405,9 +465,7 @@ export async function syncWithSupabase(params: {
     if (mergedWallets.length > 0) {
       await saveWalletsToSQLite(mergedWallets);
     }
-    if (mergedActivities.length > 0) {
-      await saveActivitiesToSQLite(mergedActivities);
-    }
+    await saveActivitiesToSQLite(mergedActivities);
 
     const syncedTimeLabel = new Intl.DateTimeFormat("en-PH", {
       hour: "numeric",
@@ -419,7 +477,7 @@ export async function syncWithSupabase(params: {
       ok: true,
       message: "Synced with Supabase Cloud",
       wallets: mergedWallets.length ? mergedWallets : wallets,
-      activities: mergedActivities.length ? mergedActivities : activities,
+      activities: mergedActivities,
       syncedAt: syncedTimeLabel,
     };
   } catch (err: any) {

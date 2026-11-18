@@ -39,6 +39,7 @@ import {
 } from "./src/types/wallet";
 import {
   loadLocalState,
+  queueDeletedActivityIds,
   saveActivitiesToSQLite,
   saveSettingToSQLite,
   saveWalletsToSQLite,
@@ -390,6 +391,36 @@ export default function App() {
     scheduleCloudSync();
   };
 
+  const handleUpdateActivity = (
+    updatedItem: ActivityItem,
+    nextWallets: Wallet[]
+  ) => {
+    walletsRef.current = nextWallets;
+    setWallets(nextWallets);
+    const nextActivities = activitiesRef.current.map((a) =>
+      a.id === updatedItem.id ? updatedItem : a
+    );
+    activitiesRef.current = nextActivities;
+    setActivityItems(nextActivities);
+    scheduleCloudSync();
+  };
+
+  const handleDeleteActivity = (
+    deletedItem: ActivityItem,
+    nextWallets: Wallet[]
+  ) => {
+    walletsRef.current = nextWallets;
+    setWallets(nextWallets);
+    const nextActivities = activitiesRef.current.filter(
+      (a) => a.id !== deletedItem.id
+    );
+    activitiesRef.current = nextActivities;
+    setActivityItems(nextActivities);
+    const localId = deletedItem.localId || `tx-${deletedItem.id}`;
+    queueDeletedActivityIds([localId]).catch(() => {});
+    scheduleCloudSync();
+  };
+
   const handleUpdateProfile = (nextProfile: UserProfile) => {
     setProfile(nextProfile);
     saveSettingToSQLite("full_name", nextProfile.fullName).catch(() => {});
@@ -587,6 +618,8 @@ export default function App() {
             onRecordActivity={(item) => {
               recordActivity(item);
             }}
+            onUpdateActivity={handleUpdateActivity}
+            onDeleteActivity={handleDeleteActivity}
             onRenameWalletActivities={handleRenameWalletActivities}
             onOpenWallet={(w) => {
               setSheet(null);

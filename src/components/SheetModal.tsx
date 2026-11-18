@@ -16,6 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import {
   ActivityItem,
   getWalletLocalId,
+  isAdjustmentActivity,
   isTransferActivity,
   money,
   Sheet,
@@ -49,6 +50,30 @@ const PRESET_GROUPS: ("All" | WalletPresetGroup)[] = [
   "Bank",
   "Cash",
 ];
+const EXPENSE_CATEGORIES: [string, string][] = [
+  ["Food", "cup"],
+  ["Transport", "car"],
+  ["Bills", "bolt"],
+  ["Shopping", "bag"],
+  ["Health", "heart"],
+  ["Other", "adjust"],
+];
+const INCOME_CATEGORIES: [string, string][] = [
+  ["Salary", "briefcase"],
+  ["Freelance", "phone"],
+  ["Gift", "gift"],
+  ["Refund", "arrow-down"],
+  ["Other", "plus"],
+];
+
+function sanitizeDecimal(raw: string): string {
+  const cleaned = raw.replace(/[^\d.]/g, "");
+  const dotIdx = cleaned.indexOf(".");
+  if (dotIdx === -1) return cleaned;
+  const intPart = cleaned.slice(0, dotIdx);
+  const decPart = cleaned.slice(dotIdx + 1).replace(/\./g, "").slice(0, 2);
+  return `${intPart}.${decPart}`;
+}
 
 export function SheetModal({
   type,
@@ -58,6 +83,8 @@ export function SheetModal({
   hidden = false,
   onSaveWallets,
   onRecordActivity,
+  onUpdateActivity,
+  onDeleteActivity,
   onRenameWalletActivities,
   onOpenWallet,
   onClose,
@@ -76,6 +103,8 @@ export function SheetModal({
   hidden?: boolean;
   onSaveWallets: (next: Wallet[]) => void;
   onRecordActivity: (item: Omit<ActivityItem, "id" | "date">) => void;
+  onUpdateActivity?: (item: ActivityItem, nextWallets: Wallet[]) => void;
+  onDeleteActivity?: (item: ActivityItem, nextWallets: Wallet[]) => void;
   onRenameWalletActivities?: (wallet: Wallet, newName: string) => void;
   onOpenWallet?: (w: Wallet) => void;
   onClose: () => void;
@@ -141,6 +170,45 @@ export function SheetModal({
   const [entryCategory, setEntryCategory] = useState("Food");
   const [note, setNote] = useState("");
 
+  // Transaction Detail Edit / Delete states
+  const [txEditing, setTxEditing] = useState(false);
+  const [txConfirmDelete, setTxConfirmDelete] = useState(false);
+  const [txTitle, setTxTitle] = useState("");
+  const [txAmount, setTxAmount] = useState("");
+  const [txDirection, setTxDirection] = useState<"expense" | "income">("expense");
+  const [txCategory, setTxCategory] = useState("Food");
+  const [txWalletId, setTxWalletId] = useState(fallback);
+  const [txDestWalletId, setTxDestWalletId] = useState(fallback);
+
+  useEffect(() => {
+    setTxEditing(false);
+    setTxConfirmDelete(false);
+    if (type === "tx" && activity) {
+      const matchedSrc = wallets.find(
+        (w) =>
+          (activity.walletLocalId &&
+            getWalletLocalId(w) === activity.walletLocalId) ||
+          w.name === activity.wallet
+      );
+      const matchedDest = wallets.find(
+        (w) =>
+          (activity.destWalletLocalId &&
+            getWalletLocalId(w) === activity.destWalletLocalId) ||
+          activity.title.endsWith(` to ${w.name}`)
+      );
+      setTxTitle(activity.title);
+      setTxAmount(String(Math.abs(activity.amount)));
+      setTxDirection(activity.amount >= 0 ? "income" : "expense");
+      setTxCategory(activity.kind || "Other");
+      setTxWalletId(matchedSrc?.id ?? wallets[0]?.id ?? fallback);
+      setTxDestWalletId(
+        matchedDest?.id ??
+          wallets.find((w) => w.id !== (matchedSrc?.id ?? fallback))?.id ??
+          fallback
+      );
+    }
+  }, [type, activity?.id]);
+
   // Auth / Profile states
   const [fullNameInput, setFullNameInput] = useState(profile.fullName);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
@@ -197,23 +265,8 @@ export function SheetModal({
   const entryValue = Number(amount);
   const entryWallet = wallets.find((w) => w.id === walletId) || wallets[0];
 
-  const entryCategories: [string, string][] =
-    entryType === "expense"
-      ? [
-          ["Food", "cup"],
-          ["Transport", "car"],
-          ["Bills", "bolt"],
-          ["Shopping", "bag"],
-          ["Health", "heart"],
-          ["Other", "adjust"],
-        ]
-      : [
-          ["Salary", "briefcase"],
-          ["Freelance", "phone"],
-          ["Gift", "gift"],
-          ["Refund", "arrow-down"],
-          ["Other", "plus"],
-        ];
+  const entryCategories =
+    entryType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
 
   const entryIcon =
     entryCategories.find(([label]) => label === entryCategory)?.[1] || "adjust";
@@ -727,9 +780,7 @@ export function SheetModal({
                       </Text>
                       <TextInput
                         value={balance}
-                        onChangeText={(t) =>
-                          setBalance(t.replace(/[^\d.]/g, ""))
-                        }
+                        onChangeText={(t) => setBalance(sanitizeDecimal(t))}
                         keyboardType="decimal-pad"
                         placeholder="₱0.00"
                         placeholderTextColor={theme.muted}
@@ -923,9 +974,7 @@ export function SheetModal({
                           </Text>
                           <TextInput
                             value={amount}
-                            onChangeText={(t) =>
-                              setAmount(t.replace(/[^\d.]/g, ""))
-                            }
+                            onChangeText={(t) => setAmount(sanitizeDecimal(t))}
                             keyboardType="decimal-pad"
                             placeholder="0.00"
                             placeholderTextColor={
@@ -1307,9 +1356,7 @@ export function SheetModal({
                     </Text>
                     <TextInput
                       value={amount}
-                      onChangeText={(t) =>
-                        setAmount(t.replace(/[^\d.]/g, ""))
-                      }
+                      onChangeText={(t) => setAmount(sanitizeDecimal(t))}
                       keyboardType="decimal-pad"
                       placeholder="0.00"
                       placeholderTextColor={theme.muted}
@@ -1476,9 +1523,7 @@ export function SheetModal({
                     </Text>
                     <TextInput
                       value={amount}
-                      onChangeText={(t) =>
-                        setAmount(t.replace(/[^\d.]/g, ""))
-                      }
+                      onChangeText={(t) => setAmount(sanitizeDecimal(t))}
                       keyboardType="decimal-pad"
                       placeholder="0.00"
                       placeholderTextColor={theme.muted}
@@ -1526,6 +1571,7 @@ export function SheetModal({
             {/* ==================== TRANSACTION DETAILS SHEET ==================== */}
             {type === "tx" && activity && (() => {
               const isTransfer = isTransferActivity(activity);
+              const isAdjustment = isAdjustmentActivity(activity);
               const isPositive = activity.amount > 0;
               const matchedWallet = wallets.find(
                 (w) =>
@@ -1552,6 +1598,386 @@ export function SheetModal({
                   ? "#fde047"
                   : "#9a6700"
                 : theme.accentText;
+
+              const applyWalletDeltas = (deltas: Map<number, number>): Wallet[] => {
+                const now = new Date().toISOString();
+                return wallets.map((w) => {
+                  const delta = deltas.get(w.id);
+                  if (!delta) return w;
+                  return {
+                    ...w,
+                    balance: Number((w.balance + delta).toFixed(2)),
+                    updatedAt: now,
+                    synced: false,
+                  };
+                });
+              };
+
+              const buildRollbackDeltas = (): Map<number, number> => {
+                const deltas = new Map<number, number>();
+                if (isTransfer) {
+                  const absAmt = Math.abs(activity.amount);
+                  if (matchedWallet) {
+                    deltas.set(matchedWallet.id, absAmt);
+                  }
+                  if (matchedDestWallet) {
+                    deltas.set(
+                      matchedDestWallet.id,
+                      (deltas.get(matchedDestWallet.id) ?? 0) - absAmt
+                    );
+                  }
+                } else if (matchedWallet) {
+                  deltas.set(matchedWallet.id, -activity.amount);
+                }
+                return deltas;
+              };
+
+              const handleConfirmDeleteTx = () => {
+                if (!onDeleteActivity) return;
+                const nextWallets = applyWalletDeltas(buildRollbackDeltas());
+                onDeleteActivity(activity, nextWallets);
+                onDone("Transaction deleted · Balance restored");
+              };
+
+              const editNum = Number(txAmount);
+              const editSrcWallet =
+                wallets.find((w) => w.id === txWalletId) || matchedWallet || wallets[0];
+              const editDestWallet =
+                wallets.find((w) => w.id === txDestWalletId) ||
+                matchedDestWallet ||
+                wallets.find((w) => w.id !== editSrcWallet?.id) ||
+                wallets[0];
+              const editCats =
+                txDirection === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+              const editInvalid =
+                !editNum ||
+                editNum <= 0 ||
+                (isTransfer &&
+                  (!editSrcWallet ||
+                    !editDestWallet ||
+                    editSrcWallet.id === editDestWallet.id));
+
+              const handleSaveTxEdit = () => {
+                if (!onUpdateActivity || editInvalid || !editSrcWallet) return;
+                const now = new Date().toISOString();
+                const deltas = buildRollbackDeltas();
+                const signed = isTransfer
+                  ? -editNum
+                  : txDirection === "expense"
+                    ? -editNum
+                    : editNum;
+
+                if (isTransfer && editDestWallet) {
+                  deltas.set(
+                    editSrcWallet.id,
+                    (deltas.get(editSrcWallet.id) ?? 0) - editNum
+                  );
+                  deltas.set(
+                    editDestWallet.id,
+                    (deltas.get(editDestWallet.id) ?? 0) + editNum
+                  );
+                } else {
+                  deltas.set(
+                    editSrcWallet.id,
+                    (deltas.get(editSrcWallet.id) ?? 0) + signed
+                  );
+                }
+
+                const nextIcon = isTransfer
+                  ? "swap"
+                  : isAdjustment
+                    ? "adjust"
+                    : editCats.find(([lbl]) => lbl === txCategory)?.[1] ||
+                      activity.icon ||
+                      "adjust";
+                const nextKind = isTransfer
+                  ? "Transfer"
+                  : isAdjustment
+                    ? activity.kind
+                    : txCategory;
+                const nextTitle = isTransfer && editDestWallet
+                  ? txTitle.trim() &&
+                    txTitle.trim() !== `${activity.wallet} to ${matchedDestWallet?.name || ""}`
+                    ? txTitle.trim()
+                    : `${editSrcWallet.name} to ${editDestWallet.name}`
+                  : txTitle.trim() || nextKind;
+
+                const updatedItem: ActivityItem = {
+                  ...activity,
+                  walletLocalId: getWalletLocalId(editSrcWallet),
+                  destWalletLocalId:
+                    isTransfer && editDestWallet
+                      ? getWalletLocalId(editDestWallet)
+                      : undefined,
+                  wallet: editSrcWallet.name,
+                  title: nextTitle,
+                  amount: signed,
+                  icon: nextIcon,
+                  kind: nextKind,
+                  updatedAt: now,
+                  synced: false,
+                };
+
+                onUpdateActivity(updatedItem, applyWalletDeltas(deltas));
+                onDone("Transaction updated");
+              };
+
+              if (txEditing) {
+                return (
+                  <View>
+                    {!isTransfer && !isAdjustment ? (
+                      <View
+                        style={[
+                          styles.entryToggle,
+                          { backgroundColor: theme.soft, borderColor: theme.line },
+                        ]}
+                      >
+                        {(["expense", "income"] as const).map((kind) => {
+                          const active = txDirection === kind;
+                          return (
+                            <Pressable
+                              key={kind}
+                              onPress={() => {
+                                setTxDirection(kind);
+                                setTxCategory(
+                                  kind === "expense" ? "Food" : "Salary"
+                                );
+                              }}
+                              style={[
+                                styles.entryToggleBtn,
+                                active && { backgroundColor: theme.surface },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.entryToggleText,
+                                  { color: active ? theme.ink : theme.muted },
+                                ]}
+                              >
+                                {kind === "expense" ? "Expense" : "Money in"}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    ) : null}
+
+                    <View
+                      style={[
+                        styles.amountEntryBox,
+                        { backgroundColor: theme.soft, borderColor: theme.line, marginTop: 4 },
+                      ]}
+                    >
+                      <Text style={[styles.fieldLabel, { color: theme.muted }]}>
+                        Amount
+                      </Text>
+                      <View style={styles.amountEntryRow}>
+                        <Text style={[styles.amountEntrySign, { color: theme.ink }]}>
+                          ₱
+                        </Text>
+                        <TextInput
+                          value={txAmount}
+                          onChangeText={(t) => setTxAmount(sanitizeDecimal(t))}
+                          keyboardType="decimal-pad"
+                          placeholder="0.00"
+                          placeholderTextColor={theme.muted}
+                          style={[styles.amountEntryInput, { color: theme.ink }]}
+                        />
+                      </View>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.softField,
+                        { backgroundColor: theme.soft, borderColor: theme.line },
+                      ]}
+                    >
+                      <Text style={[styles.fieldLabel, { color: theme.muted }]}>
+                        {isTransfer ? "Transfer note" : "Title / note"}
+                      </Text>
+                      <TextInput
+                        value={txTitle}
+                        onChangeText={setTxTitle}
+                        placeholder="Enter description"
+                        placeholderTextColor={theme.muted}
+                        style={[styles.fieldInput, { color: theme.ink }]}
+                      />
+                    </View>
+
+                    <View style={{ marginBottom: 12 }}>
+                      <Text
+                        style={[
+                          styles.fieldLabel,
+                          { color: theme.muted, marginLeft: 4, marginBottom: 6 },
+                        ]}
+                      >
+                        {isTransfer ? "From wallet" : "Wallet"}
+                      </Text>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ gap: 8 }}
+                      >
+                        {wallets.map((w) => {
+                          const active = w.id === txWalletId;
+                          return (
+                            <Pressable
+                              key={w.id}
+                              onPress={() => setTxWalletId(w.id)}
+                              style={[
+                                styles.walletSelectChip,
+                                {
+                                  backgroundColor: active
+                                    ? theme.accent
+                                    : theme.soft,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.walletSelectChipText,
+                                  { color: active ? "#ffffff" : theme.ink },
+                                ]}
+                              >
+                                {w.name}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </ScrollView>
+                    </View>
+
+                    {isTransfer ? (
+                      <View style={{ marginBottom: 12 }}>
+                        <Text
+                          style={[
+                            styles.fieldLabel,
+                            { color: theme.muted, marginLeft: 4, marginBottom: 6 },
+                          ]}
+                        >
+                          To wallet
+                        </Text>
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          contentContainerStyle={{ gap: 8 }}
+                        >
+                          {wallets.map((w) => {
+                            const active = w.id === txDestWalletId;
+                            return (
+                              <Pressable
+                                key={w.id}
+                                onPress={() => setTxDestWalletId(w.id)}
+                                style={[
+                                  styles.walletSelectChip,
+                                  {
+                                    backgroundColor: active
+                                      ? theme.accent
+                                      : theme.soft,
+                                  },
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.walletSelectChipText,
+                                    { color: active ? "#ffffff" : theme.ink },
+                                  ]}
+                                >
+                                  {w.name}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </ScrollView>
+                        {txWalletId === txDestWalletId ? (
+                          <Text style={styles.errorText}>
+                            Choose two different wallets.
+                          </Text>
+                        ) : null}
+                      </View>
+                    ) : !isAdjustment ? (
+                      <View style={{ marginBottom: 14 }}>
+                        <Text
+                          style={[
+                            styles.fieldLabel,
+                            { color: theme.muted, marginLeft: 4, marginBottom: 8 },
+                          ]}
+                        >
+                          Category
+                        </Text>
+                        <View style={styles.categoryPickerGrid}>
+                          {editCats.map(([label, icon]) => {
+                            const active = txCategory === label;
+                            return (
+                              <Pressable
+                                key={label}
+                                onPress={() => setTxCategory(label)}
+                                style={[
+                                  styles.categoryChip,
+                                  {
+                                    backgroundColor: active
+                                      ? theme.surface
+                                      : theme.soft,
+                                    borderColor: active
+                                      ? theme.accent
+                                      : theme.line,
+                                  },
+                                ]}
+                              >
+                                <LinearGradient
+                                  colors={
+                                    active
+                                      ? theme.accentGradient
+                                      : [theme.accentSoft, theme.accentSoft]
+                                  }
+                                  style={styles.categoryChipIcon}
+                                >
+                                  <Icon
+                                    name={icon}
+                                    size={16}
+                                    color={
+                                      active ? theme.accentInk : theme.accentText
+                                    }
+                                  />
+                                </LinearGradient>
+                                <Text
+                                  style={[
+                                    styles.categoryChipText,
+                                    { color: theme.ink },
+                                  ]}
+                                  numberOfLines={1}
+                                >
+                                  {label}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    ) : null}
+
+                    <PrimaryButton
+                      label="Save changes"
+                      disabled={editInvalid}
+                      onPress={handleSaveTxEdit}
+                      theme={theme}
+                    />
+                    <Pressable
+                      onPress={() => setTxEditing(false)}
+                      style={[
+                        styles.secondaryButton,
+                        { backgroundColor: theme.soft, marginTop: 10 },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.secondaryButtonText, { color: theme.ink }]}
+                      >
+                        Cancel
+                      </Text>
+                    </Pressable>
+                  </View>
+                );
+              }
 
               return (
                 <View>
@@ -1716,12 +2142,102 @@ export function SheetModal({
                     </View>
                   </View>
 
+                  {txConfirmDelete ? (
+                    <View
+                      style={[
+                        styles.txConfirmDeleteBox,
+                        {
+                          backgroundColor: theme.dark
+                            ? "rgba(192, 68, 68, 0.16)"
+                            : "#fdeaea",
+                          borderColor: "rgba(192, 68, 68, 0.35)",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.txConfirmDeleteTitle,
+                          { color: theme.dark ? "#fca5a5" : "#991b1b" },
+                        ]}
+                      >
+                        Delete transaction & restore wallet balance?
+                      </Text>
+                      <View style={styles.txActionPair}>
+                        <Pressable
+                          onPress={() => setTxConfirmDelete(false)}
+                          style={[
+                            styles.txActionHalfBtn,
+                            { backgroundColor: theme.card },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.secondaryButtonText, { color: theme.ink }]}
+                          >
+                            Cancel
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={handleConfirmDeleteTx}
+                          style={[
+                            styles.txActionHalfBtn,
+                            { backgroundColor: "#c04444" },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.secondaryButtonText, { color: "#ffffff" }]}
+                          >
+                            Confirm delete
+                          </Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.txActionPair}>
+                      {onUpdateActivity ? (
+                        <Pressable
+                          onPress={() => setTxEditing(true)}
+                          style={[
+                            styles.txActionHalfBtn,
+                            { backgroundColor: theme.soft2 },
+                          ]}
+                        >
+                          <Icon name="edit" size={16} color={theme.ink} />
+                          <Text
+                            style={[styles.secondaryButtonText, { color: theme.ink }]}
+                          >
+                            Edit
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                      {onDeleteActivity ? (
+                        <Pressable
+                          onPress={() => setTxConfirmDelete(true)}
+                          style={[
+                            styles.txActionHalfBtn,
+                            {
+                              backgroundColor: theme.dark
+                                ? "rgba(192, 68, 68, 0.16)"
+                                : "#fdeaea",
+                            },
+                          ]}
+                        >
+                          <Icon name="close" size={16} color="#c04444" />
+                          <Text
+                            style={[styles.secondaryButtonText, { color: "#c04444" }]}
+                          >
+                            Delete
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  )}
+
                   {matchedWallet && onOpenWallet ? (
                     <Pressable
                       onPress={() => onOpenWallet(matchedWallet)}
                       style={[
                         styles.secondaryButton,
-                        { backgroundColor: theme.soft2, marginBottom: 0 },
+                        { backgroundColor: theme.soft2, marginTop: 10, marginBottom: 0 },
                       ]}
                     >
                       <Text
@@ -2632,6 +3148,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  txActionPair: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  txActionHalfBtn: {
+    flex: 1,
+    height: 46,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+  },
+  txConfirmDeleteBox: {
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 10,
+  },
+  txConfirmDeleteTitle: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 12.5,
+    textAlign: "center",
   },
 });
 
