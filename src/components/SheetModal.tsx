@@ -38,6 +38,7 @@ import {
 } from "./SharedUI";
 import { WalletFolder, WalletLogoBadge } from "./WalletFolder";
 import {
+  resolveWalletCardDesign,
   WalletPreset,
   WalletPresetGroup,
   walletPresets,
@@ -146,6 +147,7 @@ export function SheetModal({
     setWalletConfirmDelete(false);
     setTransferFee(0);
     setPickingTransferSide(null);
+    setUpdateMode("set");
     if (type === "edit" && editTarget) {
       setSelectedPresetKey(editTarget.logoKey || "custom");
       setLogoKey(editTarget.logoKey);
@@ -174,6 +176,7 @@ export function SheetModal({
   const [pickingTransferSide, setPickingTransferSide] = useState<
     "from" | "to" | null
   >(null);
+  const [updateMode, setUpdateMode] = useState<"set" | "add" | "sub">("set");
 
   // Transaction Detail Edit / Delete states
   const [txEditing, setTxEditing] = useState(false);
@@ -283,6 +286,28 @@ export function SheetModal({
     !entryValue ||
     (entryType === "expense" && entryValue > (entryWallet?.balance || 0));
 
+  const updateNumeric = Number(amount);
+  const hasUpdateInput = amount !== "" && Number.isFinite(updateNumeric);
+  const updateProjectedBalance = (() => {
+    if (!current) return 0;
+    if (!hasUpdateInput) return current.balance;
+    if (updateMode === "add") {
+      return Number((current.balance + updateNumeric).toFixed(2));
+    }
+    if (updateMode === "sub") {
+      return Number((current.balance - updateNumeric).toFixed(2));
+    }
+    return Number(updateNumeric.toFixed(2));
+  })();
+  const updateDifference = current
+    ? Number((updateProjectedBalance - current.balance).toFixed(2))
+    : 0;
+  const updateInvalid =
+    !current ||
+    !hasUpdateInput ||
+    (updateMode !== "set" && updateNumeric <= 0) ||
+    updateProjectedBalance < 0;
+
   const transferInvalid =
     !transferValue ||
     transferValue <= 0 ||
@@ -363,22 +388,25 @@ export function SheetModal({
       onDone(`${trimmedName} updated`);
     }
 
-    if (type === "update" && amount && current) {
-      const newBal = Number(amount);
-      const difference = Number((newBal - current.balance).toFixed(2));
+    if (type === "update" && !updateInvalid && current) {
       const nextWallets = wallets.map((w) =>
         w.id === walletId
-          ? { ...w, balance: newBal, updatedAt: now, synced: false }
+          ? { ...w, balance: updateProjectedBalance, updatedAt: now, synced: false }
           : w
       );
       onSaveWallets(nextWallets);
-      if (difference !== 0) {
+      if (updateDifference !== 0) {
         onRecordActivity({
           localId: `tx-${Date.now()}`,
-          walletLocalId: current.localId || `wallet-${current.id}`,
-          title: "Balance adjustment",
+          walletLocalId: getWalletLocalId(current),
+          title:
+            updateMode === "add"
+              ? "Balance top-up"
+              : updateMode === "sub"
+                ? "Balance deduction"
+                : "Balance adjustment",
           wallet: current.name,
-          amount: difference,
+          amount: updateDifference,
           icon: "adjust",
           kind: "Updated",
           occurredAt: now,
@@ -696,6 +724,18 @@ export function SheetModal({
                       </Pressable>
                     );
                   })}
+                  {filteredPresets.length === 0 ? (
+                    <View
+                      style={[
+                        styles.presetEmptyNote,
+                        { backgroundColor: theme.soft, borderColor: theme.line },
+                      ]}
+                    >
+                      <Text style={[styles.presetSub, { color: theme.muted }]}>
+                        No matching preset — tap Custom
+                      </Text>
+                    </View>
+                  ) : null}
                   </ScrollView>
                   <EdgeFade position="left" color={theme.page} size={14} />
                   <EdgeFade position="right" color={theme.page} size={14} />
@@ -841,17 +881,38 @@ export function SheetModal({
                 ) : null}
 
                 {/* 12-Tone Color Picker */}
-                <View style={styles.colorHeaderRow}>
-                  <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                    Card color
-                  </Text>
-                  {recommendedTone ? (
-                    <Text style={[styles.recommendedHint, { color: theme.accentText }]}>
-                      Recommended: {tonePalette[recommendedTone].label}
-                      {tone !== recommendedTone ? " (customized)" : ""}
-                    </Text>
-                  ) : null}
-                </View>
+                {(() => {
+                  const hasBrandCardArt = Boolean(
+                    resolveWalletCardDesign(logoKey, name)
+                  );
+                  return (
+                    <View style={styles.colorHeaderRow}>
+                      <Text style={[styles.fieldLabel, { color: theme.muted }]}>
+                        {hasBrandCardArt ? "Accent & chart color" : "Card color"}
+                      </Text>
+                      {hasBrandCardArt ? (
+                        <Text
+                          style={[
+                            styles.recommendedHint,
+                            { color: theme.accentText },
+                          ]}
+                        >
+                          Uses brand card art
+                        </Text>
+                      ) : recommendedTone ? (
+                        <Text
+                          style={[
+                            styles.recommendedHint,
+                            { color: theme.accentText },
+                          ]}
+                        >
+                          Recommended: {tonePalette[recommendedTone].label}
+                          {tone !== recommendedTone ? " (customized)" : ""}
+                        </Text>
+                      ) : null}
+                    </View>
+                  );
+                })()}
                 <View style={styles.tonePicker}>
                   {(Object.keys(tonePalette) as Tone[]).map((t) => {
                     const pal = tonePalette[t];
@@ -1383,7 +1444,18 @@ export function SheetModal({
             {/* ==================== UPDATE BALANCE SHEET ==================== */}
             {type === "update" && current && (
               <View>
-                <WalletFolder wallet={current} hidden={false} compact />
+                <WalletFolder
+                  wallet={
+                    hasUpdateInput
+                      ? {
+                          ...current,
+                          balance: Math.max(0, updateProjectedBalance),
+                        }
+                      : current
+                  }
+                  hidden={false}
+                  compact
+                />
 
                 {onSwitchSheet ? (
                   <Pressable
@@ -1406,7 +1478,7 @@ export function SheetModal({
                 ) : null}
 
                 {/* Wallet Selector */}
-                <View style={{ marginTop: 14, marginBottom: 4 }}>
+                <View style={{ marginTop: 14, marginBottom: 10 }}>
                   <Text
                     style={[
                       styles.fieldLabel,
@@ -1425,7 +1497,10 @@ export function SheetModal({
                       return (
                         <Pressable
                           key={w.id}
-                          onPress={() => setWalletId(w.id)}
+                          onPress={() => {
+                            setWalletId(w.id);
+                            setAmount("");
+                          }}
                           style={[
                             styles.walletSelectChip,
                             {
@@ -1435,9 +1510,21 @@ export function SheetModal({
                               borderColor: active
                                 ? theme.accent
                                 : theme.line,
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 6,
                             },
                           ]}
                         >
+                          <WalletLogoBadge
+                            logoKey={w.logoKey}
+                            name={w.name}
+                            mark={w.mark}
+                            size={18}
+                            radius={6}
+                            ink={active ? "#ffffff" : theme.ink}
+                            fontSize={7}
+                          />
                           <Text
                             style={[
                               styles.walletSelectChipText,
@@ -1452,18 +1539,93 @@ export function SheetModal({
                   </ScrollView>
                 </View>
 
+                {/* Update Mode Toggle: Set exact | Add (+) | Subtract (-) */}
                 <View
                   style={[
-                    styles.amountEntryBox,
+                    styles.updateModeBar,
                     { backgroundColor: theme.soft, borderColor: theme.line },
                   ]}
                 >
-                  <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                    New balance
-                  </Text>
+                  {(
+                    [
+                      ["set", "Set exact"],
+                      ["add", "Add (+)"],
+                      ["sub", "Subtract (-)"],
+                    ] as const
+                  ).map(([modeKey, modeLabel]) => {
+                    const active = updateMode === modeKey;
+                    return (
+                      <Pressable
+                        key={modeKey}
+                        onPress={() => {
+                          setUpdateMode(modeKey);
+                          setAmount("");
+                        }}
+                        style={[
+                          styles.updateModeBtn,
+                          active && { backgroundColor: theme.surface },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.updateModeText,
+                            { color: active ? theme.ink : theme.muted },
+                          ]}
+                        >
+                          {modeLabel}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <View
+                  style={[
+                    styles.amountEntryBox,
+                    {
+                      backgroundColor: theme.soft,
+                      borderColor: theme.line,
+                      marginTop: 10,
+                      marginBottom: 8,
+                    },
+                  ]}
+                >
+                  <View style={styles.transferAmountHeadRow}>
+                    <Text style={[styles.fieldLabel, { color: theme.muted }]}>
+                      {updateMode === "set"
+                        ? "New exact balance"
+                        : updateMode === "add"
+                          ? "Amount to add"
+                          : "Amount to subtract"}
+                    </Text>
+                    {updateMode === "set" ? (
+                      <Pressable
+                        onPress={() =>
+                          setAmount(String(Number(current.balance.toFixed(2))))
+                        }
+                        style={[
+                          styles.sendAllChip,
+                          { backgroundColor: theme.accentSoft },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.sendAllChipText,
+                            { color: theme.accentText },
+                          ]}
+                        >
+                          Use current
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
                   <View style={styles.amountEntryRow}>
                     <Text style={[styles.amountEntrySign, { color: theme.ink }]}>
-                      ₱
+                      {updateMode === "add"
+                        ? "+₱"
+                        : updateMode === "sub"
+                          ? "-₱"
+                          : "₱"}
                     </Text>
                     <Text
                       style={[
@@ -1476,23 +1638,53 @@ export function SheetModal({
                       {amount ? formatAmountInput(amount) : "0.00"}
                     </Text>
                   </View>
-                  <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                    Current: {money(current.balance)}
+                  <Text
+                    style={[
+                      styles.fieldLabel,
+                      {
+                        color:
+                          updateProjectedBalance < 0
+                            ? "#c04444"
+                            : hasUpdateInput && updateDifference !== 0
+                              ? theme.accentText
+                              : theme.muted,
+                      },
+                    ]}
+                  >
+                    {hasUpdateInput
+                      ? updateMode === "set"
+                        ? `Current: ${money(current.balance)} · Change: ${updateDifference >= 0 ? "+" : "-"}${money(Math.abs(updateDifference))}`
+                        : `New balance: ${money(updateProjectedBalance)} (from ${money(current.balance)})`
+                      : `Current: ${money(current.balance)}`}
                   </Text>
                 </View>
+
+                {updateProjectedBalance < 0 ? (
+                  <Text style={styles.errorText}>
+                    Resulting balance cannot be negative.
+                  </Text>
+                ) : null}
 
                 <AmountKeypad
                   value={amount}
                   onChange={setAmount}
-                  quickAmounts={[500, 1000, 5000]}
-                  quickBase={current.balance}
+                  quickAmounts={
+                    updateMode === "set"
+                      ? [500, 1000, 5000]
+                      : [100, 500, 1000, 5000]
+                  }
+                  quickBase={updateMode === "set" ? current.balance : 0}
                   compact
                   theme={theme}
                 />
 
                 <PrimaryButton
-                  label="Save new balance"
-                  disabled={!amount}
+                  label={
+                    hasUpdateInput
+                      ? `Save ${money(Math.max(0, updateProjectedBalance))}`
+                      : "Save new balance"
+                  }
+                  disabled={updateInvalid}
                   onPress={save}
                   theme={theme}
                 />
@@ -2963,6 +3155,31 @@ const styles = StyleSheet.create({
     fontFamily: "Urbanist_600SemiBold",
     fontWeight: "600",
     fontSize: 9.5,
+  },
+  presetEmptyNote: {
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  updateModeBar: {
+    height: 44,
+    padding: 4,
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 4,
+  },
+  updateModeBtn: {
+    flex: 1,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  updateModeText: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 12,
   },
   colorHeaderRow: {
     flexDirection: "row",
