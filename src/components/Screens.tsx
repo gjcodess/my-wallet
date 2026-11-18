@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import {
   ActivityItem,
   getActivityDate,
+  isActivityForWallet,
   isAdjustmentActivity,
   isExpenseActivity,
   isIncomeActivity,
@@ -1857,11 +1858,49 @@ export function WalletDetailScreen({
   onTransaction?: (item: ActivityItem) => void;
   theme: ThemeColors;
 }) {
-  const related = activities.filter((item) => item.wallet === wallet.name);
+  const [detailFilter, setDetailFilter] = useState<
+    "Recent" | "Money in" | "Money out" | "Transfers"
+  >("Recent");
+
+  const related = useMemo(() => {
+    return activities
+      .map((item) => {
+        const match = isActivityForWallet(item, wallet);
+        if (!match.matched) return null;
+        const displayItem: ActivityItem = match.isIncomingTransfer
+          ? {
+              ...item,
+              amount: Math.abs(item.amount),
+              kind: "Transfer in",
+            }
+          : item;
+        return { original: item, display: displayItem, isIncomingTransfer: match.isIncomingTransfer };
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+      .filter(({ display, original }) => {
+        if (detailFilter === "Recent") return true;
+        if (detailFilter === "Money in") return display.amount > 0;
+        if (detailFilter === "Money out") return display.amount < 0;
+        return isTransferActivity(original);
+      });
+  }, [activities, wallet, detailFilter]);
+
+  const cycleDetailFilter = () => {
+    const order: ("Recent" | "Money in" | "Money out" | "Transfers")[] = [
+      "Recent",
+      "Money in",
+      "Money out",
+      "Transfers",
+    ];
+    const nextIdx = (order.indexOf(detailFilter) + 1) % order.length;
+    setDetailFilter(order[nextIdx]);
+  };
+
   const slideAnim = useRef(new Animated.Value(0)).current;
   const detailScrollY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    setDetailFilter("Recent");
     detailScrollY.setValue(0);
     Animated.timing(slideAnim, {
       toValue: 1,
@@ -1962,16 +2001,22 @@ export function WalletDetailScreen({
         </Pressable>
       </View>
 
-      <SectionTitle title="Wallet activity" action="Recent" theme={theme} />
+      <SectionTitle
+        title="Wallet activity"
+        action={detailFilter}
+        actionColor={detailFilter !== "Recent" ? theme.accentText : undefined}
+        onPress={cycleDetailFilter}
+        theme={theme}
+      />
 
       {related.length ? (
         <View style={styles.txList}>
-          {related.map((item) => (
+          {related.map(({ original, display }) => (
             <TxRow
-              key={item.id}
-              item={item}
+              key={original.id}
+              item={display}
               hidden={hidden}
-              onPress={onTransaction ? () => onTransaction(item) : undefined}
+              onPress={onTransaction ? () => onTransaction(original) : undefined}
               theme={theme}
             />
           ))}

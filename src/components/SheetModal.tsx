@@ -15,6 +15,8 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ActivityItem,
+  getWalletLocalId,
+  isTransferActivity,
   money,
   Sheet,
   Tone,
@@ -56,6 +58,7 @@ export function SheetModal({
   hidden = false,
   onSaveWallets,
   onRecordActivity,
+  onRenameWalletActivities,
   onOpenWallet,
   onClose,
   onSwitchSheet,
@@ -73,6 +76,7 @@ export function SheetModal({
   hidden?: boolean;
   onSaveWallets: (next: Wallet[]) => void;
   onRecordActivity: (item: Omit<ActivityItem, "id" | "date">) => void;
+  onRenameWalletActivities?: (wallet: Wallet, newName: string) => void;
   onOpenWallet?: (w: Wallet) => void;
   onClose: () => void;
   onSwitchSheet?: (nextType: Exclude<Sheet, null>, wallet?: Wallet) => void;
@@ -290,6 +294,9 @@ export function SheetModal({
             }
           : w
       );
+      if (editTarget.name !== trimmedName) {
+        onRenameWalletActivities?.(editTarget, trimmedName);
+      }
       onSaveWallets(nextWallets);
       onDone(`${trimmedName} updated`);
     }
@@ -341,7 +348,8 @@ export function SheetModal({
       onSaveWallets(nextWallets);
       onRecordActivity({
         localId: `tx-${Date.now()}`,
-        walletLocalId: sourceWallet.localId || `wallet-${sourceWallet.id}`,
+        walletLocalId: getWalletLocalId(sourceWallet),
+        destWalletLocalId: getWalletLocalId(destWallet),
         title: `${sourceWallet.name} to ${destWallet.name}`,
         wallet: sourceWallet.name,
         amount: -transferValue,
@@ -1517,12 +1525,22 @@ export function SheetModal({
 
             {/* ==================== TRANSACTION DETAILS SHEET ==================== */}
             {type === "tx" && activity && (() => {
+              const isTransfer = isTransferActivity(activity);
               const isPositive = activity.amount > 0;
               const matchedWallet = wallets.find(
                 (w) =>
-                  (activity.walletLocalId && w.localId === activity.walletLocalId) ||
+                  (activity.walletLocalId &&
+                    getWalletLocalId(w) === activity.walletLocalId) ||
                   w.name === activity.wallet
               );
+              const matchedDestWallet = isTransfer
+                ? wallets.find(
+                    (w) =>
+                      (activity.destWalletLocalId &&
+                        getWalletLocalId(w) === activity.destWalletLocalId) ||
+                      activity.title.endsWith(` to ${w.name}`)
+                  )
+                : undefined;
               const { dateLabel, timeLabel } = formatTransactionDateTime(activity);
               const iconBg = isPositive
                 ? theme.dark
@@ -1626,7 +1644,7 @@ export function SheetModal({
                       ]}
                     >
                       <Text style={[styles.txDetailKey, { color: theme.muted }]}>
-                        Wallet
+                        {isTransfer ? "From wallet" : "Wallet"}
                       </Text>
                       <View style={styles.txWalletValRow}>
                         {matchedWallet ? (
@@ -1641,11 +1659,38 @@ export function SheetModal({
                           />
                         ) : null}
                         <Text style={[styles.txDetailVal, { color: theme.ink }]}>
-                          {activity.wallet}
+                          {matchedWallet ? matchedWallet.name : activity.wallet}
                           {matchedWallet ? ` · ${matchedWallet.type}` : ""}
                         </Text>
                       </View>
                     </View>
+
+                    {matchedDestWallet ? (
+                      <View
+                        style={[
+                          styles.txDetailRow,
+                          { borderBottomWidth: 1, borderBottomColor: theme.line },
+                        ]}
+                      >
+                        <Text style={[styles.txDetailKey, { color: theme.muted }]}>
+                          To wallet
+                        </Text>
+                        <View style={styles.txWalletValRow}>
+                          <WalletLogoBadge
+                            logoKey={matchedDestWallet.logoKey}
+                            name={matchedDestWallet.name}
+                            mark={matchedDestWallet.mark}
+                            size={22}
+                            radius={7}
+                            ink={theme.ink}
+                            fontSize={8}
+                          />
+                          <Text style={[styles.txDetailVal, { color: theme.ink }]}>
+                            {matchedDestWallet.name} · {matchedDestWallet.type}
+                          </Text>
+                        </View>
+                      </View>
+                    ) : null}
 
                     <View
                       style={[

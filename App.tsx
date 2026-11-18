@@ -28,8 +28,10 @@ import Svg, {
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ActivityItem,
+  getWalletLocalId,
   initialActivities,
   initialWallets,
+  isTransferActivity,
   Sheet,
   Tab,
   UserProfile,
@@ -111,6 +113,11 @@ export default function App() {
   const navAnim = useRef(new Animated.Value(1)).current;
   const tabAnim = useRef(new Animated.Value(1)).current;
   const toastAnim = useRef(new Animated.Value(0)).current;
+  const walletsRef = useRef(wallets);
+  walletsRef.current = wallets;
+  const activitiesRef = useRef(activityItems);
+  activitiesRef.current = activityItems;
+  const syncScheduledRef = useRef(false);
 
   const handleStackDragChange = useCallback((dragging: boolean) => {
     scrollRef.current?.setNativeProps({ scrollEnabled: !dragging });
@@ -308,6 +315,22 @@ export default function App() {
     setSheet("tx");
   };
 
+  const scheduleCloudSync = useCallback(() => {
+    if (!userId || syncScheduledRef.current) return;
+    syncScheduledRef.current = true;
+    Promise.resolve().then(() => {
+      syncScheduledRef.current = false;
+      syncWithSupabase({
+        userId,
+        wallets: walletsRef.current,
+        activities: activitiesRef.current,
+        dark,
+        hidden,
+        profile,
+      }).catch(() => {});
+    });
+  }, [userId, dark, hidden, profile]);
+
   const recordActivity = (item: Omit<ActivityItem, "id" | "date">) => {
     const nowIso = item.occurredAt || new Date().toISOString();
     const timeStr = new Intl.DateTimeFormat("en-PH", {
@@ -321,7 +344,50 @@ export default function App() {
       date,
       occurredAt: nowIso,
     };
-    setActivityItems((prev) => [newItem, ...prev]);
+    const nextActivities = [newItem, ...activitiesRef.current];
+    activitiesRef.current = nextActivities;
+    setActivityItems(nextActivities);
+    scheduleCloudSync();
+  };
+
+  const handleRenameWalletActivities = (targetWallet: Wallet, newName: string) => {
+    const targetId = getWalletLocalId(targetWallet);
+    const oldName = targetWallet.name;
+    const nowIso = new Date().toISOString();
+    const nextActivities = activitiesRef.current.map((a) => {
+      const matchesSource = a.walletLocalId
+        ? a.walletLocalId === targetId
+        : a.wallet === oldName;
+      const matchesDest =
+        isTransferActivity(a) &&
+        (a.destWalletLocalId
+          ? a.destWalletLocalId === targetId
+          : a.title.endsWith(` to ${oldName}`));
+
+      if (!matchesSource && !matchesDest) return a;
+
+      let nextTitle = a.title;
+      if (isTransferActivity(a)) {
+        if (matchesSource && a.title.startsWith(`${oldName} to `)) {
+          nextTitle = `${newName} to ${a.title.slice(oldName.length + 4)}`;
+        } else if (matchesDest && a.title.endsWith(` to ${oldName}`)) {
+          nextTitle = `${a.title.slice(0, a.title.length - (oldName.length + 4))} to ${newName}`;
+        }
+      }
+
+      return {
+        ...a,
+        walletLocalId: matchesSource ? targetId : a.walletLocalId,
+        destWalletLocalId: matchesDest ? targetId : a.destWalletLocalId,
+        wallet: matchesSource ? newName : a.wallet,
+        title: nextTitle,
+        updatedAt: nowIso,
+        synced: false,
+      };
+    });
+    activitiesRef.current = nextActivities;
+    setActivityItems(nextActivities);
+    scheduleCloudSync();
   };
 
   const handleUpdateProfile = (nextProfile: UserProfile) => {
@@ -514,21 +580,14 @@ export default function App() {
             activity={sheetActivity}
             hidden={hidden}
             onSaveWallets={(nextWallets) => {
+              walletsRef.current = nextWallets;
               setWallets(nextWallets);
-              if (userId) {
-                syncWithSupabase({
-                  userId,
-                  wallets: nextWallets,
-                  activities: activityItems,
-                  dark,
-                  hidden,
-                  profile,
-                }).catch(() => {});
-              }
+              scheduleCloudSync();
             }}
             onRecordActivity={(item) => {
               recordActivity(item);
             }}
+            onRenameWalletActivities={handleRenameWalletActivities}
             onOpenWallet={(w) => {
               setSheet(null);
               setSheetWalletId(null);

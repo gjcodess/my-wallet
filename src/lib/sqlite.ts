@@ -38,6 +38,7 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
       id INTEGER PRIMARY KEY NOT NULL,
       local_id TEXT UNIQUE NOT NULL,
       wallet_local_id TEXT NOT NULL DEFAULT '',
+      dest_wallet_local_id TEXT NOT NULL DEFAULT '',
       title TEXT NOT NULL,
       wallet TEXT NOT NULL,
       date TEXT NOT NULL,
@@ -53,6 +54,14 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
   try {
     await dbInstance.execAsync(
       "ALTER TABLE wallets ADD COLUMN logo_key TEXT NOT NULL DEFAULT '';"
+    );
+  } catch {
+    // Column already exists on fresh DBs
+  }
+
+  try {
+    await dbInstance.execAsync(
+      "ALTER TABLE activities ADD COLUMN dest_wallet_local_id TEXT NOT NULL DEFAULT '';"
     );
   } catch {
     // Column already exists on fresh DBs
@@ -86,12 +95,13 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
     for (let i = 0; i < initialActivities.length; i++) {
       const a = initialActivities[i];
       await dbInstance.runAsync(
-        `INSERT OR IGNORE INTO activities (id, local_id, wallet_local_id, title, wallet, date, amount, icon, kind, occurred_at, updated_at, synced)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+        `INSERT OR IGNORE INTO activities (id, local_id, wallet_local_id, dest_wallet_local_id, title, wallet, date, amount, icon, kind, occurred_at, updated_at, synced)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
         [
           a.id,
           a.localId || `tx-${a.id}`,
           a.walletLocalId || "",
+          a.destWalletLocalId || "",
           a.title,
           a.wallet,
           a.date,
@@ -135,6 +145,7 @@ export async function loadLocalState(): Promise<{
     id: number;
     local_id: string;
     wallet_local_id: string;
+    dest_wallet_local_id?: string;
     title: string;
     wallet: string;
     date: string;
@@ -169,6 +180,7 @@ export async function loadLocalState(): Promise<{
     id: r.id,
     localId: r.local_id,
     walletLocalId: r.wallet_local_id,
+    destWalletLocalId: r.dest_wallet_local_id || undefined,
     title: r.title,
     wallet: r.wallet,
     date: r.date,
@@ -234,12 +246,13 @@ export async function saveActivitiesToSQLite(activities: ActivityItem[]): Promis
   for (const a of activities) {
     const localId = a.localId || `tx-${a.id}`;
     await db.runAsync(
-      `INSERT OR REPLACE INTO activities (id, local_id, wallet_local_id, title, wallet, date, amount, icon, kind, occurred_at, updated_at, synced)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT OR REPLACE INTO activities (id, local_id, wallet_local_id, dest_wallet_local_id, title, wallet, date, amount, icon, kind, occurred_at, updated_at, synced)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         a.id,
         localId,
         a.walletLocalId || "",
+        a.destWalletLocalId || "",
         a.title,
         a.wallet,
         a.date,
@@ -375,6 +388,7 @@ export async function syncWithSupabase(params: {
           id: existing ? existing.id : Date.now() + idx,
           localId: ra.local_id,
           walletLocalId: ra.wallet_local_id,
+          destWalletLocalId: existing?.destWalletLocalId,
           title: ra.title,
           wallet: ra.wallet,
           date: ra.date_label,

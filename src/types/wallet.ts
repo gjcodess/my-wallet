@@ -40,6 +40,7 @@ export type ActivityItem = {
   id: number;
   localId?: string;
   walletLocalId?: string;
+  destWalletLocalId?: string;
   title: string;
   wallet: string;
   date: string;
@@ -171,6 +172,7 @@ export const initialActivities: ActivityItem[] = [
     id: 4,
     localId: "tx-4",
     walletLocalId: "wallet-1",
+    destWalletLocalId: "wallet-2",
     title: "GCash to Maya",
     wallet: "GCash",
     date: "May 30, 4:21 PM",
@@ -227,6 +229,32 @@ export const splitMoney = (value: number): { whole: string; cents: string } => {
   const [whole, cents = "00"] = formatted.split(".");
   return { whole: value < 0 ? `-${whole}` : whole, cents };
 };
+
+export function getWalletLocalId(wallet: Wallet): string {
+  return wallet.localId || `wallet-${wallet.id}`;
+}
+
+export function isActivityForWallet(
+  item: ActivityItem,
+  wallet: Wallet
+): { matched: boolean; isIncomingTransfer: boolean } {
+  const walletId = getWalletLocalId(wallet);
+  const isPrimary = item.walletLocalId
+    ? item.walletLocalId === walletId
+    : item.wallet === wallet.name;
+
+  const isIncomingTransfer =
+    isTransferActivity(item) &&
+    !isPrimary &&
+    (item.destWalletLocalId
+      ? item.destWalletLocalId === walletId
+      : item.title.endsWith(` to ${wallet.name}`));
+
+  return {
+    matched: isPrimary || isIncomingTransfer,
+    isIncomingTransfer,
+  };
+}
 
 export function isTransferActivity(item: ActivityItem): boolean {
   return item.kind === "Transfer";
