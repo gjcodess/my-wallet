@@ -94,6 +94,7 @@ export default function App() {
   const [appLockPin, setAppLockPin] = useState<string | null>(null);
   const [biometricsSupported, setBiometricsSupported] = useState(false);
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+  const [monthlyBudget, setMonthlyBudget] = useState<number | null>(null);
   const [isLocked, setIsLocked] = useState(false);
   const [lockModalMode, setLockModalMode] = useState<AppLockMode | null>(null);
   const appLockPinRef = useRef<string | null>(null);
@@ -217,6 +218,7 @@ export default function App() {
         setLastSyncedAt(state.lastSyncedAt);
         setAppLockPin(state.appLockPin);
         setBiometricsEnabled(state.biometricsEnabled);
+        setMonthlyBudget(state.monthlyBudget);
         if (state.appLockPin) {
           setIsLocked(true);
         }
@@ -657,6 +659,8 @@ export default function App() {
                     activities={activityItems}
                     wallets={wallets}
                     hidden={hidden}
+                    monthlyBudget={monthlyBudget}
+                    onEditBudget={() => openSheet("budget")}
                     onTransaction={openTransactionSheet}
                     onShowToast={setToast}
                     showFilters={showActivityFilters}
@@ -761,6 +765,14 @@ export default function App() {
             }}
             profile={profile}
             onUpdateProfile={handleUpdateProfile}
+            monthlyBudget={monthlyBudget}
+            onSaveMonthlyBudget={(next) => {
+              setMonthlyBudget(next);
+              saveSettingToSQLite(
+                "monthly_budget",
+                next && next > 0 ? String(next) : ""
+              ).catch(() => {});
+            }}
             userEmail={userEmail}
             onSyncNow={handleSyncNow}
             theme={theme}

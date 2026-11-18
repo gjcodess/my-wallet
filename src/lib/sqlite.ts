@@ -137,6 +137,7 @@ export async function loadLocalState(): Promise<{
   lastSyncedAt: string | null;
   appLockPin: string | null;
   biometricsEnabled: boolean;
+  monthlyBudget: number | null;
 }> {
   const db = await getDb();
   const walletRows = await db.getAllAsync<{
@@ -206,6 +207,10 @@ export async function loadLocalState(): Promise<{
 
   const isSeeded = settingsMap.get("seeded") === "1";
 
+  const rawBudget = Number(settingsMap.get("monthly_budget") || "");
+  const monthlyBudget =
+    Number.isFinite(rawBudget) && rawBudget > 0 ? rawBudget : null;
+
   return {
     wallets: wallets.length || isSeeded ? wallets : initialWallets,
     activities: activities.length || isSeeded ? activities : initialActivities,
@@ -218,6 +223,7 @@ export async function loadLocalState(): Promise<{
     lastSyncedAt: settingsMap.get("last_synced_at") || null,
     appLockPin: settingsMap.get("app_lock_pin") || null,
     biometricsEnabled: settingsMap.get("app_lock_biometrics") === "true",
+    monthlyBudget,
   };
 }
 

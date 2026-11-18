@@ -1236,6 +1236,8 @@ export function ActivityScreen({
   activities,
   wallets = [],
   hidden,
+  monthlyBudget = null,
+  onEditBudget,
   onTransaction,
   onShowToast,
   showFilters = false,
@@ -1244,6 +1246,8 @@ export function ActivityScreen({
   activities: ActivityItem[];
   wallets?: Wallet[];
   hidden: boolean;
+  monthlyBudget?: number | null;
+  onEditBudget?: () => void;
   onTransaction?: (item: ActivityItem) => void;
   onShowToast?: (msg: string) => void;
   showFilters?: boolean;
@@ -1352,6 +1356,21 @@ export function ActivityScreen({
         .reduce((sum, a) => sum + a.amount, 0),
     [activities]
   );
+
+  const monthSpending = useMemo(() => {
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+    const monthLabel = now.toLocaleDateString("en-US", { month: "short" });
+    const spent = activities
+      .filter(isExpenseActivity)
+      .filter((a) => {
+        const d = getActivityDate(a, now);
+        return d.getFullYear() === curYear && d.getMonth() === curMonth;
+      })
+      .reduce((sum, a) => sum + Math.abs(a.amount), 0);
+    return { spent, monthLabel };
+  }, [activities]);
 
   const chartData = useMemo(() => {
     const now = new Date();
@@ -1856,6 +1875,122 @@ export function ActivityScreen({
           </View>
         </LinearGradient>
       </View>
+
+      {/* Monthly Spending Budget Target Card */}
+      {onEditBudget ? (
+        <Pressable
+          onPress={onEditBudget}
+          style={({ pressed }) => [
+            styles.budgetCard,
+            {
+              backgroundColor: theme.card,
+              transform: [{ scale: pressed ? 0.99 : 1 }],
+            },
+            bevelStyle(theme.dark),
+            cardShadow(theme.dark),
+          ]}
+        >
+          {monthlyBudget && monthlyBudget > 0 ? (() => {
+            const pct = Math.min(
+              100,
+              Math.round((monthSpending.spent / monthlyBudget) * 100)
+            );
+            const rawRatio = monthSpending.spent / monthlyBudget;
+            const remaining = monthlyBudget - monthSpending.spent;
+            const overBudget = remaining < 0;
+            const barColors: [string, string] = overBudget
+              ? ["#f87171", "#c04444"]
+              : rawRatio >= 0.75
+                ? ["#fbbf24", "#d97706"]
+                : theme.accentGradient;
+
+            return (
+              <View>
+                <View style={styles.budgetTopRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.budgetTitle, { color: theme.ink }]}>
+                      {monthSpending.monthLabel} spending budget
+                    </Text>
+                    <Text style={[styles.budgetSub, { color: theme.muted }]}>
+                      {hidden
+                        ? "•••• spent of ••••"
+                        : `${money(monthSpending.spent)} spent of ${money(monthlyBudget)}`}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.budgetEditPill,
+                      {
+                        backgroundColor: overBudget
+                          ? theme.dark
+                            ? "rgba(192, 68, 68, 0.2)"
+                            : "#fdeaea"
+                          : theme.accentSoft,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.budgetEditText,
+                        { color: overBudget ? "#c04444" : theme.accentText },
+                      ]}
+                    >
+                      {pct}% · Edit
+                    </Text>
+                  </View>
+                </View>
+
+                <View
+                  style={[styles.budgetTrack, { backgroundColor: theme.soft2 }]}
+                >
+                  <LinearGradient
+                    colors={barColors}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.budgetFill, { width: `${pct}%` }]}
+                  />
+                </View>
+
+                <Text
+                  style={[
+                    styles.budgetFootText,
+                    { color: overBudget ? "#c04444" : theme.muted },
+                  ]}
+                >
+                  {hidden
+                    ? "••••"
+                    : overBudget
+                      ? `${money(Math.abs(remaining))} over monthly target`
+                      : `${money(remaining)} remaining this month`}
+                </Text>
+              </View>
+            );
+          })() : (
+            <View style={styles.budgetTopRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.budgetTitle, { color: theme.ink }]}>
+                  Monthly spending budget
+                </Text>
+                <Text style={[styles.budgetSub, { color: theme.muted }]}>
+                  Set a {monthSpending.monthLabel} spending target to track pace
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.budgetEditPill,
+                  { backgroundColor: theme.accentSoft },
+                ]}
+              >
+                <Text
+                  style={[styles.budgetEditText, { color: theme.accentText }]}
+                >
+                  Set target
+                </Text>
+              </View>
+            </View>
+          )}
+        </Pressable>
+      ) : null}
 
       {/* Categories Horizontal Folder Cards */}
       <SectionTitle
@@ -3102,7 +3237,56 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     marginTop: 15,
-    marginBottom: 25,
+    marginBottom: 14,
+  },
+  budgetCard: {
+    padding: 15,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 22,
+  },
+  budgetTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  budgetTitle: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 14,
+  },
+  budgetSub: {
+    fontFamily: "Urbanist_600SemiBold",
+    fontWeight: "600",
+    fontSize: 11.5,
+    marginTop: 2,
+  },
+  budgetEditPill: {
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  budgetEditText: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 11,
+  },
+  budgetTrack: {
+    height: 9,
+    borderRadius: 6,
+    overflow: "hidden",
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  budgetFill: {
+    height: "100%",
+    borderRadius: 6,
+  },
+  budgetFootText: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 11,
   },
   flowCard: {
     position: "relative",

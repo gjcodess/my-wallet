@@ -87,6 +87,8 @@ export function SheetModal({
   onDone,
   profile,
   onUpdateProfile,
+  monthlyBudget = null,
+  onSaveMonthlyBudget,
   userEmail,
   onSyncNow,
   theme,
@@ -108,6 +110,8 @@ export function SheetModal({
   onDone: (message: string) => void;
   profile: UserProfile;
   onUpdateProfile: (p: UserProfile) => void;
+  monthlyBudget?: number | null;
+  onSaveMonthlyBudget?: (next: number | null) => void;
   userEmail: string | null;
   onSyncNow: () => Promise<void>;
   theme: ThemeColors;
@@ -148,6 +152,9 @@ export function SheetModal({
     setTransferFee(0);
     setPickingTransferSide(null);
     setUpdateMode("set");
+    if (type === "budget") {
+      setAmount(monthlyBudget && monthlyBudget > 0 ? String(monthlyBudget) : "");
+    }
     if (type === "edit" && editTarget) {
       setSelectedPresetKey(editTarget.logoKey || "custom");
       setLogoKey(editTarget.logoKey);
@@ -532,7 +539,9 @@ export function SheetModal({
               ? "Transfer"
               : type === "tx"
                 ? "Transaction Details"
-                : "Account & Cloud Sync";
+                : type === "budget"
+                  ? "Monthly Budget"
+                  : "Account & Cloud Sync";
 
   const heroTone: Tone = entryType === "expense" ? "blue" : "yellow";
   const heroPal = tonePalette[heroTone];
@@ -2965,6 +2974,89 @@ export function SheetModal({
                     )}
                   </View>
                 )}
+              </View>
+            )}
+
+            {/* ==================== MONTHLY BUDGET SHEET ==================== */}
+            {type === "budget" && (
+              <View>
+                <View
+                  style={[
+                    styles.amountEntryBox,
+                    { backgroundColor: theme.soft, borderColor: theme.line, marginTop: 4 },
+                  ]}
+                >
+                  <Text style={[styles.fieldLabel, { color: theme.muted }]}>
+                    Monthly spending target
+                  </Text>
+                  <View style={styles.amountEntryRow}>
+                    <Text style={[styles.amountEntrySign, { color: theme.ink }]}>
+                      ₱
+                    </Text>
+                    <Text
+                      style={[
+                        styles.amountEntryInput,
+                        { color: amount ? theme.ink : theme.muted },
+                      ]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {amount ? formatAmountInput(amount) : "0.00"}
+                    </Text>
+                  </View>
+                  <Text style={[styles.fieldLabel, { color: theme.muted }]}>
+                    {monthlyBudget && monthlyBudget > 0
+                      ? `Current target: ${money(monthlyBudget)}`
+                      : "Tracks your monthly spending pace in Activity"}
+                  </Text>
+                </View>
+
+                <AmountKeypad
+                  value={amount}
+                  onChange={setAmount}
+                  quickAmounts={[2000, 5000, 10000, 25000]}
+                  compact
+                  theme={theme}
+                />
+
+                <PrimaryButton
+                  label="Save monthly budget"
+                  disabled={!Number(amount) || Number(amount) <= 0}
+                  onPress={() => {
+                    const nextVal = Number(Number(amount).toFixed(2));
+                    if (!nextVal || nextVal <= 0) return;
+                    onSaveMonthlyBudget?.(nextVal);
+                    onDone(`Monthly budget set to ${money(nextVal)}`);
+                  }}
+                  theme={theme}
+                />
+
+                {monthlyBudget && monthlyBudget > 0 ? (
+                  <Pressable
+                    onPress={() => {
+                      onSaveMonthlyBudget?.(null);
+                      onDone("Monthly budget cleared");
+                    }}
+                    style={[
+                      styles.secondaryButton,
+                      {
+                        marginTop: 10,
+                        backgroundColor: theme.dark
+                          ? "rgba(192, 68, 68, 0.16)"
+                          : "#fdeaea",
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.secondaryButtonText,
+                        { color: "#c04444" },
+                      ]}
+                    >
+                      Clear target
+                    </Text>
+                  </Pressable>
+                ) : null}
               </View>
             )}
             </Animated.ScrollView>

@@ -7,6 +7,7 @@ export type Sheet =
   | "edit"
   | "tx"
   | "auth"
+  | "budget"
   | null;
 export type Tone =
   | "blue"
