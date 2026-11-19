@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -165,6 +165,593 @@ export function TabHeader({
   );
 }
 
+const STACK_SCROLL_STEP_PX = 88;
+
+const RingCard = React.memo(function RingCard({
+  ringIndex,
+  ringSize,
+  wallet,
+  hidden,
+  totalWallets,
+  scrollAnim,
+  zIndex,
+  isInteractive,
+  onPressSlot,
+  onTouchCard,
+  onTouchEndCard,
+}: {
+  ringIndex: number;
+  ringSize: number;
+  wallet: Wallet;
+  hidden: boolean;
+  totalWallets: number;
+  scrollAnim: Animated.Value;
+  zIndex: number;
+  isInteractive: boolean;
+  onPressSlot: (ringIndex: number, isMenu?: boolean) => void;
+  onTouchCard: (ringIndex: number) => void;
+  onTouchEndCard: () => void;
+}) {
+  const { opacity, translateY, scale, notchProgress } = useMemo(() => {
+    if (totalWallets <= 1) {
+      return {
+        opacity: 1 as number | Animated.AnimatedInterpolation<number>,
+        translateY: 0 as number | Animated.AnimatedInterpolation<number>,
+        scale: 1 as number | Animated.AnimatedInterpolation<number>,
+        notchProgress: undefined as Animated.AnimatedInterpolation<number> | undefined,
+      };
+    }
+
+    const modBase = 1000 * ringSize + ringIndex + 1;
+    const modRel = Animated.modulo(
+      Animated.add(modBase, Animated.multiply(scrollAnim, -1)),
+      ringSize
+    );
+
+    const op =
+      totalWallets === 2
+        ? modRel.interpolate({
+            inputRange: [0, 0.02, 0.4, 1, 2, 2.65, 3, ringSize - 0.1, ringSize],
+            outputRange: [0, 0.05, 0.72, 1, 1, 0.35, 0, 0, 0],
+            extrapolate: "clamp",
+          })
+        : modRel.interpolate({
+            inputRange: [0, 0.02, 0.4, 1, 2, 3, 3.7, 4, ringSize - 0.1, ringSize],
+            outputRange: [0, 0.05, 0.72, 1, 1, 1, 0.35, 0, 0, 0],
+            extrapolate: "clamp",
+          });
+
+    const y = modRel.interpolate({
+      inputRange: [0, 1, 2, 3, 4, ringSize - 0.1, ringSize],
+      outputRange: [68, 0, -46, -90, -108, -108, -108],
+      extrapolate: "clamp",
+    });
+
+    const s = modRel.interpolate({
+      inputRange: [0, 1, 2, 3, 4, ringSize],
+      outputRange: [0.92, 1, 0.945, 0.89, 0.83, 0.83],
+      extrapolate: "clamp",
+    });
+
+    const np = modRel.interpolate({
+      inputRange: [0, 1, 2, 3, ringSize],
+      outputRange: [1, 1, 0, 0, 0],
+      extrapolate: "clamp",
+    });
+
+    return {
+      opacity: op,
+      translateY: y,
+      scale: s,
+      notchProgress: np,
+    };
+  }, [ringIndex, ringSize, totalWallets, scrollAnim]);
+
+  const handlePress = useCallback(
+    () => onPressSlot(ringIndex, false),
+    [onPressSlot, ringIndex]
+  );
+  const handleMenu = useCallback(
+    () => onPressSlot(ringIndex, true),
+    [onPressSlot, ringIndex]
+  );
+  const handleTouchStart = useCallback(
+    () => onTouchCard(ringIndex),
+    [onTouchCard, ringIndex]
+  );
+
+  // Only keep outer Pressable for single-wallet deck; for multi-wallet deck
+  // PanResponder claims ACTION_DOWN immediately so parent ScrollView never
+  // intercepts upward swipes, and handles taps cleanly in onPanResponderRelease.
+  const folderElement = useMemo(
+    () => (
+      <WalletFolder
+        wallet={wallet}
+        hidden={hidden}
+        topShadow
+        notchProgress={notchProgress}
+        onPress={totalWallets <= 1 ? handlePress : undefined}
+        onMenu={handleMenu}
+      />
+    ),
+    [wallet, hidden, notchProgress, totalWallets, handlePress, handleMenu]
+  );
+
+  return (
+    <Animated.View
+      pointerEvents={isInteractive ? "auto" : "none"}
+      onTouchStart={totalWallets > 1 && isInteractive ? handleTouchStart : undefined}
+      onTouchEnd={totalWallets > 1 ? onTouchEndCard : undefined}
+      onTouchCancel={totalWallets > 1 ? onTouchEndCard : undefined}
+      style={[
+        styles.stackFrontLayer,
+        {
+          zIndex,
+          opacity,
+          transform: [{ translateY }, { scale }],
+        },
+      ]}
+    >
+      {folderElement}
+    </Animated.View>
+  );
+});
+
+const StackDot = React.memo(function StackDot({
+  index,
+  len,
+  scrollAnim,
+  inkColor,
+  onPress,
+}: {
+  index: number;
+  len: number;
+  scrollAnim: Animated.Value;
+  inkColor: string;
+  onPress: (index: number) => void;
+}) {
+  const { scaleX, opacity } = useMemo(() => {
+    if (len <= 1) {
+      return {
+        scaleX: 2.0 as number | Animated.AnimatedInterpolation<number>,
+        opacity: 1 as number | Animated.AnimatedInterpolation<number>,
+      };
+    }
+    const dotMod = Animated.modulo(
+      Animated.add(1000 * len + index, Animated.multiply(scrollAnim, -1)),
+      len
+    );
+    const inputRange = len === 2 ? [0, 1, 2] : [0, 1, len - 1, len];
+    return {
+      scaleX: dotMod.interpolate({
+        inputRange,
+        outputRange: len === 2 ? [2.0, 0.75, 2.0] : [2.0, 0.75, 0.75, 2.0],
+        extrapolate: "clamp",
+      }),
+      opacity: dotMod.interpolate({
+        inputRange,
+        outputRange: len === 2 ? [1, 0.22, 1] : [1, 0.22, 0.22, 1],
+        extrapolate: "clamp",
+      }),
+    };
+  }, [index, len, scrollAnim]);
+
+  return (
+    <Pressable onPress={() => onPress(index)} hitSlop={6}>
+      <Animated.View
+        style={[
+          styles.dot,
+          {
+            backgroundColor: inkColor,
+            opacity,
+            transform: [{ scaleX }],
+          },
+        ]}
+      />
+    </Pressable>
+  );
+});
+
+const WalletCardDeck = React.memo(function WalletCardDeck({
+  wallets,
+  hidden,
+  onWallet,
+  onOpenAdd,
+  onOpenMenu,
+  onFrontChange,
+  onStackDragChange,
+  theme,
+}: {
+  wallets: Wallet[];
+  hidden: boolean;
+  onWallet: (w: Wallet) => void;
+  onOpenAdd: () => void;
+  onOpenMenu: (w: Wallet) => void;
+  onFrontChange: (walletIndex: number) => void;
+  onStackDragChange?: (dragging: boolean) => void;
+  theme: ThemeColors;
+}) {
+  const len = wallets.length;
+  const repeats = len <= 1 ? 1 : len < 6 ? Math.ceil(6 / len) : 1;
+  const ringSize = len === 0 ? 0 : len * repeats;
+
+  const [anchor, setAnchor] = useState(0);
+  const anchorRef = useRef(0);
+  const scrollAnim = useRef(new Animated.Value(0)).current;
+  const cardAnim = useRef(new Animated.Value(1)).current;
+  const currentScrollRef = useRef(0);
+  const dragBaseScrollRef = useRef(0);
+  const dragInitialDyRef = useRef(0);
+  const hasMovedSinceGrantRef = useRef(false);
+  const isDraggingRef = useRef(false);
+  const touchedRingIdxRef = useRef<number | null>(null);
+  const lenRef = useRef(len);
+  lenRef.current = len;
+  const ringSizeRef = useRef(ringSize);
+  ringSizeRef.current = ringSize;
+  const walletsRef = useRef(wallets);
+  walletsRef.current = wallets;
+  const onWalletRef = useRef(onWallet);
+  onWalletRef.current = onWallet;
+  const onOpenMenuRef = useRef(onOpenMenu);
+  onOpenMenuRef.current = onOpenMenu;
+  const onFrontChangeRef = useRef(onFrontChange);
+  onFrontChangeRef.current = onFrontChange;
+
+  const addFrom = theme.dark ? "#354052" : "#4c586b";
+  const addTo = theme.dark ? "#1e2531" : "#2d3645";
+  const addInk = "#ffffff";
+
+  useEffect(() => {
+    const id = scrollAnim.addListener(({ value }) => {
+      currentScrollRef.current = value;
+      const nextAnchor = Math.round(value);
+      if (nextAnchor !== anchorRef.current) {
+        anchorRef.current = nextAnchor;
+        setAnchor(nextAnchor);
+      }
+    });
+    return () => {
+      scrollAnim.removeListener(id);
+    };
+  }, [scrollAnim]);
+
+  useEffect(() => {
+    if (len <= 1) {
+      scrollAnim.stopAnimation();
+      scrollAnim.setValue(0);
+      currentScrollRef.current = 0;
+      if (anchorRef.current !== 0) {
+        anchorRef.current = 0;
+        setAnchor(0);
+      }
+      onFrontChangeRef.current(0);
+    }
+  }, [len, scrollAnim]);
+
+  useEffect(() => {
+    cardAnim.setValue(0);
+    Animated.spring(cardAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 20,
+      bounciness: 5,
+    }).start();
+    return () => {
+      onStackDragChange?.(false);
+    };
+  }, [cardAnim, onStackDragChange]);
+
+  const animateToScroll = useCallback(
+    (target: number) => {
+      const nLen = lenRef.current;
+      const mSize = ringSizeRef.current;
+      if (nLen > 0) {
+        onFrontChangeRef.current(((target % nLen) + nLen) % nLen);
+      }
+      const dist = Math.abs(target - currentScrollRef.current);
+      const anim =
+        dist <= 1.2
+          ? Animated.spring(scrollAnim, {
+              toValue: target,
+              tension: 95,
+              friction: 13,
+              useNativeDriver: true,
+            })
+          : Animated.timing(scrollAnim, {
+              toValue: target,
+              duration: Math.min(680, Math.max(240, dist * 155)),
+              easing: Easing.out(Easing.cubic),
+              useNativeDriver: true,
+            });
+
+      anim.start(({ finished }) => {
+        if (!finished || isDraggingRef.current || mSize <= 1) return;
+        if (Math.abs(target) >= 60 * mSize) {
+          const normalized = ((target % mSize) + mSize) % mSize;
+          scrollAnim.setValue(normalized);
+          currentScrollRef.current = normalized;
+          anchorRef.current = normalized;
+          setAnchor(normalized);
+        }
+      });
+    },
+    [scrollAnim]
+  );
+
+  const handlePressSlot = useCallback(
+    (ringIdx: number, isMenu?: boolean) => {
+      const curLen = lenRef.current;
+      const mSize = ringSizeRef.current;
+      if (curLen === 0 || mSize === 0) return;
+      if (curLen === 1) {
+        const w = walletsRef.current[0];
+        if (!w) return;
+        if (isMenu) onOpenMenuRef.current(w);
+        else onWalletRef.current(w);
+        return;
+      }
+      const slotOffset = (((ringIdx - anchorRef.current) % mSize) + mSize) % mSize;
+      if (slotOffset === 0) {
+        const w = walletsRef.current[ringIdx % curLen];
+        if (!w) return;
+        if (isMenu) onOpenMenuRef.current(w);
+        else onWalletRef.current(w);
+      } else {
+        animateToScroll(anchorRef.current + slotOffset);
+      }
+    },
+    [animateToScroll]
+  );
+
+  const handleDotPress = useCallback(
+    (walletIdx: number) => {
+      const curLen = lenRef.current;
+      if (curLen <= 1) return;
+      const curFront = ((anchorRef.current % curLen) + curLen) % curLen;
+      if (walletIdx === curFront) return;
+      const target =
+        walletIdx +
+        curLen * Math.round((anchorRef.current - walletIdx) / curLen);
+      animateToScroll(target);
+    },
+    [animateToScroll]
+  );
+
+  const handleTouchCard = useCallback(
+    (ringIdx: number) => {
+      touchedRingIdxRef.current = ringIdx;
+      onStackDragChange?.(true);
+    },
+    [onStackDragChange]
+  );
+
+  const handleTouchEndCard = useCallback(() => {
+    if (!isDraggingRef.current) {
+      onStackDragChange?.(false);
+    }
+  }, [onStackDragChange]);
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => lenRef.current > 1,
+        onStartShouldSetPanResponderCapture: () => false,
+        onMoveShouldSetPanResponder: (_evt, g) =>
+          lenRef.current > 1 &&
+          Math.abs(g.dy) > 3 &&
+          Math.abs(g.dy) >= Math.abs(g.dx),
+        onMoveShouldSetPanResponderCapture: (_evt, g) =>
+          lenRef.current > 1 &&
+          Math.abs(g.dy) > 3 &&
+          Math.abs(g.dy) >= Math.abs(g.dx),
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderGrant: (_evt, g) => {
+          isDraggingRef.current = true;
+          hasMovedSinceGrantRef.current = false;
+          onStackDragChange?.(true);
+          dragInitialDyRef.current = g.dy;
+          dragBaseScrollRef.current = currentScrollRef.current;
+          scrollAnim.stopAnimation((stoppedVal) => {
+            if (!hasMovedSinceGrantRef.current && typeof stoppedVal === "number") {
+              dragBaseScrollRef.current = stoppedVal;
+              currentScrollRef.current = stoppedVal;
+            }
+          });
+        },
+        onPanResponderMove: (_evt, g) => {
+          if (lenRef.current <= 1) return;
+          if (Math.abs(g.dy - dragInitialDyRef.current) > 2) {
+            hasMovedSinceGrantRef.current = true;
+          }
+          const deltaCards =
+            (g.dy - dragInitialDyRef.current) / STACK_SCROLL_STEP_PX;
+          scrollAnim.setValue(dragBaseScrollRef.current + deltaCards);
+        },
+        onPanResponderRelease: (_evt, g) => {
+          isDraggingRef.current = false;
+          onStackDragChange?.(false);
+          if (lenRef.current <= 1) {
+            animateToScroll(0);
+            return;
+          }
+
+          if (
+            Math.abs(g.dx) < 8 &&
+            Math.abs(g.dy) < 8 &&
+            Math.abs(g.vy) < 0.25
+          ) {
+            const mSize = ringSizeRef.current;
+            const fallbackRingIdx =
+              mSize > 0
+                ? (((anchorRef.current % mSize) + mSize) % mSize)
+                : 0;
+            const tapRingIdx = touchedRingIdxRef.current ?? fallbackRingIdx;
+            touchedRingIdxRef.current = null;
+            const slotOffset =
+              mSize > 0
+                ? (((tapRingIdx - anchorRef.current) % mSize) + mSize) % mSize
+                : 0;
+            if (slotOffset === 0) {
+              animateToScroll(Math.round(currentScrollRef.current));
+              handlePressSlot(tapRingIdx, false);
+            } else {
+              handlePressSlot(tapRingIdx, false);
+            }
+            return;
+          }
+          touchedRingIdxRef.current = null;
+
+          const dragDelta =
+            (g.dy - dragInitialDyRef.current) / STACK_SCROLL_STEP_PX;
+          const rawScroll = dragBaseScrollRef.current + dragDelta;
+          const speed = Math.abs(g.vy);
+          const momentum =
+            speed > 0.25
+              ? Math.sign(g.vy) * Math.min(12, Math.pow(speed, 1.15) * 1.3)
+              : 0;
+          let target = Math.round(rawScroll + momentum);
+
+          const startRounded = Math.round(dragBaseScrollRef.current);
+          if (
+            target === startRounded &&
+            (Math.abs(dragDelta) > 0.32 || speed > 0.22)
+          ) {
+            const dir =
+              Math.abs(g.vy) > 0.22 ? Math.sign(g.vy) : Math.sign(dragDelta);
+            if (dir !== 0) target = startRounded + dir;
+          }
+
+          animateToScroll(target);
+        },
+        onPanResponderTerminate: () => {
+          isDraggingRef.current = false;
+          touchedRingIdxRef.current = null;
+          onStackDragChange?.(false);
+          animateToScroll(Math.round(currentScrollRef.current));
+        },
+      }),
+    [scrollAnim, onStackDragChange, animateToScroll, handlePressSlot]
+  );
+
+  const ringIndices = useMemo(
+    () => Array.from({ length: ringSize }, (_, i) => i),
+    [ringSize]
+  );
+
+  return (
+    <>
+      <View style={styles.walletStack}>
+        {/* Back Layer: Add new wallet */}
+        <Pressable onPress={onOpenAdd} style={styles.stackAddLayer}>
+          <FolderSurface
+            tab={0.6}
+            tabHeight={42}
+            radius={25}
+            notch
+            fromColor={addFrom}
+            toColor={addTo}
+            minHeight={112}
+          >
+            {({ notchX, notchHeight }) => (
+              <View style={{ minHeight: 112 }}>
+                <View style={[styles.stackLabelRow, { height: 42 }]}>
+                  <Text
+                    style={[styles.stackAddText, { color: addInk }]}
+                    numberOfLines={1}
+                  >
+                    Add new wallet
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.stackNotchSlot,
+                    { left: notchX, height: notchHeight },
+                  ]}
+                >
+                  <Icon name="plus" size={16} color={addInk} />
+                </View>
+              </View>
+            )}
+          </FolderSurface>
+        </Pressable>
+
+        {/* Native-Driven Continuous Modular Card Ring */}
+        <Animated.View
+          pointerEvents="box-none"
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              zIndex: 1,
+              opacity: cardAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.65, 1],
+              }),
+              transform: [
+                {
+                  translateY: cardAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [12, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+          {...panResponder.panHandlers}
+        >
+          {ringIndices.map((ringIdx) => {
+            const wallet = wallets[ringIdx % len];
+            if (!wallet) return null;
+            const slotFromAnchor =
+              ringSize > 1
+                ? (((ringIdx - anchor) % ringSize) + ringSize) % ringSize
+                : 0;
+            const zIndex =
+              ringSize <= 1
+                ? 1
+                : slotFromAnchor === ringSize - 1
+                  ? ringSize
+                  : ringSize - 1 - slotFromAnchor;
+            const maxInteractiveOffset = len <= 1 ? 0 : len === 2 ? 1 : 2;
+            const isInteractive = slotFromAnchor <= maxInteractiveOffset;
+
+            return (
+              <RingCard
+                key={ringIdx}
+                ringIndex={ringIdx}
+                ringSize={ringSize}
+                wallet={wallet}
+                hidden={hidden}
+                totalWallets={len}
+                scrollAnim={scrollAnim}
+                zIndex={zIndex}
+                isInteractive={isInteractive}
+                onPressSlot={handlePressSlot}
+                onTouchCard={handleTouchCard}
+                onTouchEndCard={handleTouchEndCard}
+              />
+            );
+          })}
+        </Animated.View>
+      </View>
+
+      {/* Stack Pagination Dots (100% UI-thread native modulo) */}
+      <View style={styles.stackDots}>
+        {wallets.map((w, i) => (
+          <StackDot
+            key={w.id}
+            index={i}
+            len={len}
+            scrollAnim={scrollAnim}
+            inkColor={theme.ink}
+            onPress={handleDotPress}
+          />
+        ))}
+      </View>
+    </>
+  );
+});
+
 export function HomeScreen({
   wallets,
   activities,
@@ -190,159 +777,14 @@ export function HomeScreen({
   onStackDragChange?: (dragging: boolean) => void;
   theme: ThemeColors;
 }) {
-  const [front, setFront] = useState(0);
-  const safeFront = wallets.length ? front % wallets.length : 0;
-  const ordered = [
-    ...wallets.slice(safeFront),
-    ...wallets.slice(0, safeFront),
-  ];
-  const featured = ordered[0];
-  const peekWallet = ordered[1];
-  const thirdWallet = wallets.length > 2 ? ordered[2] : undefined;
-  const fourthWallet = wallets.length > 3 ? ordered[3] : undefined;
-  const prevWallet =
-    wallets.length > 1 ? ordered[wallets.length - 1] : undefined;
-  const addFrom = theme.dark ? "#354052" : "#4c586b";
-  const addTo = theme.dark ? "#1e2531" : "#2d3645";
-  const addInk = "#ffffff";
+  const [frontIndex, setFrontIndex] = useState(0);
+  const safeFront = wallets.length ? frontIndex % wallets.length : 0;
+  const featured = wallets.length ? wallets[safeFront] : undefined;
 
-  const cardAnim = useRef(new Animated.Value(1)).current;
-  const dragY = useRef(new Animated.Value(0)).current;
-  const walletsLenRef = useRef(wallets.length);
-  walletsLenRef.current = wallets.length;
-  const featuredRef = useRef(featured);
-  featuredRef.current = featured;
-  const onWalletRef = useRef(onWallet);
-  onWalletRef.current = onWallet;
-  const isAnimatingRef = useRef(false);
-  const skipNextCardAnimRef = useRef(false);
-  const pendingStepsRef = useRef(0);
-
-  const cycleWallet = (direction: 1 | -1, duration = 280) => {
-    const len = walletsLenRef.current;
-    if (len <= 1 || isAnimatingRef.current) return;
-    isAnimatingRef.current = true;
-    Animated.timing(dragY, {
-      toValue: direction === 1 ? 130 : -120,
-      duration,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (!finished) {
-        isAnimatingRef.current = false;
-        pendingStepsRef.current = 0;
-        return;
-      }
-      skipNextCardAnimRef.current = true;
-      setFront((prev) => (prev + direction + len) % len);
-    });
-  };
-
-  const cycleSteps = (steps: number) => {
-    if (steps <= 0 || isAnimatingRef.current || walletsLenRef.current <= 1) return;
-    pendingStepsRef.current = steps - 1;
-    cycleWallet(1, steps > 1 ? 150 : 230);
-  };
-
-  // Reset dragY atomically in the same React commit as safeFront changing
-  // so the old card never flashes back at opacity 1 for a frame.
-  useLayoutEffect(() => {
-    dragY.setValue(0);
-    isAnimatingRef.current = false;
-    if (pendingStepsRef.current > 0) {
-      pendingStepsRef.current -= 1;
-      const nextDuration = pendingStepsRef.current > 0 ? 150 : 175;
-      requestAnimationFrame(() => cycleWallet(1, nextDuration));
-    }
-  }, [safeFront, dragY]);
-
-  useEffect(() => {
-    if (skipNextCardAnimRef.current) {
-      skipNextCardAnimRef.current = false;
-      cardAnim.setValue(1);
-      return;
-    }
-    cardAnim.setValue(0);
-    Animated.spring(cardAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 20,
-      bounciness: 5,
-    }).start();
-  }, [safeFront, cardAnim]);
-
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => !isAnimatingRef.current,
-        onStartShouldSetPanResponderCapture: () => false,
-        onMoveShouldSetPanResponder: (_evt, g) =>
-          walletsLenRef.current > 1 &&
-          !isAnimatingRef.current &&
-          Math.abs(g.dy) > 3 &&
-          Math.abs(g.dy) >= Math.abs(g.dx),
-        onMoveShouldSetPanResponderCapture: (_evt, g) =>
-          walletsLenRef.current > 1 &&
-          !isAnimatingRef.current &&
-          Math.abs(g.dy) > 4 &&
-          Math.abs(g.dy) >= Math.abs(g.dx),
-        onPanResponderTerminationRequest: () => false,
-        onPanResponderGrant: () => {
-          onStackDragChange?.(true);
-        },
-        onPanResponderMove: (_evt, g) => {
-          if (walletsLenRef.current <= 1) return;
-          const clamped = Math.max(-120, Math.min(130, g.dy));
-          dragY.setValue(clamped);
-        },
-        onPanResponderRelease: (_evt, g) => {
-          onStackDragChange?.(false);
-          if (
-            Math.abs(g.dx) < 8 &&
-            Math.abs(g.dy) < 8 &&
-            Math.abs(g.vy) < 0.25
-          ) {
-            Animated.spring(dragY, {
-              toValue: 0,
-              useNativeDriver: true,
-            }).start();
-            if (featuredRef.current) {
-              onWalletRef.current(featuredRef.current);
-            }
-            return;
-          }
-
-          const len = walletsLenRef.current;
-          if (len <= 1) {
-            Animated.spring(dragY, {
-              toValue: 0,
-              useNativeDriver: true,
-            }).start();
-            return;
-          }
-
-          if (g.dy > 32 || g.vy > 0.25) {
-            cycleWallet(1);
-          } else if (g.dy < -32 || g.vy < -0.25) {
-            cycleWallet(-1);
-          } else {
-            Animated.spring(dragY, {
-              toValue: 0,
-              useNativeDriver: true,
-              speed: 22,
-              bounciness: 6,
-            }).start();
-          }
-        },
-        onPanResponderTerminate: () => {
-          onStackDragChange?.(false);
-          Animated.spring(dragY, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
-        },
-      }),
-    [dragY, onStackDragChange]
+  const handleOpenAdd = useCallback(() => onSheet("add"), [onSheet]);
+  const handleOpenMenu = useCallback(
+    (w: Wallet) => onSheet("update", w),
+    [onSheet]
   );
 
   return (
@@ -379,364 +821,16 @@ export function HomeScreen({
         </Pressable>
       </View>
 
-      {/* 3-Layer Wallet Folder Stack */}
-      <View style={styles.walletStack}>
-        {/* Back Layer: Add new wallet */}
-        <Pressable
-          onPress={() => onSheet("add")}
-          style={styles.stackAddLayer}
-        >
-          <FolderSurface
-            tab={0.6}
-            tabHeight={42}
-            radius={25}
-            notch
-            fromColor={addFrom}
-            toColor={addTo}
-            minHeight={112}
-          >
-            {({ notchX, notchHeight }) => (
-              <View style={{ minHeight: 112 }}>
-                <View style={[styles.stackLabelRow, { height: 42 }]}>
-                  <Text
-                    style={[styles.stackAddText, { color: addInk }]}
-                    numberOfLines={1}
-                  >
-                    Add new wallet
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.stackNotchSlot,
-                    { left: notchX, height: notchHeight },
-                  ]}
-                >
-                  <Icon name="plus" size={16} color={addInk} />
-                </View>
-              </View>
-            )}
-          </FolderSurface>
-        </Pressable>
-
-        {/* 4th Card Layer: Pre-mounted behind 3rd card, emerges smoothly on swipe */}
-        {fourthWallet ? (
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.stackThirdFolderLayer,
-              {
-                zIndex: 1,
-                opacity: dragY.interpolate({
-                  inputRange: [0, 35, 130],
-                  outputRange: [0, 0.35, 1],
-                  extrapolate: "clamp",
-                }),
-                transform: [
-                  {
-                    translateY: dragY.interpolate({
-                      inputRange: [0, 130],
-                      outputRange: [-18, 0],
-                      extrapolate: "clamp",
-                    }),
-                  },
-                  {
-                    scale: dragY.interpolate({
-                      inputRange: [0, 130],
-                      outputRange: [0.83, 0.89],
-                      extrapolate: "clamp",
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <WalletFolder
-              wallet={fourthWallet}
-              hidden={hidden}
-              topShadow
-              menuIcon="swap"
-            />
-          </Animated.View>
-        ) : null}
-
-        {/* 3rd Card Layer: Visible in resting stack behind 2nd card, steps into 2nd slot on swipe down or tucks back on swipe up */}
-        {thirdWallet ? (
-          <Animated.View
-            style={[
-              styles.stackThirdFolderLayer,
-              {
-                zIndex: 2,
-                opacity: dragY.interpolate({
-                  inputRange: [-120, -35, 0, 130],
-                  outputRange: [0, 0.45, 1, 1],
-                  extrapolate: "clamp",
-                }),
-                transform: [
-                  {
-                    translateY: dragY.interpolate({
-                      inputRange: [-120, 0, 130],
-                      outputRange: [-18, 0, 44],
-                      extrapolate: "clamp",
-                    }),
-                  },
-                  {
-                    scale: dragY.interpolate({
-                      inputRange: [-120, 0, 130],
-                      outputRange: [0.83, 0.89, 0.945],
-                      extrapolate: "clamp",
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <WalletFolder
-              wallet={thirdWallet}
-              hidden={hidden}
-              topShadow
-              menuIcon="swap"
-              onPress={() => cycleSteps(2)}
-              onMenu={() => cycleSteps(2)}
-            />
-          </Animated.View>
-        ) : null}
-
-        {/* Middle Layer: 2nd Wallet (moves to front on swipe down, or to 3rd slot on swipe up) */}
-        {peekWallet ? (
-          <Animated.View
-            style={[
-              styles.stackPeekFolderLayer,
-              {
-                transform: [
-                  {
-                    translateY: dragY.interpolate({
-                      inputRange: [-120, 0, 130],
-                      outputRange: [-44, 0, 46],
-                      extrapolate: "clamp",
-                    }),
-                  },
-                  {
-                    scale: dragY.interpolate({
-                      inputRange: [-120, 0, 130],
-                      outputRange: [0.89, 0.945, 1],
-                      extrapolate: "clamp",
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <WalletFolder
-              wallet={peekWallet}
-              hidden={hidden}
-              topShadow
-              notchProgress={dragY.interpolate({
-                inputRange: [-120, 0, 130],
-                outputRange: [0, 0, 1],
-                extrapolate: "clamp",
-              })}
-              onPress={() => cycleWallet(1)}
-              onMenu={() => cycleWallet(1)}
-            />
-          </Animated.View>
-        ) : null}
-
-        {/* Front Layer: Active Featured Wallet (Swipe down/up to cycle) */}
-        {featured ? (
-          <Animated.View
-            {...panResponder.panHandlers}
-            onTouchStart={() => onStackDragChange?.(true)}
-            onTouchEnd={() => onStackDragChange?.(false)}
-            onTouchCancel={() => onStackDragChange?.(false)}
-            style={[
-              styles.stackFrontLayer,
-              {
-                opacity: Animated.multiply(
-                  cardAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.65, 1],
-                  }),
-                  dragY.interpolate({
-                    inputRange: [-120, 0, 75, 130],
-                    outputRange: [1, 1, 0.72, 0],
-                    extrapolate: "clamp",
-                  })
-                ),
-                transform: [
-                  {
-                    translateY: Animated.add(
-                      cardAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [12, 0],
-                      }),
-                      dragY.interpolate({
-                        inputRange: [-120, 0, 130],
-                        outputRange: [-46, 0, 70],
-                        extrapolate: "clamp",
-                      })
-                    ),
-                  },
-                  {
-                    scale: Animated.multiply(
-                      cardAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.97, 1],
-                      }),
-                      dragY.interpolate({
-                        inputRange: [-120, 0, 130],
-                        outputRange: [0.945, 1, 0.92],
-                        extrapolate: "clamp",
-                      })
-                    ),
-                  },
-                ],
-              },
-            ]}
-          >
-            <WalletFolder
-              wallet={featured}
-              hidden={hidden}
-              topShadow
-              notchProgress={dragY.interpolate({
-                inputRange: [-120, 0, 130],
-                outputRange: [0, 1, 1],
-                extrapolate: "clamp",
-              })}
-              onMenu={() => onSheet("update", featured)}
-            />
-          </Animated.View>
-        ) : null}
-
-        {/* Previous Card Layer: Rises smoothly into the front slot when swiping upward */}
-        {prevWallet ? (
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.stackFrontLayer,
-              {
-                zIndex: 5,
-                opacity: dragY.interpolate({
-                  inputRange: [-120, -55, -8, 0],
-                  outputRange: [1, 0.82, 0.15, 0],
-                  extrapolate: "clamp",
-                }),
-                transform: [
-                  {
-                    translateY: dragY.interpolate({
-                      inputRange: [-120, 0],
-                      outputRange: [0, 62],
-                      extrapolate: "clamp",
-                    }),
-                  },
-                  {
-                    scale: dragY.interpolate({
-                      inputRange: [-120, 0],
-                      outputRange: [1, 0.93],
-                      extrapolate: "clamp",
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <WalletFolder wallet={prevWallet} hidden={hidden} topShadow />
-          </Animated.View>
-        ) : null}
-      </View>
-
-      {/* Stack Pagination Dots (driven live by dragY on the UI thread) */}
-      <View style={styles.stackDots}>
-        {wallets.map((w, i) => {
-          const len = wallets.length;
-          const nextIdx = (safeFront + 1) % len;
-          const prevIdx = (safeFront - 1 + len) % len;
-          const isCurrent = i === safeFront;
-          const isNext = len > 1 && i === nextIdx;
-          const isPrev = len > 1 && i === prevIdx;
-
-          const dotScaleX = isCurrent
-            ? dragY.interpolate({
-                inputRange: [-120, 0, 130],
-                outputRange: [0.75, 2.0, 0.75],
-                extrapolate: "clamp",
-              })
-            : isNext && isPrev
-              ? dragY.interpolate({
-                  inputRange: [-120, 0, 130],
-                  outputRange: [2.0, 0.75, 2.0],
-                  extrapolate: "clamp",
-                })
-              : isNext
-                ? dragY.interpolate({
-                    inputRange: [-120, 0, 130],
-                    outputRange: [0.75, 0.75, 2.0],
-                    extrapolate: "clamp",
-                  })
-                : isPrev
-                  ? dragY.interpolate({
-                      inputRange: [-120, 0, 130],
-                      outputRange: [2.0, 0.75, 0.75],
-                      extrapolate: "clamp",
-                    })
-                  : 0.75;
-
-          const dotOpacity = isCurrent
-            ? dragY.interpolate({
-                inputRange: [-120, 0, 130],
-                outputRange: [0.22, 1, 0.22],
-                extrapolate: "clamp",
-              })
-            : isNext && isPrev
-              ? dragY.interpolate({
-                  inputRange: [-120, 0, 130],
-                  outputRange: [1, 0.22, 1],
-                  extrapolate: "clamp",
-                })
-              : isNext
-                ? dragY.interpolate({
-                    inputRange: [-120, 0, 130],
-                    outputRange: [0.22, 0.22, 1],
-                    extrapolate: "clamp",
-                  })
-                : isPrev
-                  ? dragY.interpolate({
-                      inputRange: [-120, 0, 130],
-                      outputRange: [1, 0.22, 0.22],
-                      extrapolate: "clamp",
-                    })
-                  : 0.22;
-
-          return (
-            <Pressable
-              key={w.id}
-              onPress={() => {
-                if (i === safeFront || isAnimatingRef.current) return;
-                const forward = (i - safeFront + len) % len;
-                const backward = (safeFront - i + len) % len;
-                if (forward <= 2) {
-                  cycleSteps(forward);
-                } else if (backward === 1) {
-                  cycleWallet(-1);
-                } else {
-                  setFront(i);
-                }
-              }}
-              hitSlop={6}
-            >
-              <Animated.View
-                style={[
-                  styles.dot,
-                  {
-                    backgroundColor: theme.ink,
-                    opacity: dotOpacity,
-                    transform: [{ scaleX: dotScaleX }],
-                  },
-                ]}
-              />
-            </Pressable>
-          );
-        })}
-      </View>
+      <WalletCardDeck
+        wallets={wallets}
+        hidden={hidden}
+        onWallet={onWallet}
+        onOpenAdd={handleOpenAdd}
+        onOpenMenu={handleOpenMenu}
+        onFrontChange={setFrontIndex}
+        onStackDragChange={onStackDragChange}
+        theme={theme}
+      />
 
       {/* 4-Column Quick Action Grid */}
       <View style={styles.actionGrid}>

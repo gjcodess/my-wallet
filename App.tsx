@@ -132,6 +132,8 @@ export default function App() {
   const lastScrollY = useRef(0);
   const navVisibleRef = useRef(true);
   const [navVisible, setNavVisible] = useState(true);
+  const [stackDragging, setStackDragging] = useState(false);
+  const stackDraggingRef = useRef(false);
   const navAnim = useRef(new Animated.Value(1)).current;
   const tabAnim = useRef(new Animated.Value(1)).current;
   const toastAnim = useRef(new Animated.Value(0)).current;
@@ -142,7 +144,11 @@ export default function App() {
   const syncScheduledRef = useRef(false);
 
   const handleStackDragChange = useCallback((dragging: boolean) => {
-    scrollRef.current?.setNativeProps({ scrollEnabled: !dragging });
+    if (stackDraggingRef.current === dragging) return;
+    stackDraggingRef.current = dragging;
+    setStackDragging(dragging);
+    const nativeScroll = (scrollRef.current as any)?.getNativeScrollRef?.();
+    nativeScroll?.setNativeProps?.({ scrollEnabled: !dragging });
   }, []);
 
   const setNavbarVisible = useCallback(
@@ -359,7 +365,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const openSheet = (next: Sheet, wallet?: Wallet) => {
+  const openSheet = useCallback((next: Sheet, wallet?: Wallet) => {
     if (next && (next === "entry" || next === "update") && walletsRef.current.length === 0) {
       setToast("Add a wallet first");
       return;
@@ -371,13 +377,17 @@ export default function App() {
     setSheetActivity(null);
     setSheetWalletId(wallet ? wallet.id : null);
     setSheet(next);
-  };
+  }, []);
 
-  const openTransactionSheet = (item: ActivityItem) => {
+  const openTransactionSheet = useCallback((item: ActivityItem) => {
     setSheetActivity(item);
     setSheetWalletId(null);
     setSheet("tx");
-  };
+  }, []);
+
+  const handleSelectWallet = useCallback((w: Wallet) => {
+    setSelectedId(w.id);
+  }, []);
 
   const scheduleCloudSync = useCallback(() => {
     if (!userId || syncScheduledRef.current) return;
@@ -617,6 +627,7 @@ export default function App() {
               <Animated.ScrollView
                 ref={scrollRef}
                 style={{ flex: 1 }}
+                scrollEnabled={!stackDragging}
                 showsVerticalScrollIndicator={false}
                 onScroll={Animated.event(
                   [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -644,7 +655,7 @@ export default function App() {
                     total={total}
                     hidden={hidden}
                     setHidden={setHidden}
-                    onWallet={(w) => setSelectedId(w.id)}
+                    onWallet={handleSelectWallet}
                     onTransaction={openTransactionSheet}
                     onSheet={openSheet}
                     setTab={handleTabChange}
@@ -658,7 +669,7 @@ export default function App() {
                     wallets={wallets}
                     total={total}
                     hidden={hidden}
-                    onWallet={(w) => setSelectedId(w.id)}
+                    onWallet={handleSelectWallet}
                     onReorderWallets={handleReorderWallets}
                     onAddWallet={() => openSheet("add")}
                     onDragChange={handleStackDragChange}
