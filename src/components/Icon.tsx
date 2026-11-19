@@ -5,10 +5,12 @@ export function Icon({
   name,
   size = 20,
   color = "#121a2d",
+  strokeWidth = 1.9,
 }: {
   name: string;
   size?: number;
   color?: string;
+  strokeWidth?: number;
 }) {
   const renderPaths = () => {
     switch (name) {
@@ -309,7 +311,7 @@ export function Icon({
       viewBox="0 0 24 24"
       fill="none"
       stroke={color}
-      strokeWidth={1.9}
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
     >

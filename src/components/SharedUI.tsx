@@ -624,49 +624,66 @@ export function BottomNav({
     : 0;
   const opacity = navAnim ?? 1;
 
+  const renderNavItem = (item: { id: Tab; icon: string; label: string }) => {
+    const active = tab === item.id;
+    return (
+      <Pressable
+        key={item.id}
+        onPress={() => setTab(item.id)}
+        accessibilityRole="tab"
+        accessibilityLabel={item.label}
+        accessibilityState={{ selected: active }}
+        style={({ pressed }) => [
+          styles.navItem,
+          { transform: [{ scale: pressed ? 0.92 : 1 }] },
+        ]}
+      >
+        <Icon
+          name={item.icon}
+          size={22}
+          strokeWidth={active ? 2.65 : 2.25}
+          color={active ? theme.accent : theme.muted}
+        />
+        {active ? (
+          <View
+            style={[
+              styles.navIndicator,
+              { backgroundColor: theme.accent },
+            ]}
+          />
+        ) : null}
+      </Pressable>
+    );
+  };
+
   return (
     <Animated.View
       pointerEvents={visible ? "auto" : "none"}
       style={[
         styles.bottomNav,
         {
-          backgroundColor: theme.dark ? "#121821" : "#f8fbff",
+          backgroundColor: theme.dark
+            ? "rgba(18, 24, 33, 0.96)"
+            : "rgba(248, 251, 255, 0.96)",
           opacity,
           transform: [{ translateY }],
         },
         bevelStyle(theme.dark),
       ]}
     >
-      {items.slice(0, 2).map((item) => {
-        const active = tab === item.id;
-        return (
-          <Pressable
-            key={item.id}
-            onPress={() => setTab(item.id)}
-            style={styles.navItem}
-          >
-            <Icon
-              name={item.icon}
-              size={20}
-              color={active ? theme.accent : theme.muted}
-            />
-            <Text
-              style={[
-                styles.navLabel,
-                { color: active ? theme.ink : theme.muted },
-              ]}
-            >
-              {item.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+      {items.slice(0, 2).map(renderNavItem)}
 
       <Pressable
         onPress={onAdd}
+        accessibilityRole="button"
+        accessibilityLabel="Add transaction"
         style={({ pressed }) => [
           styles.navAddWrapper,
-          { transform: [{ scale: pressed ? 0.92 : 1 }] },
+          {
+            shadowColor: theme.accent,
+            shadowOpacity: theme.dark ? 0.35 : 0.28,
+            transform: [{ scale: pressed ? 0.92 : 1 }],
+          },
         ]}
       >
         <LinearGradient
@@ -675,34 +692,16 @@ export function BottomNav({
           end={{ x: 1, y: 1 }}
           style={styles.navAdd}
         >
-          <Icon name="plus" size={22} color={theme.accentInk} />
+          <Icon
+            name="plus"
+            size={23}
+            strokeWidth={2.55}
+            color={theme.accentInk}
+          />
         </LinearGradient>
       </Pressable>
 
-      {items.slice(2).map((item) => {
-        const active = tab === item.id;
-        return (
-          <Pressable
-            key={item.id}
-            onPress={() => setTab(item.id)}
-            style={styles.navItem}
-          >
-            <Icon
-              name={item.icon}
-              size={20}
-              color={active ? theme.accent : theme.muted}
-            />
-            <Text
-              style={[
-                styles.navLabel,
-                { color: active ? theme.ink : theme.muted },
-              ]}
-            >
-              {item.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+      {items.slice(2).map(renderNavItem)}
     </Animated.View>
   );
 }
@@ -842,54 +841,50 @@ const styles = StyleSheet.create({
   bottomNav: {
     position: "absolute",
     zIndex: 30,
-    left: 12,
-    right: 12,
-    bottom: 12,
-    height: 66,
+    left: 20,
+    right: 20,
+    bottom: 14,
+    height: 62,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 8,
-    borderRadius: 25,
+    paddingHorizontal: 10,
+    borderRadius: 31,
     borderWidth: 1,
     shadowColor: "#121a2d",
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.14,
-    shadowRadius: 20,
+    shadowRadius: 22,
     elevation: 12,
   },
   navItem: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 3,
     height: "100%",
   },
-  navLabel: {
-    fontFamily: "Urbanist_700Bold",
-    fontWeight: "700",
-    fontSize: 10,
+  navIndicator: {
+    position: "absolute",
+    bottom: 8,
+    width: 14,
+    height: 3.5,
+    borderRadius: 2,
   },
   navAddWrapper: {
-    width: 58,
+    width: 56,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#121a2d",
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.28,
     shadowRadius: 12,
-    elevation: 3,
+    elevation: 5,
   },
   navAdd: {
-    width: 50,
-    height: 50,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#121a2d",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
   },
 });
