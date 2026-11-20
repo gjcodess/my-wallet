@@ -330,19 +330,22 @@ const StackDot = React.memo(function StackDot({
   len,
   scrollAnim,
   inkColor,
+  accentColor,
   onPress,
 }: {
   index: number;
   len: number;
   scrollAnim: Animated.Value;
   inkColor: string;
+  accentColor: string;
   onPress: (index: number) => void;
 }) {
-  const { scaleX, opacity } = useMemo(() => {
+  const { scaleX, baseOpacity, activeOpacity } = useMemo(() => {
     if (len <= 1) {
       return {
-        scaleX: 2.0 as number | Animated.AnimatedInterpolation<number>,
-        opacity: 1 as number | Animated.AnimatedInterpolation<number>,
+        scaleX: 2.2 as number | Animated.AnimatedInterpolation<number>,
+        baseOpacity: 0 as number | Animated.AnimatedInterpolation<number>,
+        activeOpacity: 1 as number | Animated.AnimatedInterpolation<number>,
       };
     }
     const dotMod = Animated.modulo(
@@ -353,25 +356,45 @@ const StackDot = React.memo(function StackDot({
     return {
       scaleX: dotMod.interpolate({
         inputRange,
-        outputRange: len === 2 ? [2.0, 0.75, 2.0] : [2.0, 0.75, 0.75, 2.0],
+        outputRange: len === 2 ? [2.3, 1, 2.3] : [2.3, 1, 1, 2.3],
         extrapolate: "clamp",
       }),
-      opacity: dotMod.interpolate({
+      baseOpacity: dotMod.interpolate({
         inputRange,
-        outputRange: len === 2 ? [1, 0.22, 1] : [1, 0.22, 0.22, 1],
+        outputRange: len === 2 ? [0, 0.22, 0] : [0, 0.22, 0.22, 0],
+        extrapolate: "clamp",
+      }),
+      activeOpacity: dotMod.interpolate({
+        inputRange,
+        outputRange: len === 2 ? [1, 0, 1] : [1, 0, 0, 1],
         extrapolate: "clamp",
       }),
     };
   }, [index, len, scrollAnim]);
 
   return (
-    <Pressable onPress={() => onPress(index)} hitSlop={6}>
+    <Pressable
+      onPress={() => onPress(index)}
+      hitSlop={6}
+      style={styles.dotSlot}
+    >
       <Animated.View
         style={[
           styles.dot,
           {
             backgroundColor: inkColor,
-            opacity,
+            opacity: baseOpacity,
+            transform: [{ scaleX }],
+          },
+        ]}
+      />
+      <Animated.View
+        style={[
+          styles.dot,
+          styles.dotAccentLayer,
+          {
+            backgroundColor: accentColor,
+            opacity: activeOpacity,
             transform: [{ scaleX }],
           },
         ]}
@@ -772,6 +795,7 @@ const WalletCardDeck = React.memo(function WalletCardDeck({
             len={len}
             scrollAnim={scrollAnim}
             inkColor={theme.ink}
+            accentColor={theme.accent}
             onPress={handleDotPress}
           />
         ))}
@@ -3383,14 +3407,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 6,
-    marginTop: 12,
-    marginBottom: 16,
+    gap: 4,
+    marginTop: 18,
+    marginBottom: 8,
+  },
+  dotSlot: {
+    width: 16,
+    height: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
   dot: {
-    width: 8,
+    width: 6,
     height: 6,
     borderRadius: 3,
+  },
+  dotAccentLayer: {
+    position: "absolute",
   },
   actionGrid: {
     marginTop: 16,
