@@ -786,12 +786,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   rowTitle: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 13.5,
   },
   rowSub: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 11,
   },
@@ -800,12 +800,13 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   txAmount: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 12.5,
+    letterSpacing: 0.15,
   },
   txDate: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 10,
   },
@@ -825,7 +826,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   actionLabel: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 11.5,
     color: "rgba(255, 255, 255, 0.9)",
@@ -837,7 +838,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitleText: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 21,
     letterSpacing: -0.6,
@@ -848,7 +849,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   sectionActionText: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 12,
   },
@@ -862,7 +863,7 @@ const styles = StyleSheet.create({
   topBarTitle: {
     flex: 1,
     textAlign: "center",
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 22,
     letterSpacing: -0.6,

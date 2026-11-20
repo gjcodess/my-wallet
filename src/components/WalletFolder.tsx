@@ -69,7 +69,7 @@ export const WalletLogoBadge = React.memo(function WalletLogoBadge({
     >
       <Text
         style={{
-          fontFamily: "Urbanist_800ExtraBold",
+          fontFamily: "Poppins_800ExtraBold",
           fontWeight: "900",
           fontSize,
           color: ink,
@@ -118,7 +118,7 @@ export function Amount({
       numberOfLines={1}
       adjustsFontSizeToFit
     >
-      <Text style={{ fontSize: subSize }}>₱</Text>
+      <Text style={{ fontSize: subSize }}>₱{"\u2009"}</Text>
       {whole}
       <Text style={{ fontSize: subSize, opacity: 0.55 }}>.{cents}</Text>
     </Text>
@@ -395,9 +395,9 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   amountText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
-    letterSpacing: -1,
+    letterSpacing: 0.2,
   },
   folderTab: {
     position: "absolute",
@@ -421,16 +421,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   walletLogoText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "900",
     fontSize: 10,
   },
   folderName: {
     flex: 1,
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "900",
     fontStyle: "italic",
-    letterSpacing: -0.5,
+    letterSpacing: -0.2,
   },
   folderMenu: {
     position: "absolute",
@@ -470,12 +470,12 @@ const styles = StyleSheet.create({
   printmarkMonogram: {
     marginRight: 12,
     marginBottom: -14,
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "900",
-    letterSpacing: -2,
+    letterSpacing: -1,
   },
   folderLabel: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 11,
     opacity: 0.6,
@@ -487,13 +487,13 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   metaLabel: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 10.5,
     opacity: 0.58,
   },
   metaValue: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 14,
     marginTop: 2,

@@ -16,12 +16,12 @@ import * as LocalAuthentication from "expo-local-authentication";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import {
   useFonts,
-  Urbanist_400Regular,
-  Urbanist_500Medium,
-  Urbanist_600SemiBold,
-  Urbanist_700Bold,
-  Urbanist_800ExtraBold,
-} from "@expo-google-fonts/urbanist";
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+  Poppins_800ExtraBold,
+} from "@expo-google-fonts/poppins";
 import Svg, {
   Defs,
   RadialGradient as SvgRadialGradient,
@@ -70,11 +70,11 @@ import { Icon } from "./src/components/Icon";
 export default function App() {
   const systemColorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
-    Urbanist_400Regular,
-    Urbanist_500Medium,
-    Urbanist_600SemiBold,
-    Urbanist_700Bold,
-    Urbanist_800ExtraBold,
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+    Poppins_800ExtraBold,
   });
 
   const [tab, setTab] = useState<Tab>("home");
@@ -1005,7 +1005,7 @@ const styles = StyleSheet.create({
   },
   toastText: {
     color: "#ffffff",
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 12,
   },

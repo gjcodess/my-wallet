@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   quickChipText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 11,
   },
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   clearChipText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 11,
   },
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   keyText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 20,
   },

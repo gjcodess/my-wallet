@@ -894,7 +894,7 @@ export const HomeScreen = React.memo(function HomeScreen({
         </View>
 
         <View style={styles.heroBalanceBlock}>
-          <Text style={styles.heroHeaderLabel}>Available Balance</Text>
+          <Text style={styles.heroHeaderLabel}>Total Available Balance</Text>
           <View style={styles.heroBalanceValueRow}>
             <View style={{ flex: 1, paddingRight: 10 }}>
               <Amount value={total} hidden={hidden} size="lg" color="#ffffff" />
@@ -3274,7 +3274,7 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   totalLabel: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 13,
     letterSpacing: 0.1,
@@ -3346,7 +3346,7 @@ const styles = StyleSheet.create({
     paddingTop: 3,
   },
   stackAddText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 14,
   },
@@ -3369,12 +3369,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   peekLogoText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "900",
     fontSize: 9.5,
   },
   peekName: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "900",
     fontStyle: "italic",
     fontSize: 15,
@@ -3433,14 +3433,14 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   heroGreetingTitle: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 17,
     letterSpacing: -0.3,
     color: "#ffffff",
   },
   heroGreetingName: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 13,
     color: "rgba(255, 255, 255, 0.78)",
@@ -3461,7 +3461,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   heroHeaderTitle: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 20,
     letterSpacing: -0.5,
@@ -3491,7 +3491,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   heroHeaderLabel: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 12.5,
     color: "rgba(255, 255, 255, 0.78)",
@@ -3512,7 +3512,7 @@ const styles = StyleSheet.create({
   heroDetailTitle: {
     flex: 1,
     textAlign: "center",
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 20,
     letterSpacing: -0.5,
@@ -3544,20 +3544,20 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   walletsHeroFlowLabel: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 11.5,
     color: "rgba(255, 255, 255, 0.74)",
   },
   walletsHeroFlowVal: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 16,
-    letterSpacing: -0.3,
+    letterSpacing: 0,
     color: "#ffffff",
   },
   walletsTotalSub: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 12,
   },
@@ -3586,7 +3586,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tileBadgeText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "900",
     fontSize: 11,
   },
@@ -3595,12 +3595,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   tileName: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 14,
   },
   tileSub: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 11,
   },
@@ -3611,7 +3611,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   tileFlowMonth: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 10.5,
   },
@@ -3621,7 +3621,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   tileFlowVal: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 10.5,
   },
@@ -3666,7 +3666,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   activityFilterTitle: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 10,
     letterSpacing: 0.6,
@@ -3680,7 +3680,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
   },
   exportCsvText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 11,
   },
@@ -3696,7 +3696,7 @@ const styles = StyleSheet.create({
   },
   activitySearchInput: {
     flex: 1,
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 13,
     paddingVertical: 0,
@@ -3708,7 +3708,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterChipText: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 12,
   },
@@ -3736,13 +3736,13 @@ const styles = StyleSheet.create({
   },
   chartLegendText: {
     color: "rgba(255, 255, 255, 0.78)",
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 10.5,
   },
   chartTabSummary: {
     color: "#ffffff",
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 10.5,
   },
@@ -3763,7 +3763,7 @@ const styles = StyleSheet.create({
   },
   rangePillText: {
     color: "#ffffff",
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 11,
   },
@@ -3790,7 +3790,7 @@ const styles = StyleSheet.create({
   chartGridText: {
     color: "rgba(255, 255, 255, 0.45)",
     fontSize: 9,
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
   },
   barsContainer: {
     flex: 1,
@@ -3820,7 +3820,7 @@ const styles = StyleSheet.create({
     bottom: -18,
     color: "rgba(255, 255, 255, 0.6)",
     fontSize: 9,
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
   },
   flowCards: {
     flexDirection: "row",
@@ -3841,12 +3841,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   budgetTitle: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 14,
   },
   budgetSub: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 11.5,
     marginTop: 2,
@@ -3857,7 +3857,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   budgetEditText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 11,
   },
@@ -3873,7 +3873,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   budgetFootText: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 11,
   },
@@ -3914,13 +3914,13 @@ const styles = StyleSheet.create({
   },
   flowLabel: {
     color: "#172442",
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 10,
   },
   flowValue: {
     color: "#172442",
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 13,
     marginTop: 1,
@@ -3947,12 +3947,12 @@ const styles = StyleSheet.create({
     left: 13,
   },
   categoryLabel: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 10.5,
   },
   categoryAmount: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 13,
     marginTop: 2,
@@ -3979,17 +3979,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   profileCardInitials: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "900",
     fontSize: 16,
   },
   profileCardName: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 16,
   },
   profileCardSub: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 11,
     opacity: 0.78,
@@ -3999,7 +3999,7 @@ const styles = StyleSheet.create({
     marginBottom: 19,
   },
   settingsGroupTitle: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 12,
     marginHorizontal: 4,
@@ -4035,12 +4035,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   rowTitle: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 13.5,
   },
   rowSub: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 11,
   },
@@ -4060,7 +4060,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   accentBadgeText: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 11,
   },
@@ -4089,7 +4089,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   accentTileLabel: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 10.5,
   },
@@ -4120,7 +4120,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   detailActionText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 12.5,
   },
@@ -4139,14 +4139,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   emptyStateTitle: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 16,
     marginTop: 12,
     marginBottom: 4,
   },
   emptyStateSub: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 12,
     textAlign: "center",
@@ -4162,7 +4162,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   viewAllText: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 13,
   },
@@ -4198,12 +4198,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   pageNumText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 13,
   },
   pageDots: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 14,
     paddingHorizontal: 2,

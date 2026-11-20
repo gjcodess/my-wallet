@@ -393,14 +393,14 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   title: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 24,
     letterSpacing: -0.6,
     textAlign: "center",
   },
   subtitle: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 13,
     textAlign: "center",
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
   errorText: {
     minHeight: 18,
     color: "#c04444",
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 12,
     textAlign: "center",
@@ -453,12 +453,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   keyText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 24,
   },
   cancelText: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 14,
   },

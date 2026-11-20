@@ -3553,7 +3553,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   searchSectionLabel: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 11,
     letterSpacing: 0.7,
@@ -3584,17 +3584,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   searchItemTitle: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 13.5,
   },
   searchItemSub: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 11,
   },
   searchWalletBal: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 13,
   },
@@ -3605,13 +3605,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   searchEmptyTitle: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 15,
     marginTop: 4,
   },
   searchEmptySub: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 12,
     textAlign: "center",
@@ -3657,7 +3657,7 @@ const styles = StyleSheet.create({
     marginBottom: 7,
   },
   formTitle: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 18,
     marginTop: 22,
@@ -3672,13 +3672,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   fieldLabel: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 10.5,
     marginBottom: 3,
   },
   fieldInput: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 15,
     paddingVertical: 2,
@@ -3693,7 +3693,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   miniPillText: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 11,
   },
@@ -3714,7 +3714,7 @@ const styles = StyleSheet.create({
   },
   presetSearchInput: {
     flex: 1,
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 13,
     paddingVertical: 0,
@@ -3736,12 +3736,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   presetName: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 11.5,
   },
   presetSub: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 9.5,
   },
@@ -3766,7 +3766,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   updateModeText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 12,
   },
@@ -3778,7 +3778,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
   recommendedHint: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 10.5,
   },
@@ -3793,7 +3793,7 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   editCardLinkText: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 12.5,
   },
@@ -3824,7 +3824,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   saveButtonText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 15,
   },
@@ -3835,7 +3835,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   secondaryButtonText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 13,
   },
@@ -3864,7 +3864,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   entryToggleText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 13,
   },
@@ -3887,7 +3887,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   entryHeroCat: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "900",
     fontStyle: "italic",
     fontSize: 17,
@@ -3901,7 +3901,7 @@ const styles = StyleSheet.create({
     paddingLeft: 6,
   },
   entryHeroBadgeText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "900",
     fontSize: 10.5,
     letterSpacing: 1,
@@ -3912,7 +3912,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   entryHeroLabel: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 11,
     opacity: 0.68,
@@ -3924,16 +3924,17 @@ const styles = StyleSheet.create({
     marginVertical: 6,
   },
   entryCurrencySign: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "900",
     fontSize: 25,
     opacity: 0.75,
   },
   entryBigInput: {
     flex: 1,
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "900",
     fontSize: 42,
+    letterSpacing: 0.3,
     paddingVertical: 0,
   },
   entryBalanceRow: {
@@ -3944,13 +3945,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   entryBalanceLabel: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 11,
     opacity: 0.7,
   },
   entryBalanceVal: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 13,
   },
@@ -3969,7 +3970,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   entryQuickText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 11,
   },
@@ -3983,12 +3984,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   entrySectionTitle: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 17,
   },
   entrySectionSub: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 11,
   },
@@ -4010,17 +4011,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   entryWalletMarkText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "900",
     fontSize: 10,
   },
   entryWalletName: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 13,
   },
   entryWalletBal: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 10.5,
     marginTop: 2,
@@ -4052,7 +4053,7 @@ const styles = StyleSheet.create({
   },
   categoryChipText: {
     flex: 1,
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 10.5,
   },
@@ -4075,13 +4076,13 @@ const styles = StyleSheet.create({
   },
   entryNoteInput: {
     flex: 1,
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 13,
   },
   errorText: {
     color: "#c04444",
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 11.5,
     marginVertical: 4,
@@ -4096,12 +4097,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   entryFooterLabel: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 10.5,
   },
   entryFooterVal: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 16,
   },
@@ -4111,7 +4112,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   walletSelectChipText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 12.5,
   },
@@ -4129,16 +4130,17 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   amountEntrySign: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 27,
   },
   amountEntryInput: {
     minWidth: 140,
     textAlign: "center",
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 38,
+    letterSpacing: 0.3,
     paddingVertical: 0,
   },
   quickAmountsGrid: {
@@ -4196,7 +4198,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   transferSideRole: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 9,
     letterSpacing: 0.4,
@@ -4209,17 +4211,17 @@ const styles = StyleSheet.create({
   },
   transferSideName: {
     flex: 1,
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 14,
   },
   transferSideBal: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 11,
   },
   transferSideAfter: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 11,
   },
@@ -4254,7 +4256,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   sendAllChipText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 10.5,
   },
@@ -4265,7 +4267,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   feeLabel: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 11.5,
     marginRight: 2,
@@ -4279,7 +4281,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   feeChipText: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 11,
   },
@@ -4291,13 +4293,13 @@ const styles = StyleSheet.create({
   },
   confirmSub: {
     color: "rgba(255, 255, 255, 0.65)",
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 11,
   },
   confirmAmount: {
     color: "#ffffff",
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 24,
     marginVertical: 2,
@@ -4319,17 +4321,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   txDetailTitle: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 19,
     textAlign: "center",
     marginBottom: 4,
   },
   txDetailAmount: {
-    fontFamily: "Urbanist_800ExtraBold",
+    fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 30,
-    letterSpacing: -0.8,
+    letterSpacing: 0.2,
     marginBottom: 10,
   },
   txTypePill: {
@@ -4338,7 +4340,7 @@ const styles = StyleSheet.create({
     borderRadius: 99,
   },
   txTypePillText: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 11.5,
   },
@@ -4356,12 +4358,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   txDetailKey: {
-    fontFamily: "Urbanist_600SemiBold",
+    fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 12.5,
   },
   txDetailVal: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 13,
     textAlign: "right",
@@ -4391,7 +4393,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   txConfirmDeleteTitle: {
-    fontFamily: "Urbanist_700Bold",
+    fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 12.5,
     textAlign: "center",
