@@ -915,6 +915,30 @@ export const HomeScreen = React.memo(function HomeScreen({
           hidden={hidden}
           onPress={handleGoActivity}
         />
+
+        {/* 4-Column Glass Quick Action Pills */}
+        <View style={styles.actionGrid}>
+          <ActionButton
+            icon="edit"
+            label="Update"
+            onPress={handleOpenUpdate}
+          />
+          <ActionButton
+            icon="swap"
+            label="Transfer"
+            onPress={handleOpenTransfer}
+          />
+          <ActionButton
+            icon="plus"
+            label="Add"
+            onPress={handleOpenAdd}
+          />
+          <ActionButton
+            icon="grid"
+            label="Wallets"
+            onPress={handleGoWallets}
+          />
+        </View>
       </HeroHeaderSurface>
 
       <WalletCardDeck
@@ -928,40 +952,8 @@ export const HomeScreen = React.memo(function HomeScreen({
         theme={theme}
       />
 
-      {/* 4-Column Quick Action Grid */}
-      <View style={styles.actionGrid}>
-        <ActionButton
-          icon="edit"
-          label="Update"
-          tone="blue"
-          onPress={handleOpenUpdate}
-          theme={theme}
-        />
-        <ActionButton
-          icon="swap"
-          label="Transfer"
-          tone="yellow"
-          onPress={handleOpenTransfer}
-          theme={theme}
-        />
-        <ActionButton
-          icon="plus"
-          label="Add"
-          tone="navy"
-          onPress={handleOpenAdd}
-          theme={theme}
-        />
-        <ActionButton
-          icon="grid"
-          label="Wallets"
-          tone="mint"
-          onPress={handleGoWallets}
-          theme={theme}
-        />
-      </View>
-
       {/* Recent Transactions */}
-      <View style={styles.section}>
+      <View style={[styles.section, { marginTop: 10 }]}>
         <SectionTitle
           title="Recent transactions"
           action="View all"
@@ -3393,9 +3385,9 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   actionGrid: {
-    marginTop: 14,
+    marginTop: 16,
     flexDirection: "row",
-    gap: 9,
+    gap: 10,
   },
   section: {
     marginTop: 26,

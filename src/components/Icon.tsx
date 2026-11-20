@@ -52,7 +52,12 @@ export function Icon({
       case "plus":
         return <Path d="M12 5v14M5 12h14" />;
       case "swap":
-        return <Path d="m7 7-3 3 3 3M4 10h15M17 17l3-3-3-3" />;
+        return (
+          <>
+            <Path d="M5 8h14M15.5 4.8 19 8l-3.5 3.2" />
+            <Path d="M19 16H5M8.5 12.8 5 16l3.5 3.2" />
+          </>
+        );
       case "arrow-down":
         return <Path d="M12 4v15M6 13l6 6 6-6" />;
       case "arrow-up":

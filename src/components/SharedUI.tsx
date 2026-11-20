@@ -466,31 +466,25 @@ export const ActionButton = React.memo(function ActionButton({
   icon,
   label,
   onPress,
-  theme,
 }: {
   icon: string;
   label: string;
   tone?: Tone;
   onPress: () => void;
-  theme: ThemeColors;
+  theme?: ThemeColors;
 }) {
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.actionButton,
-        {
-          backgroundColor: theme.card,
-          overflow: "hidden",
-          transform: [{ scale: pressed ? 0.95 : 1 }],
-        },
-        bevelStyle(theme.dark),
-        cardShadow(theme.dark),
+        { transform: [{ scale: pressed ? 0.94 : 1 }] },
       ]}
     >
-      <AccentSurfaceGlow theme={theme} intensity="medium" />
-      <Icon name={icon} size={20} strokeWidth={2.2} color={theme.accentText} />
-      <Text style={[styles.actionLabel, { color: theme.ink }]} numberOfLines={1}>
+      <View style={styles.actionPill}>
+        <Icon name={icon} size={19} strokeWidth={2.15} color="#ffffff" />
+      </View>
+      <Text style={styles.actionLabel} numberOfLines={1}>
         {label}
       </Text>
     </Pressable>
@@ -817,19 +811,24 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    height: 58,
-    borderRadius: 19,
+    alignItems: "center",
+    gap: 6,
+  },
+  actionPill: {
+    width: "100%",
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255, 255, 255, 0.14)",
     borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.24)",
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
   },
   actionLabel: {
-    fontFamily: "Urbanist_700Bold",
-    fontWeight: "700",
+    fontFamily: "Urbanist_600SemiBold",
+    fontWeight: "600",
     fontSize: 11.5,
+    color: "rgba(255, 255, 255, 0.9)",
   },
   sectionTitle: {
     flexDirection: "row",
