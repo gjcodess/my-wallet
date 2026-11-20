@@ -34,7 +34,6 @@ import { FolderSurface } from "./FolderSurface";
 import { Icon } from "./Icon";
 import {
   ACCENT_PALETTES,
-  accentBorderStyle,
   AccentPaletteId,
   AccentSurfaceGlow,
   ActionButton,
@@ -42,7 +41,6 @@ import {
   cardShadow,
   EdgeFade,
   getAccentPalette,
-  hexToRgba,
   SectionTitle,
   SwitchControl,
   ThemeColors,
@@ -85,7 +83,6 @@ export const TabHeader = React.memo(function TabHeader({
                   overflow: "hidden",
                 },
                 bevelStyle(theme.dark),
-                accentBorderStyle(theme),
                 cardShadow(theme.dark),
               ]}
             >
@@ -113,7 +110,6 @@ export const TabHeader = React.memo(function TabHeader({
                   transform: [{ scale: pressed ? 0.94 : 1 }],
                 },
                 bevelStyle(theme.dark),
-                accentBorderStyle(theme),
                 cardShadow(theme.dark),
               ]}
             >
@@ -818,7 +814,6 @@ export const HomeScreen = React.memo(function HomeScreen({
               transform: [{ scale: pressed ? 0.94 : 1 }],
             },
             bevelStyle(theme.dark),
-            accentBorderStyle(theme),
             cardShadow(theme.dark),
           ]}
         >
@@ -853,7 +848,6 @@ export const HomeScreen = React.memo(function HomeScreen({
             transform: [{ scale: pressed ? 0.985 : 1 }],
           },
           bevelStyle(theme.dark),
-          accentBorderStyle(theme),
           cardShadow(theme.dark),
         ]}
       >
@@ -884,15 +878,7 @@ export const HomeScreen = React.memo(function HomeScreen({
         </View>
 
         <View
-          style={[
-            styles.homeMonthDivider,
-            {
-              backgroundColor: hexToRgba(
-                theme.accent,
-                theme.dark ? 0.22 : 0.14
-              ),
-            },
-          ]}
+          style={[styles.homeMonthDivider, { backgroundColor: theme.line }]}
         />
 
         <View style={styles.homeMonthHalf}>
@@ -985,7 +971,6 @@ export const HomeScreen = React.memo(function HomeScreen({
                 transform: [{ scale: pressed ? 0.985 : 1 }],
               },
               bevelStyle(theme.dark),
-              accentBorderStyle(theme),
               cardShadow(theme.dark),
             ]}
           >
@@ -1245,7 +1230,6 @@ export const WalletsScreen = React.memo(function WalletsScreen({
             styles.emptyState,
             { backgroundColor: theme.card, overflow: "hidden" },
             bevelStyle(theme.dark),
-            accentBorderStyle(theme),
             cardShadow(theme.dark),
           ]}
         >
@@ -1322,7 +1306,6 @@ export const WalletsScreen = React.memo(function WalletsScreen({
                       ],
                     },
                     bevelStyle(theme.dark),
-                    accentBorderStyle(theme),
                     cardShadow(theme.dark),
                     isDragged && {
                       borderColor: theme.accent,
@@ -1754,7 +1737,6 @@ export const ActivityScreen = React.memo(function ActivityScreen({
             styles.activityFilterPanel,
             { backgroundColor: theme.card, overflow: "hidden" },
             bevelStyle(theme.dark),
-            accentBorderStyle(theme),
             cardShadow(theme.dark),
           ]}
         >
@@ -2081,7 +2063,6 @@ export const ActivityScreen = React.memo(function ActivityScreen({
               transform: [{ scale: pressed ? 0.99 : 1 }],
             },
             bevelStyle(theme.dark),
-            accentBorderStyle(theme),
             cardShadow(theme.dark),
           ]}
         >
@@ -2370,7 +2351,6 @@ export const ActivityScreen = React.memo(function ActivityScreen({
               styles.emptyState,
               { backgroundColor: theme.card, overflow: "hidden" },
               bevelStyle(theme.dark),
-              accentBorderStyle(theme),
               cardShadow(theme.dark),
             ]}
           >
@@ -2403,7 +2383,6 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                   opacity: safePage === 1 ? 0.4 : pressed ? 0.8 : 1,
                 },
                 bevelStyle(theme.dark),
-                accentBorderStyle(theme),
                 cardShadow(theme.dark),
               ]}
             >
@@ -2456,7 +2435,6 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                         transform: [{ scale: pressed ? 0.94 : 1 }],
                       },
                       bevelStyle(theme.dark),
-                      accentBorderStyle(theme),
                       cardShadow(theme.dark),
                     ]}
                   >
@@ -2480,7 +2458,6 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                   opacity: safePage === totalPages ? 0.4 : pressed ? 0.8 : 1,
                 },
                 bevelStyle(theme.dark),
-                accentBorderStyle(theme),
                 cardShadow(theme.dark),
               ]}
             >
@@ -2811,7 +2788,6 @@ function SettingsGroup({
             overflow: "hidden",
           },
           bevelStyle(theme.dark),
-          accentBorderStyle(theme),
           cardShadow(theme.dark),
         ]}
       >
@@ -2971,7 +2947,6 @@ export function WalletDetailScreen({
                   overflow: "hidden",
                 },
                 bevelStyle(theme.dark),
-                accentBorderStyle(theme),
                 cardShadow(theme.dark),
               ]}
             >
@@ -3007,7 +2982,6 @@ export function WalletDetailScreen({
               transform: [{ scale: pressed ? 0.97 : 1 }],
             },
             bevelStyle(theme.dark),
-            accentBorderStyle(theme),
             cardShadow(theme.dark),
           ]}
         >
@@ -3028,7 +3002,6 @@ export function WalletDetailScreen({
               transform: [{ scale: pressed ? 0.97 : 1 }],
             },
             bevelStyle(theme.dark),
-            accentBorderStyle(theme),
             cardShadow(theme.dark),
           ]}
         >

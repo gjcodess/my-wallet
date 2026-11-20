@@ -281,12 +281,6 @@ export function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function accentBorderStyle(theme: ThemeColors) {
-  return {
-    borderColor: hexToRgba(theme.accent, theme.dark ? 0.22 : 0.16),
-  };
-}
-
 export const AccentSurfaceGlow = React.memo(function AccentSurfaceGlow({
   theme,
   intensity = "soft",
@@ -297,12 +291,12 @@ export const AccentSurfaceGlow = React.memo(function AccentSurfaceGlow({
   const startAlpha =
     intensity === "medium"
       ? theme.dark
-        ? 0.2
-        : 0.13
+        ? 0.19
+        : 0.18
       : theme.dark
         ? 0.14
-        : 0.08;
-  const midAlpha = startAlpha * 0.35;
+        : 0.13;
+  const midAlpha = startAlpha * 0.36;
   return (
     <LinearGradient
       pointerEvents="none"
@@ -311,7 +305,7 @@ export const AccentSurfaceGlow = React.memo(function AccentSurfaceGlow({
         hexToRgba(theme.accent, midAlpha),
         "transparent",
       ]}
-      locations={[0, 0.45, 0.9]}
+      locations={[0, 0.45, 0.92]}
       start={{ x: 0, y: 1 }}
       end={{ x: 0.9, y: 0.1 }}
       style={StyleSheet.absoluteFill}
@@ -433,7 +427,6 @@ export function TxRow({
           transform: [{ scale: pressed && onPress ? 0.985 : 1 }],
         },
         bevelStyle(theme.dark),
-        accentBorderStyle(theme),
         cardShadow(theme.dark),
       ]}
     >
@@ -497,7 +490,6 @@ export const ActionButton = React.memo(function ActionButton({
           transform: [{ scale: pressed ? 0.95 : 1 }],
         },
         bevelStyle(theme.dark),
-        accentBorderStyle(theme),
         cardShadow(theme.dark),
       ]}
     >
@@ -578,7 +570,6 @@ export function TopBar({
               overflow: "hidden",
             },
             bevelStyle(theme.dark),
-            accentBorderStyle(theme),
             cardShadow(theme.dark),
           ]}
         >
@@ -717,7 +708,6 @@ export function BottomNav({
           transform: [{ translateY }],
         },
         bevelStyle(theme.dark),
-        accentBorderStyle(theme),
       ]}
     >
       <AccentSurfaceGlow theme={theme} />
