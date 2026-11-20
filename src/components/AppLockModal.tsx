@@ -24,6 +24,7 @@ const PIN_ROWS: string[][] = [
 
 export function AppLockModal({
   visible,
+  inline = false,
   mode,
   expectedPin,
   biometricsEnabled = false,
@@ -34,6 +35,7 @@ export function AppLockModal({
   theme,
 }: {
   visible: boolean;
+  inline?: boolean;
   mode: AppLockMode;
   expectedPin: string | null;
   biometricsEnabled?: boolean;
@@ -44,7 +46,9 @@ export function AppLockModal({
   theme: ThemeColors;
 }) {
   const [digits, setDigits] = useState("");
-  const [step, setStep] = useState<"verify" | "enter" | "confirm">("enter");
+  const [step, setStep] = useState<"verify" | "enter" | "confirm">(
+    mode === "setup" ? "enter" : "verify"
+  );
   const [draftPin, setDraftPin] = useState("");
   const [error, setError] = useState("");
   const shakeX = useRef(new Animated.Value(0)).current;
@@ -211,20 +215,9 @@ export function AppLockModal({
       : "Re-enter the 4-digit PIN to confirm";
   })();
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="fade"
-      transparent={false}
-      onRequestClose={() => {
-        if (mode !== "unlock") onCancel?.();
-      }}
-    >
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: theme.page }]}
-        edges={["top", "left", "right", "bottom"]}
-      >
-        <View style={styles.headerBlock}>
+  const content = (
+    <>
+      <View style={styles.headerBlock}>
           <LinearGradient
             colors={theme.accentGradient}
             start={{ x: 0, y: 0 }}
@@ -348,6 +341,28 @@ export function AppLockModal({
             </View>
           ))}
         </View>
+    </>
+  );
+
+  if (inline) {
+    if (!visible) return null;
+    return <View style={styles.container}>{content}</View>;
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent={false}
+      onRequestClose={() => {
+        if (mode !== "unlock") onCancel?.();
+      }}
+    >
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: theme.page }]}
+        edges={["top", "left", "right", "bottom"]}
+      >
+        {content}
       </SafeAreaView>
     </Modal>
   );

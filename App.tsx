@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useColorScheme,
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -68,6 +69,7 @@ import { AppLockModal, AppLockMode } from "./src/components/AppLockModal";
 import { Icon } from "./src/components/Icon";
 
 export default function App() {
+  const systemColorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
     Urbanist_400Regular,
     Urbanist_500Medium,
@@ -556,8 +558,15 @@ export default function App() {
     saveSettingToSQLite("initials", nextProfile.initials).catch(() => {});
   };
 
-  if (!fontsLoaded) {
-    return <View style={{ flex: 1, backgroundColor: "#edf2e9" }} />;
+  if (!fontsLoaded || !dbReady) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: systemColorScheme === "dark" ? "#090d12" : "#e8eff8",
+        }}
+      />
+    );
   }
 
   return (
@@ -598,7 +607,19 @@ export default function App() {
 
         <StatusBar style={dark ? "light" : "dark"} />
 
-        {selected ? (
+        {isLocked ? (
+          <AppLockModal
+            visible
+            inline
+            mode="unlock"
+            expectedPin={appLockPin}
+            biometricsEnabled={biometricsSupported && biometricsEnabled}
+            onUnlock={() => setIsLocked(false)}
+            theme={theme}
+          />
+        ) : (
+          <>
+            {selected ? (
           <WalletDetailScreen
             wallet={selected}
             activities={activityItems}
@@ -834,31 +855,32 @@ export default function App() {
           </Animated.View>
         ) : null}
 
-        <AppLockModal
-          visible={isLocked || lockModalMode !== null}
-          mode={isLocked ? "unlock" : lockModalMode ?? "setup"}
-          expectedPin={appLockPin}
-          biometricsEnabled={biometricsSupported && biometricsEnabled}
-          onUnlock={() => setIsLocked(false)}
-          onSavePin={(pin) => {
-            setAppLockPin(pin);
-            saveSettingToSQLite("app_lock_pin", pin).catch(() => {});
-            const wasChange = lockModalMode === "change";
-            setLockModalMode(null);
-            setToast(wasChange ? "App Lock PIN updated" : "App Lock enabled");
-          }}
-          onDisable={() => {
-            setAppLockPin(null);
-            setBiometricsEnabled(false);
-            setIsLocked(false);
-            saveSettingToSQLite("app_lock_pin", "").catch(() => {});
-            saveSettingToSQLite("app_lock_biometrics", "false").catch(() => {});
-            setLockModalMode(null);
-            setToast("App Lock disabled");
-          }}
-          onCancel={() => setLockModalMode(null)}
-          theme={theme}
-        />
+            <AppLockModal
+              visible={lockModalMode !== null}
+              mode={lockModalMode ?? "setup"}
+              expectedPin={appLockPin}
+              biometricsEnabled={biometricsSupported && biometricsEnabled}
+              onSavePin={(pin) => {
+                setAppLockPin(pin);
+                saveSettingToSQLite("app_lock_pin", pin).catch(() => {});
+                const wasChange = lockModalMode === "change";
+                setLockModalMode(null);
+                setToast(wasChange ? "App Lock PIN updated" : "App Lock enabled");
+              }}
+              onDisable={() => {
+                setAppLockPin(null);
+                setBiometricsEnabled(false);
+                setIsLocked(false);
+                saveSettingToSQLite("app_lock_pin", "").catch(() => {});
+                saveSettingToSQLite("app_lock_biometrics", "false").catch(() => {});
+                setLockModalMode(null);
+                setToast("App Lock disabled");
+              }}
+              onCancel={() => setLockModalMode(null)}
+              theme={theme}
+            />
+          </>
+        )}
       </SafeAreaView>
     </SafeAreaProvider>
   );
