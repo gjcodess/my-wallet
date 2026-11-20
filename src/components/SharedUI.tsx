@@ -1,6 +1,13 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Svg, {
+  Circle as SvgCircle,
+  Defs,
+  LinearGradient as SvgLinearGradient,
+  Path as SvgPath,
+  Stop,
+} from "react-native-svg";
 import { ActivityItem, money, Tab, Tone, tonePalette } from "../types/wallet";
 import { Icon } from "./Icon";
 
@@ -680,25 +687,54 @@ export function BottomNav({
         style={({ pressed }) => [
           styles.navAddWrapper,
           {
-            shadowColor: theme.accent,
-            shadowOpacity: theme.dark ? 0.35 : 0.28,
             transform: [{ scale: pressed ? 0.92 : 1 }],
           },
         ]}
       >
-        <LinearGradient
-          colors={theme.accentGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.navAdd}
-        >
-          <Icon
-            name="plus"
-            size={23}
-            strokeWidth={2.55}
-            color={theme.accentInk}
-          />
-        </LinearGradient>
+        <View style={styles.navAdd}>
+          <Svg width={48} height={48} viewBox="0 0 48 48">
+            <Defs>
+              <SvgLinearGradient
+                id="navAddRing"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
+                <Stop offset="0%" stopColor={theme.accentGradient[1]} />
+                <Stop offset="28%" stopColor={theme.accentGradient[0]} />
+                <Stop
+                  offset="50%"
+                  stopColor={theme.dark ? "#ffffff" : theme.accentSoft}
+                />
+                <Stop offset="72%" stopColor={theme.accentGradient[0]} />
+                <Stop offset="100%" stopColor={theme.accentGradient[1]} />
+              </SvgLinearGradient>
+              <SvgLinearGradient
+                id="navAddStar"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
+                <Stop offset="0%" stopColor={theme.accentGradient[0]} />
+                <Stop offset="100%" stopColor={theme.accentGradient[1]} />
+              </SvgLinearGradient>
+            </Defs>
+            <SvgCircle
+              cx="24"
+              cy="24"
+              r="20.5"
+              stroke="url(#navAddRing)"
+              strokeWidth="3.4"
+              fill="none"
+            />
+            <SvgPath
+              d="M 23.3 14.8 Q 24 14.3 24.7 14.8 Q 25.6 22.4 33.2 23.3 Q 33.7 24 33.2 24.7 Q 25.6 25.6 24.7 33.2 Q 24 33.7 23.3 33.2 Q 22.4 25.6 14.8 24.7 Q 14.3 24 14.8 23.3 Q 22.4 22.4 23.3 14.8 Z"
+              fill="url(#navAddStar)"
+            />
+          </Svg>
+        </View>
       </Pressable>
 
       {items.slice(2).map(renderNavItem)}
@@ -874,11 +910,6 @@ const styles = StyleSheet.create({
     width: 56,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#121a2d",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.28,
-    shadowRadius: 12,
-    elevation: 5,
   },
   navAdd: {
     width: 48,
