@@ -786,6 +786,7 @@ export default function App() {
                   <View style={{ display: tab === "wallets" ? "flex" : "none" }}>
                     <WalletsScreen
                       wallets={wallets}
+                      activities={activityItems}
                       total={total}
                       hidden={hidden}
                       onWallet={handleSelectWallet}

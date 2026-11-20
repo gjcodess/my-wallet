@@ -986,12 +986,13 @@ export const HomeScreen = React.memo(function HomeScreen({
   );
 });
 
-const WALLET_TILE_HEIGHT = 80;
+const WALLET_TILE_HEIGHT = 90;
 const WALLET_TILE_GAP = 9;
 const WALLET_SLOT_HEIGHT = WALLET_TILE_HEIGHT + WALLET_TILE_GAP;
 
 export const WalletsScreen = React.memo(function WalletsScreen({
   wallets,
+  activities = [],
   total,
   hidden,
   onWallet,
@@ -1002,6 +1003,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   theme,
 }: {
   wallets: Wallet[];
+  activities?: ActivityItem[];
   total: number;
   hidden: boolean;
   onWallet: (w: Wallet) => void;
@@ -1011,6 +1013,38 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   isCloudSynced: boolean;
   theme: ThemeColors;
 }) {
+  const { monthLabel, walletFlows } = useMemo(() => {
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+    const shortMonth = now.toLocaleDateString("en-US", { month: "short" });
+    const flows = new Map<number, { earned: number; spent: number }>();
+    for (const w of wallets) {
+      flows.set(w.id, { earned: 0, spent: 0 });
+    }
+    for (const item of activities) {
+      if (isAdjustmentActivity(item)) continue;
+      const d = getActivityDate(item, now);
+      if (d.getFullYear() !== curYear || d.getMonth() !== curMonth) continue;
+      for (const w of wallets) {
+        const match = isActivityForWallet(item, w);
+        if (!match.matched) continue;
+        const entry = flows.get(w.id)!;
+        if (isTransferActivity(item)) {
+          if (match.isIncomingTransfer) {
+            entry.earned += Math.abs(item.amount);
+          } else {
+            entry.spent += Math.abs(item.amount);
+          }
+        } else if (item.amount > 0) {
+          entry.earned += item.amount;
+        } else if (item.amount < 0) {
+          entry.spent += Math.abs(item.amount);
+        }
+      }
+    }
+    return { monthLabel: shortMonth, walletFlows: flows };
+  }, [wallets, activities]);
   const [reordering, setReordering] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -1272,6 +1306,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
             const isDragged = dragIndex === idx;
             const shiftAnim = getShiftAnim(wallet.id);
             const rowPan = rowPanResponders[idx];
+            const flow = walletFlows.get(wallet.id) ?? { earned: 0, spent: 0 };
 
             return (
               <Animated.View
@@ -1346,6 +1381,47 @@ export const WalletsScreen = React.memo(function WalletsScreen({
                     >
                       {wallet.type} · {wallet.account}
                     </Text>
+                    <View style={styles.tileFlowRow}>
+                      <Text
+                        style={[styles.tileFlowMonth, { color: theme.muted }]}
+                      >
+                        {monthLabel}
+                      </Text>
+                      <View style={styles.tileFlowStat}>
+                        <Icon
+                          name="arrow-down"
+                          size={11}
+                          strokeWidth={2.5}
+                          color={theme.dark ? "#34d399" : "#059669"}
+                        />
+                        <Text
+                          style={[
+                            styles.tileFlowVal,
+                            { color: theme.dark ? "#34d399" : "#059669" },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {hidden ? "••" : money(flow.earned, true)}
+                        </Text>
+                      </View>
+                      <View style={styles.tileFlowStat}>
+                        <Icon
+                          name="arrow-up"
+                          size={11}
+                          strokeWidth={2.5}
+                          color={theme.dark ? "#fb7185" : "#e11d48"}
+                        />
+                        <Text
+                          style={[
+                            styles.tileFlowVal,
+                            { color: theme.dark ? "#fb7185" : "#e11d48" },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {hidden ? "••" : money(flow.spent, true)}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
 
                   {reordering ? (
@@ -3328,6 +3404,27 @@ const styles = StyleSheet.create({
     fontFamily: "Urbanist_600SemiBold",
     fontWeight: "600",
     fontSize: 11,
+  },
+  tileFlowRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 2,
+  },
+  tileFlowMonth: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 10.5,
+  },
+  tileFlowStat: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  tileFlowVal: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 10.5,
   },
   tileValueRow: {
     flexDirection: "row",
