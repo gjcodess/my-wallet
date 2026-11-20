@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as LocalAuthentication from "expo-local-authentication";
 import { Icon } from "./Icon";
 import { bevelStyle, cardShadow, ThemeColors } from "./SharedUI";
@@ -45,6 +45,7 @@ export function AppLockModal({
   onCancel?: () => void;
   theme: ThemeColors;
 }) {
+  const insets = useSafeAreaInsets();
   const [digits, setDigits] = useState("");
   const [step, setStep] = useState<"verify" | "enter" | "confirm">(
     mode === "setup" ? "enter" : "verify"
@@ -346,7 +347,11 @@ export function AppLockModal({
 
   if (inline) {
     if (!visible) return null;
-    return <View style={styles.container}>{content}</View>;
+    return (
+      <View style={[styles.container, { paddingTop: 32 + insets.top }]}>
+        {content}
+      </View>
+    );
   }
 
   return (

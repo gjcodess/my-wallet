@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityItem,
   EXPENSE_CATEGORIES,
@@ -41,6 +42,7 @@ import {
   cardShadow,
   EdgeFade,
   getAccentPalette,
+  hexToRgba,
   SectionTitle,
   SwitchControl,
   ThemeColors,
@@ -51,47 +53,24 @@ import { Amount, WalletFolder, WalletLogoBadge } from "./WalletFolder";
 
 export const TabHeader = React.memo(function TabHeader({
   tab,
-  onAddWallet,
   onActivityFilter,
   activityFilterActive,
   theme,
 }: {
   tab: Tab;
-  onAddWallet: () => void;
+  onAddWallet?: () => void;
   onActivityFilter?: () => void;
   activityFilterActive?: boolean;
   theme: ThemeColors;
 }) {
-  if (tab === "home") {
+  if (tab === "home" || tab === "wallets") {
     return null;
   }
 
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.fixedTopBarHeader}>
-      {tab === "wallets" && (
-        <TopBar
-          title="My Wallets"
-          theme={theme}
-          noMargin
-          right={
-            <Pressable
-              onPress={onAddWallet}
-              style={[
-                styles.roundBtn,
-                {
-                  backgroundColor: theme.card,
-                  overflow: "hidden",
-                },
-                bevelStyle(theme.dark),
-                cardShadow(theme.dark),
-              ]}
-            >
-              <AccentSurfaceGlow theme={theme} intensity="medium" />
-              <Icon name="plus" size={20} color={theme.accentText} />
-            </Pressable>
-          }
-        />
-      )}
+    <View style={[styles.fixedTopBarHeader, { paddingTop: insets.top + 10 }]}>
       {tab === "activity" && (
         <TopBar
           title="Activity"
@@ -789,8 +768,10 @@ export const HomeScreen = React.memo(function HomeScreen({
     return { monthLabel, earned, spent };
   }, [activities]);
 
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.page}>
+    <View style={[styles.page, { paddingTop: insets.top + 12 }]}>
       {/* Net Worth Header */}
       <View style={styles.totalStrip}>
         <View style={styles.totalTextCol}>
@@ -995,22 +976,22 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   activities = [],
   total,
   hidden,
+  onToggleHidden,
   onWallet,
   onReorderWallets,
   onAddWallet,
   onDragChange,
-  isCloudSynced,
   theme,
 }: {
   wallets: Wallet[];
   activities?: ActivityItem[];
   total: number;
   hidden: boolean;
+  onToggleHidden?: () => void;
   onWallet: (w: Wallet) => void;
   onReorderWallets?: (next: Wallet[]) => void;
   onAddWallet?: () => void;
   onDragChange?: (dragging: boolean) => void;
-  isCloudSynced: boolean;
   theme: ThemeColors;
 }) {
   const { monthLabel, walletFlows } = useMemo(() => {
@@ -1221,26 +1202,85 @@ export const WalletsScreen = React.memo(function WalletsScreen({
     [wallets.length]
   );
 
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.page}>
-      <View style={styles.walletsTotal}>
-        <Text style={[styles.walletsTotalSub, { color: theme.muted }]}>
-          Combined balance
-        </Text>
-        <View style={{ marginVertical: 4 }}>
-          <Amount
-            value={total}
-            hidden={hidden}
-            size="lg"
-            color={theme.ink}
-          />
+    <View style={[styles.page, { paddingTop: 0 }]}>
+      {/* Hero Balance Container */}
+      <View
+        style={[
+          styles.walletsHeroCard,
+          {
+            paddingTop: insets.top + 14,
+            backgroundColor: theme.dark ? "#0c121b" : theme.accentGradient[1],
+            shadowColor: theme.dark ? "#000000" : theme.accent,
+          },
+        ]}
+      >
+        <LinearGradient
+          pointerEvents="none"
+          colors={
+            theme.dark
+              ? [
+                  hexToRgba(theme.accent, 0.36),
+                  hexToRgba(theme.accent, 0.14),
+                  "#0c121b",
+                ]
+              : [theme.accent, theme.accentGradient[1]]
+          }
+          locations={theme.dark ? [0, 0.48, 1] : [0, 1]}
+          start={{ x: 0.9, y: 0 }}
+          end={{ x: 0.1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <LinearGradient
+          pointerEvents="none"
+          colors={[
+            theme.dark
+              ? hexToRgba(theme.accentGradient[0], 0.24)
+              : "rgba(255, 255, 255, 0.22)",
+            "transparent",
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.75, y: 0.85 }}
+          style={StyleSheet.absoluteFill}
+        />
+
+        <View style={styles.walletsHeroTop}>
+          <Text style={styles.walletsHeroTitle}>My Wallets</Text>
+          <View style={styles.walletsHeroActions}>
+            {onToggleHidden ? (
+              <Pressable
+                onPress={onToggleHidden}
+                style={({ pressed }) => [
+                  styles.walletsHeroBtn,
+                  { transform: [{ scale: pressed ? 0.92 : 1 }] },
+                ]}
+              >
+                <Icon
+                  name={hidden ? "eye-off" : "eye"}
+                  size={17}
+                  color="#ffffff"
+                />
+              </Pressable>
+            ) : null}
+            {onAddWallet ? (
+              <Pressable
+                onPress={onAddWallet}
+                style={({ pressed }) => [
+                  styles.walletsHeroBtn,
+                  { transform: [{ scale: pressed ? 0.92 : 1 }] },
+                ]}
+              >
+                <Icon name="plus" size={18} color="#ffffff" />
+              </Pressable>
+            ) : null}
+          </View>
         </View>
-        <View style={styles.syncBadgeRow}>
-          <Icon name="sync" size={14} color={theme.accentText} />
-          <Text style={[styles.syncBadgeText, { color: theme.accentText }]}>
-            {isCloudSynced ? "Synced with Supabase" : "Synced locally"} ·{" "}
-            {wallets.length} {wallets.length === 1 ? "wallet" : "wallets"}
-          </Text>
+
+        <View style={styles.walletsHeroBalance}>
+          <Text style={styles.walletsHeroLabel}>Combined balance</Text>
+          <Amount value={total} hidden={hidden} size="lg" color="#ffffff" />
         </View>
       </View>
 
@@ -2940,6 +2980,7 @@ export function WalletDetailScreen({
   onTransaction?: (item: ActivityItem) => void;
   theme: ThemeColors;
 }) {
+  const insets = useSafeAreaInsets();
   const [detailFilter, setDetailFilter] = useState<
     "Recent" | "Money in" | "Money out" | "Transfers"
   >("Recent");
@@ -3007,7 +3048,7 @@ export function WalletDetailScreen({
         ],
       }}
     >
-      <View style={styles.fixedTopBarHeader}>
+      <View style={[styles.fixedTopBarHeader, { paddingTop: insets.top + 10 }]}>
         <TopBar
           title={wallet.name}
           onBack={onBack}
@@ -3342,25 +3383,63 @@ const styles = StyleSheet.create({
   txList: {
     gap: 10,
   },
-  walletsTotal: {
-    alignItems: "center",
+  walletsHeroCard: {
+    position: "relative",
+    overflow: "hidden",
+    marginHorizontal: -18,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
     marginBottom: 22,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.16)",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.24,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  walletsHeroTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  walletsHeroTitle: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 20,
+    letterSpacing: -0.5,
+    color: "#ffffff",
+  },
+  walletsHeroActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  walletsHeroBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255, 255, 255, 0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  walletsHeroBalance: {
+    marginTop: 18,
+    gap: 4,
+  },
+  walletsHeroLabel: {
+    fontFamily: "Urbanist_600SemiBold",
+    fontWeight: "600",
+    fontSize: 12.5,
+    color: "rgba(255, 255, 255, 0.78)",
   },
   walletsTotalSub: {
     fontFamily: "Urbanist_700Bold",
     fontWeight: "700",
     fontSize: 12,
-  },
-  syncBadgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginTop: 2,
-  },
-  syncBadgeText: {
-    fontFamily: "Urbanist_700Bold",
-    fontWeight: "700",
-    fontSize: 11,
   },
   walletList: {
     gap: 9,

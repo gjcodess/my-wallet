@@ -579,6 +579,10 @@ export default function App() {
     scheduleCloudSync();
   }, [scheduleCloudSync]);
 
+  const handleToggleHidden = useCallback(
+    () => setHidden((prev) => !prev),
+    []
+  );
   const handleAddWalletSheet = useCallback(() => openSheet("add"), [openSheet]);
   const handleAddEntrySheet = useCallback(() => openSheet("entry"), [openSheet]);
   const handleOpenBudgetSheet = useCallback(() => openSheet("budget"), [openSheet]);
@@ -669,7 +673,7 @@ export default function App() {
     <SafeAreaProvider>
       <SafeAreaView
         style={[styles.container, { backgroundColor: theme.page }]}
-        edges={["top", "left", "right", "bottom"]}
+        edges={["left", "right", "bottom"]}
       >
         {/* Top Background Gradient (clean vertical wash in dark mode, soft radial in light mode) */}
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -701,7 +705,13 @@ export default function App() {
           )}
         </View>
 
-        <StatusBar style={dark ? "light" : "dark"} />
+        <StatusBar
+          style={
+            dark || (tab === "wallets" && !isLocked && !selected)
+              ? "light"
+              : "dark"
+          }
+        />
 
         {isLocked ? (
           <AppLockModal
@@ -741,6 +751,8 @@ export default function App() {
                 ref={scrollRef}
                 style={{ flex: 1 }}
                 scrollEnabled={!stackDragging}
+                bounces={tab !== "wallets"}
+                overScrollMode={tab === "wallets" ? "never" : "auto"}
                 showsVerticalScrollIndicator={false}
                 onScroll={Animated.event(
                   [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -789,11 +801,11 @@ export default function App() {
                       activities={activityItems}
                       total={total}
                       hidden={hidden}
+                      onToggleHidden={handleToggleHidden}
                       onWallet={handleSelectWallet}
                       onReorderWallets={handleReorderWallets}
                       onAddWallet={handleAddWalletSheet}
                       onDragChange={handleStackDragChange}
-                      isCloudSynced={Boolean(userEmail)}
                       theme={theme}
                     />
                   </View>
@@ -844,16 +856,18 @@ export default function App() {
               </Animated.View>
             </Animated.ScrollView>
 
-            <EdgeFade
-              position="top"
-              color={dark ? "#121923" : "#f6f9fd"}
-              size={26}
-              opacity={scrollY.interpolate({
-                inputRange: [0, 16],
-                outputRange: [0, 1],
-                extrapolate: "clamp",
-              })}
-            />
+            {tab !== "wallets" ? (
+              <EdgeFade
+                position="top"
+                color={dark ? "#121923" : "#f6f9fd"}
+                size={26}
+                opacity={scrollY.interpolate({
+                  inputRange: [0, 16],
+                  outputRange: [0, 1],
+                  extrapolate: "clamp",
+                })}
+              />
+            ) : null}
             <EdgeFade
               position="bottom"
               color={dark ? "#090d12" : "#dce6f5"}
