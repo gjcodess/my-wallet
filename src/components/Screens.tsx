@@ -56,18 +56,28 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
   theme,
   compact = false,
   fullBleed = true,
+  onHeight,
   style,
   children,
 }: {
   theme: ThemeColors;
   compact?: boolean;
   fullBleed?: boolean;
+  onHeight?: (height: number) => void;
   style?: StyleProp<ViewStyle>;
   children: React.ReactNode;
 }) {
   const insets = useSafeAreaInsets();
   return (
     <View
+      onLayout={
+        onHeight
+          ? (e) => {
+              const h = Math.round(e.nativeEvent.layout.height);
+              if (h > 0) onHeight(h);
+            }
+          : undefined
+      }
       style={[
         styles.heroHeaderCard,
         {
@@ -816,6 +826,7 @@ export const HomeScreen = React.memo(function HomeScreen({
   onSheet,
   setTab,
   onStackDragChange,
+  onHeroHeight,
   theme,
 }: {
   wallets: Wallet[];
@@ -829,6 +840,7 @@ export const HomeScreen = React.memo(function HomeScreen({
   onSheet: (s: Sheet, w?: Wallet) => void;
   setTab: (t: Tab) => void;
   onStackDragChange?: (dragging: boolean) => void;
+  onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
 }) {
   const [frontIndex, setFrontIndex] = useState(0);
@@ -893,7 +905,11 @@ export const HomeScreen = React.memo(function HomeScreen({
   return (
     <View style={[styles.page, { paddingTop: 0 }]}>
       {/* Net Worth Hero Header */}
-      <HeroHeaderSurface theme={theme} style={{ marginBottom: 18 }}>
+      <HeroHeaderSurface
+        theme={theme}
+        onHeight={onHeroHeight}
+        style={{ marginBottom: 18 }}
+      >
         <View style={styles.heroTopRow}>
           <View style={styles.heroGreetingCol}>
             <Text style={styles.heroGreetingTitle} numberOfLines={1}>
@@ -1045,6 +1061,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   onReorderWallets,
   onAddWallet,
   onDragChange,
+  onHeroHeight,
   theme,
 }: {
   wallets: Wallet[];
@@ -1056,6 +1073,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   onReorderWallets?: (next: Wallet[]) => void;
   onAddWallet?: () => void;
   onDragChange?: (dragging: boolean) => void;
+  onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
 }) {
   const { monthLabel, fullMonthLabel, totalEarned, totalSpent, walletFlows } =
@@ -1283,7 +1301,11 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   return (
     <View style={[styles.page, { paddingTop: 0 }]}>
       {/* Hero Balance Container */}
-      <HeroHeaderSurface theme={theme} style={{ marginBottom: 22 }}>
+      <HeroHeaderSurface
+        theme={theme}
+        onHeight={onHeroHeight}
+        style={{ marginBottom: 22 }}
+      >
         <View style={styles.heroTopRow}>
           <Text style={styles.heroHeaderTitle}>My Wallets</Text>
           <View style={styles.heroHeaderActions}>
@@ -1574,6 +1596,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   showFilters = false,
   onToggleFilters,
   isActive = true,
+  onHeroHeight,
   theme,
 }: {
   activities: ActivityItem[];
@@ -1587,6 +1610,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   showFilters?: boolean;
   onToggleFilters?: () => void;
   isActive?: boolean;
+  onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
 }) {
   const [range, setRange] = useState<"Month" | "Week">("Month");
@@ -1884,7 +1908,11 @@ export const ActivityScreen = React.memo(function ActivityScreen({
 
   return (
     <View style={[styles.page, { paddingTop: 0 }]}>
-      <HeroHeaderSurface theme={theme} style={{ marginBottom: 14 }}>
+      <HeroHeaderSurface
+        theme={theme}
+        onHeight={onHeroHeight}
+        style={{ marginBottom: 14 }}
+      >
         <View style={styles.heroTopRow}>
           <Text style={styles.heroHeaderTitle}>Activity</Text>
           <View style={styles.heroHeaderActions}>
@@ -2683,6 +2711,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   onToggleBiometrics,
   onOpenAuth,
   onSyncNow,
+  onHeroHeight,
   theme,
 }: {
   dark: boolean;
@@ -2703,6 +2732,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   onToggleBiometrics: () => void;
   onOpenAuth: () => void;
   onSyncNow: () => void;
+  onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
 }) {
   const activeAccentSpec = getAccentPalette(accentColor);
@@ -2710,7 +2740,11 @@ export const SettingsScreen = React.memo(function SettingsScreen({
 
   return (
     <View style={[styles.page, { paddingTop: 0 }]}>
-      <HeroHeaderSurface theme={theme} style={{ marginBottom: 20 }}>
+      <HeroHeaderSurface
+        theme={theme}
+        onHeight={onHeroHeight}
+        style={{ marginBottom: 20 }}
+      >
         <View style={styles.heroTopRow}>
           <Text style={styles.heroHeaderTitle}>Settings</Text>
         </View>

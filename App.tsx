@@ -146,6 +146,22 @@ export default function App() {
   const lastScrollY = useRef(0);
   const navVisibleRef = useRef(true);
   const [navVisible, setNavVisible] = useState(true);
+  const isScrolledRef = useRef(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [heroHeights, setHeroHeights] = useState<Record<Tab, number>>({
+    home: 290,
+    wallets: 220,
+    activity: 170,
+    settings: 170,
+  });
+  const activeHeroHeight = heroHeights[tab];
+  const heroClearY = Math.max(56, activeHeroHeight - 48);
+  const heroFadeOutStart = Math.max(
+    24,
+    Math.min(heroClearY - 24, activeHeroHeight - 76)
+  );
+  const heroClearYRef = useRef(heroClearY);
+  heroClearYRef.current = heroClearY;
   const [stackDragging, setStackDragging] = useState(false);
   const stackDraggingRef = useRef(false);
   const navAnim = useRef(new Animated.Value(1)).current;
@@ -189,6 +205,10 @@ export default function App() {
       lastScrollY.current = 0;
       scrollY.setValue(0);
       scrollRef.current?.scrollTo({ y: 0, animated: false });
+      if (isScrolledRef.current) {
+        isScrolledRef.current = false;
+        setIsScrolled(false);
+      }
       setNavbarVisible(true);
     },
     [setNavbarVisible, scrollY]
@@ -201,6 +221,10 @@ export default function App() {
       tabAnim.setValue(1);
       lastScrollY.current = 0;
       scrollY.setValue(0);
+      if (isScrolledRef.current) {
+        isScrolledRef.current = false;
+        setIsScrolled(false);
+      }
       setNavbarVisible(true);
       return;
     }
@@ -227,9 +251,36 @@ export default function App() {
     }
   }, [toast, toastAnim]);
 
+  const updateHeroHeight = useCallback((forTab: Tab, height: number) => {
+    setHeroHeights((prev) =>
+      prev[forTab] === height ? prev : { ...prev, [forTab]: height }
+    );
+  }, []);
+  const handleHomeHeroHeight = useCallback(
+    (h: number) => updateHeroHeight("home", h),
+    [updateHeroHeight]
+  );
+  const handleWalletsHeroHeight = useCallback(
+    (h: number) => updateHeroHeight("wallets", h),
+    [updateHeroHeight]
+  );
+  const handleActivityHeroHeight = useCallback(
+    (h: number) => updateHeroHeight("activity", h),
+    [updateHeroHeight]
+  );
+  const handleSettingsHeroHeight = useCallback(
+    (h: number) => updateHeroHeight("settings", h),
+    [updateHeroHeight]
+  );
+
   const handleScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       const y = e.nativeEvent.contentOffset.y;
+      const scrolledNow = y >= heroClearYRef.current - 6;
+      if (isScrolledRef.current !== scrolledNow) {
+        isScrolledRef.current = scrolledNow;
+        setIsScrolled(scrolledNow);
+      }
       if (y <= 12) {
         lastScrollY.current = y;
         setNavbarVisible(true);
@@ -712,7 +763,13 @@ export default function App() {
           )}
         </View>
 
-        <StatusBar style={dark || !isLocked ? "light" : "dark"} />
+        <StatusBar
+          style={
+            dark || (!isLocked && (Boolean(selected) || !isScrolled))
+              ? "light"
+              : "dark"
+          }
+        />
 
         {isLocked ? (
           <AppLockModal
@@ -784,6 +841,7 @@ export default function App() {
                       onSheet={openSheet}
                       setTab={handleTabChange}
                       onStackDragChange={handleStackDragChange}
+                      onHeroHeight={handleHomeHeroHeight}
                       theme={theme}
                     />
                   </View>
@@ -801,6 +859,7 @@ export default function App() {
                       onReorderWallets={handleReorderWallets}
                       onAddWallet={handleAddWalletSheet}
                       onDragChange={handleStackDragChange}
+                      onHeroHeight={handleWalletsHeroHeight}
                       theme={theme}
                     />
                   </View>
@@ -820,6 +879,7 @@ export default function App() {
                       showFilters={showActivityFilters}
                       onToggleFilters={handleToggleActivityFilter}
                       isActive={tab === "activity"}
+                      onHeroHeight={handleActivityHeroHeight}
                       theme={theme}
                     />
                   </View>
@@ -846,12 +906,36 @@ export default function App() {
                       onToggleBiometrics={handleToggleBiometrics}
                       onOpenAuth={handleOpenAuthSheet}
                       onSyncNow={handleSyncNow}
+                      onHeroHeight={handleSettingsHeroHeight}
                       theme={theme}
                     />
                   </View>
                 ) : null}
               </Animated.View>
             </Animated.ScrollView>
+
+            {/* Adaptive Top Edge Fade: blends into hero accent while over hero, then page background once scrolled past */}
+            <EdgeFade
+              position="top"
+              color={dark ? "#0c121b" : theme.accent}
+              size={76}
+              opacity={scrollY.interpolate({
+                inputRange: [0, 18, heroFadeOutStart, heroClearY],
+                outputRange: [0, 1, 1, 0],
+                extrapolate: "clamp",
+              })}
+            />
+
+            <EdgeFade
+              position="top"
+              color={dark ? "#121923" : "#f4f7fc"}
+              size={76}
+              opacity={scrollY.interpolate({
+                inputRange: [heroFadeOutStart, heroClearY],
+                outputRange: [0, 1],
+                extrapolate: "clamp",
+              })}
+            />
 
             <EdgeFade
               position="bottom"
