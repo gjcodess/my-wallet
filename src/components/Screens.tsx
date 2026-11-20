@@ -842,39 +842,28 @@ export const HomeScreen = React.memo(function HomeScreen({
         ]}
       >
         <View style={styles.homeMonthHalf}>
-          <View style={styles.homeMonthTop}>
+          <Icon
+            name="arrow-down"
+            size={20}
+            strokeWidth={2.4}
+            color={theme.dark ? "#34d399" : "#059669"}
+          />
+          <View style={styles.homeMonthMeta}>
             <Text
               style={[styles.homeMonthLabel, { color: theme.muted }]}
               numberOfLines={1}
             >
               {monthlySummary.monthLabel} in
             </Text>
-            <View
-              style={[
-                styles.homeMonthBadge,
-                {
-                  backgroundColor: theme.dark
-                    ? "rgba(52, 211, 153, 0.16)"
-                    : "#dcfce7",
-                },
-              ]}
+            <Text
+              style={[styles.homeMonthValue, { color: theme.ink }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.78}
             >
-              <Icon
-                name="arrow-down"
-                size={13}
-                strokeWidth={2.3}
-                color={theme.dark ? "#34d399" : "#059669"}
-              />
-            </View>
+              {hidden ? "••••" : money(monthlySummary.earned)}
+            </Text>
           </View>
-          <Text
-            style={[styles.homeMonthValue, { color: theme.ink }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.78}
-          >
-            {hidden ? "••••" : money(monthlySummary.earned)}
-          </Text>
         </View>
 
         <View
@@ -882,39 +871,28 @@ export const HomeScreen = React.memo(function HomeScreen({
         />
 
         <View style={styles.homeMonthHalf}>
-          <View style={styles.homeMonthTop}>
+          <Icon
+            name="arrow-up"
+            size={20}
+            strokeWidth={2.4}
+            color={theme.dark ? "#fb7185" : "#e11d48"}
+          />
+          <View style={styles.homeMonthMeta}>
             <Text
               style={[styles.homeMonthLabel, { color: theme.muted }]}
               numberOfLines={1}
             >
               {monthlySummary.monthLabel} out
             </Text>
-            <View
-              style={[
-                styles.homeMonthBadge,
-                {
-                  backgroundColor: theme.dark
-                    ? "rgba(251, 113, 133, 0.16)"
-                    : "#ffe4e6",
-                },
-              ]}
+            <Text
+              style={[styles.homeMonthValue, { color: theme.ink }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.78}
             >
-              <Icon
-                name="arrow-up"
-                size={13}
-                strokeWidth={2.3}
-                color={theme.dark ? "#fb7185" : "#e11d48"}
-              />
-            </View>
+              {hidden ? "••••" : money(monthlySummary.spent)}
+            </Text>
           </View>
-          <Text
-            style={[styles.homeMonthValue, { color: theme.ink }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.78}
-          >
-            {hidden ? "••••" : money(monthlySummary.spent)}
-          </Text>
         </View>
       </Pressable>
 
@@ -3212,7 +3190,7 @@ const styles = StyleSheet.create({
   homeMonthCard: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 13,
     paddingHorizontal: 15,
     borderRadius: 22,
     borderWidth: 1,
@@ -3220,29 +3198,21 @@ const styles = StyleSheet.create({
   },
   homeMonthHalf: {
     flex: 1,
-    gap: 5,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 11,
   },
   homeMonthDivider: {
     width: 1,
     alignSelf: "stretch",
-    marginHorizontal: 14,
+    marginHorizontal: 12,
     marginVertical: 2,
   },
-  homeMonthTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  homeMonthBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
+  homeMonthMeta: {
+    flex: 1,
+    gap: 2,
   },
   homeMonthLabel: {
-    flex: 1,
     fontFamily: "Urbanist_600SemiBold",
     fontWeight: "600",
     fontSize: 12,
@@ -3250,7 +3220,7 @@ const styles = StyleSheet.create({
   homeMonthValue: {
     fontFamily: "Urbanist_800ExtraBold",
     fontWeight: "800",
-    fontSize: 18,
+    fontSize: 17,
     letterSpacing: -0.4,
   },
   actionGrid: {
