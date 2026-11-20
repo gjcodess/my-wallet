@@ -179,15 +179,26 @@ export default function App() {
     [setNavbarVisible, scrollY]
   );
 
+  const showingTabs = fontsLoaded && dbReady && !isLocked && !selected;
+
   useEffect(() => {
+    if (!showingTabs) {
+      tabAnim.setValue(1);
+      lastScrollY.current = 0;
+      scrollY.setValue(0);
+      setNavbarVisible(true);
+      return;
+    }
     tabAnim.setValue(0);
-    Animated.timing(tabAnim, {
+    const anim = Animated.timing(tabAnim, {
       toValue: 1,
       duration: 240,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
-    }).start();
-  }, [tab, tabAnim]);
+    });
+    anim.start();
+    return () => anim.stop();
+  }, [tab, showingTabs, tabAnim, scrollY, setNavbarVisible]);
 
   useEffect(() => {
     if (toast) {
