@@ -858,10 +858,10 @@ export const HomeScreen = React.memo(function HomeScreen({
   const greetingText = useMemo(() => {
     const hour = new Date().getHours();
     return hour < 12
-      ? "Good morning"
+      ? "Good Morning"
       : hour < 18
-        ? "Good afternoon"
-        : "Good evening";
+        ? "Good Afternoon"
+        : "Good Evening";
   }, []);
 
   const fullName = profile?.fullName?.trim() || "Justin Santos";
@@ -894,7 +894,7 @@ export const HomeScreen = React.memo(function HomeScreen({
         </View>
 
         <View style={styles.heroBalanceBlock}>
-          <Text style={styles.heroHeaderLabel}>Net worth</Text>
+          <Text style={styles.heroHeaderLabel}>Available Balance</Text>
           <View style={styles.heroBalanceValueRow}>
             <View style={{ flex: 1, paddingRight: 10 }}>
               <Amount value={total} hidden={hidden} size="lg" color="#ffffff" />
