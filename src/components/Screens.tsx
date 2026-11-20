@@ -763,6 +763,25 @@ export const HomeScreen = React.memo(function HomeScreen({
     [activities]
   );
 
+  const monthlySummary = useMemo(() => {
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+    const monthLabel = now.toLocaleDateString("en-US", { month: "short" });
+    let earned = 0;
+    let spent = 0;
+    for (const item of activities) {
+      const isInc = isIncomeActivity(item);
+      const isExp = isExpenseActivity(item);
+      if (!isInc && !isExp) continue;
+      const d = getActivityDate(item, now);
+      if (d.getFullYear() !== curYear || d.getMonth() !== curMonth) continue;
+      if (isInc) earned += item.amount;
+      else spent += Math.abs(item.amount);
+    }
+    return { monthLabel, earned, spent };
+  }, [activities]);
+
   return (
     <View style={styles.page}>
       {/* Net Worth Header */}
@@ -808,6 +827,85 @@ export const HomeScreen = React.memo(function HomeScreen({
         onStackDragChange={onStackDragChange}
         theme={theme}
       />
+
+      {/* Current Month In / Out Summary Cards */}
+      <View style={styles.homeMonthRow}>
+        <Pressable
+          onPress={handleGoActivity}
+          style={({ pressed }) => [
+            styles.homeMonthCard,
+            {
+              backgroundColor: theme.card,
+              transform: [{ scale: pressed ? 0.975 : 1 }],
+            },
+            bevelStyle(theme.dark),
+            cardShadow(theme.dark),
+          ]}
+        >
+          <LinearGradient
+            colors={["#fff58a", "#f2c715"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.homeMonthIcon}
+          >
+            <Icon name="arrow-down" size={16} color="#241c03" />
+          </LinearGradient>
+          <View style={styles.homeMonthMeta}>
+            <Text
+              style={[styles.homeMonthLabel, { color: theme.muted }]}
+              numberOfLines={1}
+            >
+              {monthlySummary.monthLabel} in
+            </Text>
+            <Text
+              style={[styles.homeMonthValue, { color: theme.ink }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.78}
+            >
+              {hidden ? "••••" : money(monthlySummary.earned)}
+            </Text>
+          </View>
+        </Pressable>
+
+        <Pressable
+          onPress={handleGoActivity}
+          style={({ pressed }) => [
+            styles.homeMonthCard,
+            {
+              backgroundColor: theme.card,
+              transform: [{ scale: pressed ? 0.975 : 1 }],
+            },
+            bevelStyle(theme.dark),
+            cardShadow(theme.dark),
+          ]}
+        >
+          <LinearGradient
+            colors={theme.accentGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.homeMonthIcon}
+          >
+            <Icon name="arrow-up" size={16} color={theme.accentInk} />
+          </LinearGradient>
+          <View style={styles.homeMonthMeta}>
+            <Text
+              style={[styles.homeMonthLabel, { color: theme.muted }]}
+              numberOfLines={1}
+            >
+              {monthlySummary.monthLabel} out
+            </Text>
+            <Text
+              style={[styles.homeMonthValue, { color: theme.ink }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.78}
+            >
+              {hidden ? "••••" : money(monthlySummary.spent)}
+            </Text>
+          </View>
+        </Pressable>
+      </View>
 
       {/* 4-Column Quick Action Grid */}
       <View style={styles.actionGrid}>
@@ -3093,12 +3191,49 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     marginTop: 12,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   dot: {
     width: 8,
     height: 6,
     borderRadius: 3,
+  },
+  homeMonthRow: {
+    flexDirection: "row",
+    gap: 9,
+    marginBottom: 10,
+  },
+  homeMonthCard: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  homeMonthIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  homeMonthMeta: {
+    flex: 1,
+    gap: 1,
+  },
+  homeMonthLabel: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 11,
+  },
+  homeMonthValue: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 15,
+    letterSpacing: -0.3,
   },
   actionGrid: {
     flexDirection: "row",
