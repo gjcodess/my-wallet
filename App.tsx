@@ -60,7 +60,6 @@ import {
   ActivityScreen,
   HomeScreen,
   SettingsScreen,
-  TabHeader,
   WalletDetailScreen,
   WalletsScreen,
 } from "./src/components/Screens";
@@ -705,13 +704,7 @@ export default function App() {
           )}
         </View>
 
-        <StatusBar
-          style={
-            dark || (tab === "wallets" && !isLocked && !selected)
-              ? "light"
-              : "dark"
-          }
-        />
+        <StatusBar style={dark || !isLocked ? "light" : "dark"} />
 
         {isLocked ? (
           <AppLockModal
@@ -739,20 +732,13 @@ export default function App() {
           />
         ) : (
           <View style={{ flex: 1 }}>
-            <TabHeader
-              tab={tab}
-              onAddWallet={handleAddWalletSheet}
-              onActivityFilter={handleToggleActivityFilter}
-              activityFilterActive={showActivityFilters}
-              theme={theme}
-            />
             <View style={{ flex: 1 }}>
               <Animated.ScrollView
                 ref={scrollRef}
                 style={{ flex: 1 }}
                 scrollEnabled={!stackDragging}
-                bounces={tab !== "wallets"}
-                overScrollMode={tab === "wallets" ? "never" : "auto"}
+                bounces={false}
+                overScrollMode="never"
                 showsVerticalScrollIndicator={false}
                 onScroll={Animated.event(
                   [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -817,11 +803,13 @@ export default function App() {
                       activities={activityItems}
                       wallets={wallets}
                       hidden={hidden}
+                      onToggleHidden={handleToggleHidden}
                       monthlyBudget={monthlyBudget}
                       onEditBudget={handleOpenBudgetSheet}
                       onTransaction={openTransactionSheet}
                       onShowToast={setToast}
                       showFilters={showActivityFilters}
+                      onToggleFilters={handleToggleActivityFilter}
                       isActive={tab === "activity"}
                       theme={theme}
                     />
@@ -856,18 +844,6 @@ export default function App() {
               </Animated.View>
             </Animated.ScrollView>
 
-            {tab !== "wallets" ? (
-              <EdgeFade
-                position="top"
-                color={dark ? "#121923" : "#f6f9fd"}
-                size={26}
-                opacity={scrollY.interpolate({
-                  inputRange: [0, 16],
-                  outputRange: [0, 1],
-                  extrapolate: "clamp",
-                })}
-              />
-            ) : null}
             <EdgeFade
               position="bottom"
               color={dark ? "#090d12" : "#dce6f5"}

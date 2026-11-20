@@ -7,10 +7,12 @@ import {
   Pressable,
   ScrollView,
   Share,
+  StyleProp,
   StyleSheet,
   Text,
   TextInput,
   View,
+  ViewStyle,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -46,65 +48,67 @@ import {
   SectionTitle,
   SwitchControl,
   ThemeColors,
-  TopBar,
   TxRow,
 } from "./SharedUI";
 import { Amount, WalletFolder, WalletLogoBadge } from "./WalletFolder";
 
-export const TabHeader = React.memo(function TabHeader({
-  tab,
-  onActivityFilter,
-  activityFilterActive,
+const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
   theme,
+  compact = false,
+  fullBleed = true,
+  style,
+  children,
 }: {
-  tab: Tab;
-  onAddWallet?: () => void;
-  onActivityFilter?: () => void;
-  activityFilterActive?: boolean;
   theme: ThemeColors;
+  compact?: boolean;
+  fullBleed?: boolean;
+  style?: StyleProp<ViewStyle>;
+  children: React.ReactNode;
 }) {
-  if (tab === "home" || tab === "wallets") {
-    return null;
-  }
-
   const insets = useSafeAreaInsets();
-
   return (
-    <View style={[styles.fixedTopBarHeader, { paddingTop: insets.top + 10 }]}>
-      {tab === "activity" && (
-        <TopBar
-          title="Activity"
-          theme={theme}
-          noMargin
-          right={
-            <Pressable
-              onPress={onActivityFilter}
-              style={({ pressed }) => [
-                styles.roundBtn,
-                {
-                  backgroundColor: activityFilterActive
-                    ? theme.accentSoft
-                    : theme.card,
-                  overflow: "hidden",
-                  transform: [{ scale: pressed ? 0.94 : 1 }],
-                },
-                bevelStyle(theme.dark),
-                cardShadow(theme.dark),
-              ]}
-            >
-              {!activityFilterActive ? (
-                <AccentSurfaceGlow theme={theme} intensity="medium" />
-              ) : null}
-              <Icon
-                name="more"
-                size={20}
-                color={theme.accentText}
-              />
-            </Pressable>
-          }
-        />
-      )}
-      {tab === "settings" && <TopBar title="Settings" theme={theme} noMargin />}
+    <View
+      style={[
+        styles.heroHeaderCard,
+        {
+          marginHorizontal: fullBleed ? -18 : 0,
+          paddingTop: insets.top + (compact ? 10 : 14),
+          paddingBottom: compact ? 16 : 22,
+          backgroundColor: theme.dark ? "#0c121b" : theme.accentGradient[1],
+          shadowColor: theme.dark ? "#000000" : theme.accent,
+        },
+        style,
+      ]}
+    >
+      <LinearGradient
+        pointerEvents="none"
+        colors={
+          theme.dark
+            ? [
+                hexToRgba(theme.accent, 0.36),
+                hexToRgba(theme.accent, 0.14),
+                "#0c121b",
+              ]
+            : [theme.accent, theme.accentGradient[1]]
+        }
+        locations={theme.dark ? [0, 0.48, 1] : [0, 1]}
+        start={{ x: 0.9, y: 0 }}
+        end={{ x: 0.1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <LinearGradient
+        pointerEvents="none"
+        colors={[
+          theme.dark
+            ? hexToRgba(theme.accentGradient[0], 0.24)
+            : "rgba(255, 255, 255, 0.22)",
+          "transparent",
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.75, y: 0.85 }}
+        style={StyleSheet.absoluteFill}
+      />
+      {children}
     </View>
   );
 });
@@ -768,44 +772,30 @@ export const HomeScreen = React.memo(function HomeScreen({
     return { monthLabel, earned, spent };
   }, [activities]);
 
-  const insets = useSafeAreaInsets();
-
   return (
-    <View style={[styles.page, { paddingTop: insets.top + 12 }]}>
-      {/* Net Worth Header */}
-      <View style={styles.totalStrip}>
-        <View style={styles.totalTextCol}>
-          <Text style={[styles.totalLabel, { color: theme.muted }]}>
-            Net worth
-          </Text>
-          <Amount
-            value={total}
-            hidden={hidden}
-            size="lg"
-            color={theme.ink}
-          />
+    <View style={[styles.page, { paddingTop: 0 }]}>
+      {/* Net Worth Hero Header */}
+      <HeroHeaderSurface theme={theme} style={{ marginBottom: 18 }}>
+        <View style={styles.heroSingleRow}>
+          <View style={styles.totalTextCol}>
+            <Text style={styles.heroHeaderLabel}>Net worth</Text>
+            <Amount value={total} hidden={hidden} size="lg" color="#ffffff" />
+          </View>
+          <Pressable
+            onPress={handleToggleHidden}
+            style={({ pressed }) => [
+              styles.heroIconBtn,
+              { transform: [{ scale: pressed ? 0.92 : 1 }] },
+            ]}
+          >
+            <Icon
+              name={hidden ? "eye-off" : "eye"}
+              size={18}
+              color="#ffffff"
+            />
+          </Pressable>
         </View>
-        <Pressable
-          onPress={handleToggleHidden}
-          style={({ pressed }) => [
-            styles.roundBtn,
-            {
-              backgroundColor: theme.card,
-              overflow: "hidden",
-              transform: [{ scale: pressed ? 0.94 : 1 }],
-            },
-            bevelStyle(theme.dark),
-            cardShadow(theme.dark),
-          ]}
-        >
-          <AccentSurfaceGlow theme={theme} intensity="medium" />
-          <Icon
-            name={hidden ? "eye-off" : "eye"}
-            size={18}
-            color={theme.accentText}
-          />
-        </Pressable>
-      </View>
+      </HeroHeaderSurface>
 
       <WalletCardDeck
         wallets={wallets}
@@ -1216,58 +1206,18 @@ export const WalletsScreen = React.memo(function WalletsScreen({
     [wallets.length]
   );
 
-  const insets = useSafeAreaInsets();
-
   return (
     <View style={[styles.page, { paddingTop: 0 }]}>
       {/* Hero Balance Container */}
-      <View
-        style={[
-          styles.walletsHeroCard,
-          {
-            paddingTop: insets.top + 14,
-            backgroundColor: theme.dark ? "#0c121b" : theme.accentGradient[1],
-            shadowColor: theme.dark ? "#000000" : theme.accent,
-          },
-        ]}
-      >
-        <LinearGradient
-          pointerEvents="none"
-          colors={
-            theme.dark
-              ? [
-                  hexToRgba(theme.accent, 0.36),
-                  hexToRgba(theme.accent, 0.14),
-                  "#0c121b",
-                ]
-              : [theme.accent, theme.accentGradient[1]]
-          }
-          locations={theme.dark ? [0, 0.48, 1] : [0, 1]}
-          start={{ x: 0.9, y: 0 }}
-          end={{ x: 0.1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-        <LinearGradient
-          pointerEvents="none"
-          colors={[
-            theme.dark
-              ? hexToRgba(theme.accentGradient[0], 0.24)
-              : "rgba(255, 255, 255, 0.22)",
-            "transparent",
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0.75, y: 0.85 }}
-          style={StyleSheet.absoluteFill}
-        />
-
-        <View style={styles.walletsHeroTop}>
-          <Text style={styles.walletsHeroTitle}>My Wallets</Text>
-          <View style={styles.walletsHeroActions}>
+      <HeroHeaderSurface theme={theme} style={{ marginBottom: 22 }}>
+        <View style={styles.heroTopRow}>
+          <Text style={styles.heroHeaderTitle}>My Wallets</Text>
+          <View style={styles.heroHeaderActions}>
             {onToggleHidden ? (
               <Pressable
                 onPress={onToggleHidden}
                 style={({ pressed }) => [
-                  styles.walletsHeroBtn,
+                  styles.heroIconBtn,
                   { transform: [{ scale: pressed ? 0.92 : 1 }] },
                 ]}
               >
@@ -1282,7 +1232,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
               <Pressable
                 onPress={onAddWallet}
                 style={({ pressed }) => [
-                  styles.walletsHeroBtn,
+                  styles.heroIconBtn,
                   { transform: [{ scale: pressed ? 0.92 : 1 }] },
                 ]}
               >
@@ -1292,8 +1242,8 @@ export const WalletsScreen = React.memo(function WalletsScreen({
           </View>
         </View>
 
-        <View style={styles.walletsHeroBalance}>
-          <Text style={styles.walletsHeroLabel}>Combined balance</Text>
+        <View style={styles.heroBalanceBlock}>
+          <Text style={styles.heroHeaderLabel}>Combined balance</Text>
           <Amount value={total} hidden={hidden} size="lg" color="#ffffff" />
         </View>
 
@@ -1344,7 +1294,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
             </View>
           </View>
         </View>
-      </View>
+      </HeroHeaderSurface>
 
       {wallets.length > 1 && onReorderWallets ? (
         <SectionTitle
@@ -1583,22 +1533,26 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   activities,
   wallets = [],
   hidden,
+  onToggleHidden,
   monthlyBudget = null,
   onEditBudget,
   onTransaction,
   onShowToast,
   showFilters = false,
+  onToggleFilters,
   isActive = true,
   theme,
 }: {
   activities: ActivityItem[];
   wallets?: Wallet[];
   hidden: boolean;
+  onToggleHidden?: () => void;
   monthlyBudget?: number | null;
   onEditBudget?: () => void;
   onTransaction?: (item: ActivityItem) => void;
   onShowToast?: (msg: string) => void;
   showFilters?: boolean;
+  onToggleFilters?: () => void;
   isActive?: boolean;
   theme: ThemeColors;
 }) {
@@ -1896,18 +1850,46 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   };
 
   return (
-    <View style={styles.page}>
-      <View style={styles.spendingHead}>
-        <Text style={[styles.walletsTotalSub, { color: theme.muted }]}>
-          Total spending
-        </Text>
-        <Amount
-          value={totalOut}
-          hidden={hidden}
-          size="lg"
-          color={theme.ink}
-        />
-      </View>
+    <View style={[styles.page, { paddingTop: 0 }]}>
+      <HeroHeaderSurface theme={theme} style={{ marginBottom: 14 }}>
+        <View style={styles.heroTopRow}>
+          <Text style={styles.heroHeaderTitle}>Activity</Text>
+          <View style={styles.heroHeaderActions}>
+            {onToggleHidden ? (
+              <Pressable
+                onPress={onToggleHidden}
+                style={({ pressed }) => [
+                  styles.heroIconBtn,
+                  { transform: [{ scale: pressed ? 0.92 : 1 }] },
+                ]}
+              >
+                <Icon
+                  name={hidden ? "eye-off" : "eye"}
+                  size={17}
+                  color="#ffffff"
+                />
+              </Pressable>
+            ) : null}
+            {onToggleFilters ? (
+              <Pressable
+                onPress={onToggleFilters}
+                style={({ pressed }) => [
+                  styles.heroIconBtn,
+                  showFilters && styles.heroIconBtnActive,
+                  { transform: [{ scale: pressed ? 0.92 : 1 }] },
+                ]}
+              >
+                <Icon name="more" size={18} color="#ffffff" />
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+
+        <View style={styles.heroBalanceBlock}>
+          <Text style={styles.heroHeaderLabel}>Total spending</Text>
+          <Amount value={totalOut} hidden={hidden} size="lg" color="#ffffff" />
+        </View>
+      </HeroHeaderSurface>
 
       {showFilters ? (
         <View
@@ -2694,35 +2676,35 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   const accentRows = [ACCENT_PALETTES.slice(0, 4), ACCENT_PALETTES.slice(4, 8)];
 
   return (
-    <View style={styles.page}>
-      {/* Profile Card (Opens Supabase Auth / Cloud Sync Sheet) */}
-      <Pressable onPress={onOpenAuth}>
-        <LinearGradient
-          colors={theme.accentGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.profileCard, { shadowColor: theme.accent }]}
+    <View style={[styles.page, { paddingTop: 0 }]}>
+      <HeroHeaderSurface theme={theme} style={{ marginBottom: 20 }}>
+        <View style={styles.heroTopRow}>
+          <Text style={styles.heroHeaderTitle}>Settings</Text>
+        </View>
+
+        <Pressable
+          onPress={onOpenAuth}
+          style={({ pressed }) => [
+            styles.settingsHeroProfileRow,
+            { opacity: pressed ? 0.85 : 1 },
+          ]}
         >
           <View style={styles.profileCardAvatar}>
-            <Text
-              style={[styles.profileCardInitials, { color: theme.accentInk }]}
-            >
-              {profile.initials}
-            </Text>
+            <Text style={styles.profileCardInitials}>{profile.initials}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.profileCardName, { color: theme.accentInk }]}>
+            <Text style={styles.profileCardName} numberOfLines={1}>
               {profile.fullName}
             </Text>
-            <Text style={[styles.profileCardSub, { color: theme.accentInk }]}>
+            <Text style={styles.profileCardSub} numberOfLines={1}>
               {userEmail
                 ? `${userEmail} · Cloud Synced`
                 : "Offline-first wallet profile · Tap to sign in"}
             </Text>
           </View>
-          <Icon name="chevron" size={18} color={theme.accentInk} />
-        </LinearGradient>
-      </Pressable>
+          <Icon name="chevron" size={18} color="#ffffff" />
+        </Pressable>
+      </HeroHeaderSurface>
 
       {/* Appearance Group */}
       <SettingsGroup title="Appearance" theme={theme}>
@@ -3110,36 +3092,38 @@ export function WalletDetailScreen({
         ],
       }}
     >
-      <View style={[styles.fixedTopBarHeader, { paddingTop: insets.top + 10 }]}>
-        <TopBar
-          title={wallet.name}
-          onBack={onBack}
-          theme={theme}
-          noMargin
-          right={
-            <Pressable
-              onPress={onEdit}
-              style={[
-                styles.roundBtn,
-                {
-                  backgroundColor: theme.card,
-                  overflow: "hidden",
-                },
-                bevelStyle(theme.dark),
-                cardShadow(theme.dark),
-              ]}
-            >
-              <AccentSurfaceGlow theme={theme} intensity="medium" />
-              <Icon name="edit" size={18} color={theme.accentText} />
-            </Pressable>
-          }
-        />
-      </View>
+      <HeroHeaderSurface theme={theme} compact fullBleed={false}>
+        <View style={styles.heroDetailBar}>
+          <Pressable
+            onPress={onBack}
+            style={({ pressed }) => [
+              styles.heroIconBtn,
+              { transform: [{ scale: pressed ? 0.92 : 1 }] },
+            ]}
+          >
+            <Icon name="back" size={19} color="#ffffff" />
+          </Pressable>
+          <Text style={styles.heroDetailTitle} numberOfLines={1}>
+            {wallet.name}
+          </Text>
+          <Pressable
+            onPress={onEdit}
+            style={({ pressed }) => [
+              styles.heroIconBtn,
+              { transform: [{ scale: pressed ? 0.92 : 1 }] },
+            ]}
+          >
+            <Icon name="edit" size={17} color="#ffffff" />
+          </Pressable>
+        </View>
+      </HeroHeaderSurface>
 
       <View style={{ flex: 1 }}>
         <Animated.ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={styles.detailScreen}
+          bounces={false}
+          overScrollMode="never"
           showsVerticalScrollIndicator={false}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: detailScrollY } } }],
@@ -3445,15 +3429,12 @@ const styles = StyleSheet.create({
   txList: {
     gap: 10,
   },
-  walletsHeroCard: {
+  heroHeaderCard: {
     position: "relative",
     overflow: "hidden",
-    marginHorizontal: -18,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
     paddingHorizontal: 20,
-    paddingBottom: 24,
-    marginBottom: 22,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255, 255, 255, 0.16)",
     shadowOffset: { width: 0, height: 12 },
@@ -3461,24 +3442,30 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 8,
   },
-  walletsHeroTop: {
+  heroSingleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  heroTopRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  walletsHeroTitle: {
+  heroHeaderTitle: {
     fontFamily: "Urbanist_800ExtraBold",
     fontWeight: "800",
     fontSize: 20,
     letterSpacing: -0.5,
     color: "#ffffff",
   },
-  walletsHeroActions: {
+  heroHeaderActions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  walletsHeroBtn: {
+  heroIconBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
@@ -3488,15 +3475,41 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  walletsHeroBalance: {
+  heroIconBtnActive: {
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    borderColor: "rgba(255, 255, 255, 0.45)",
+  },
+  heroBalanceBlock: {
     marginTop: 18,
     gap: 4,
   },
-  walletsHeroLabel: {
+  heroHeaderLabel: {
     fontFamily: "Urbanist_600SemiBold",
     fontWeight: "600",
     fontSize: 12.5,
     color: "rgba(255, 255, 255, 0.78)",
+    marginBottom: 2,
+  },
+  settingsHeroProfileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 16,
+  },
+  heroDetailBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  heroDetailTitle: {
+    flex: 1,
+    textAlign: "center",
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 20,
+    letterSpacing: -0.5,
+    color: "#ffffff",
   },
   walletsHeroFlowRow: {
     flexDirection: "row",
