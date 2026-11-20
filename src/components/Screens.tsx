@@ -34,12 +34,15 @@ import { FolderSurface } from "./FolderSurface";
 import { Icon } from "./Icon";
 import {
   ACCENT_PALETTES,
+  accentBorderStyle,
   AccentPaletteId,
+  AccentSurfaceGlow,
   ActionButton,
   bevelStyle,
   cardShadow,
   EdgeFade,
   getAccentPalette,
+  hexToRgba,
   SectionTitle,
   SwitchControl,
   ThemeColors,
@@ -79,12 +82,15 @@ export const TabHeader = React.memo(function TabHeader({
                 styles.roundBtn,
                 {
                   backgroundColor: theme.card,
+                  overflow: "hidden",
                 },
                 bevelStyle(theme.dark),
+                accentBorderStyle(theme),
                 cardShadow(theme.dark),
               ]}
             >
-              <Icon name="plus" size={20} color={theme.ink} />
+              <AccentSurfaceGlow theme={theme} intensity="medium" />
+              <Icon name="plus" size={20} color={theme.accentText} />
             </Pressable>
           }
         />
@@ -103,16 +109,21 @@ export const TabHeader = React.memo(function TabHeader({
                   backgroundColor: activityFilterActive
                     ? theme.accentSoft
                     : theme.card,
+                  overflow: "hidden",
                   transform: [{ scale: pressed ? 0.94 : 1 }],
                 },
                 bevelStyle(theme.dark),
+                accentBorderStyle(theme),
                 cardShadow(theme.dark),
               ]}
             >
+              {!activityFilterActive ? (
+                <AccentSurfaceGlow theme={theme} intensity="medium" />
+              ) : null}
               <Icon
                 name="more"
                 size={20}
-                color={activityFilterActive ? theme.accentText : theme.ink}
+                color={theme.accentText}
               />
             </Pressable>
           }
@@ -803,16 +814,19 @@ export const HomeScreen = React.memo(function HomeScreen({
             styles.roundBtn,
             {
               backgroundColor: theme.card,
+              overflow: "hidden",
               transform: [{ scale: pressed ? 0.94 : 1 }],
             },
             bevelStyle(theme.dark),
+            accentBorderStyle(theme),
             cardShadow(theme.dark),
           ]}
         >
+          <AccentSurfaceGlow theme={theme} intensity="medium" />
           <Icon
             name={hidden ? "eye-off" : "eye"}
             size={18}
-            color={theme.ink}
+            color={theme.accentText}
           />
         </Pressable>
       </View>
@@ -835,12 +849,15 @@ export const HomeScreen = React.memo(function HomeScreen({
           styles.homeMonthCard,
           {
             backgroundColor: theme.card,
+            overflow: "hidden",
             transform: [{ scale: pressed ? 0.985 : 1 }],
           },
           bevelStyle(theme.dark),
+          accentBorderStyle(theme),
           cardShadow(theme.dark),
         ]}
       >
+        <AccentSurfaceGlow theme={theme} />
         <View style={styles.homeMonthHalf}>
           <Icon
             name="arrow-down"
@@ -867,7 +884,15 @@ export const HomeScreen = React.memo(function HomeScreen({
         </View>
 
         <View
-          style={[styles.homeMonthDivider, { backgroundColor: theme.line }]}
+          style={[
+            styles.homeMonthDivider,
+            {
+              backgroundColor: hexToRgba(
+                theme.accent,
+                theme.dark ? 0.22 : 0.14
+              ),
+            },
+          ]}
         />
 
         <View style={styles.homeMonthHalf}>
@@ -956,12 +981,15 @@ export const HomeScreen = React.memo(function HomeScreen({
               styles.viewAllBtn,
               {
                 backgroundColor: theme.card,
+                overflow: "hidden",
                 transform: [{ scale: pressed ? 0.985 : 1 }],
               },
               bevelStyle(theme.dark),
+              accentBorderStyle(theme),
               cardShadow(theme.dark),
             ]}
           >
+            <AccentSurfaceGlow theme={theme} intensity="medium" />
             <Text style={[styles.viewAllText, { color: theme.accentText }]}>
               View all transactions ({activities.length})
             </Text>
@@ -1215,11 +1243,13 @@ export const WalletsScreen = React.memo(function WalletsScreen({
         <View
           style={[
             styles.emptyState,
-            { backgroundColor: theme.card },
+            { backgroundColor: theme.card, overflow: "hidden" },
             bevelStyle(theme.dark),
+            accentBorderStyle(theme),
             cardShadow(theme.dark),
           ]}
         >
+          <AccentSurfaceGlow theme={theme} />
           <LinearGradient
             colors={theme.accentGradient}
             style={styles.emptyStateIcon}
@@ -1286,12 +1316,13 @@ export const WalletsScreen = React.memo(function WalletsScreen({
                     {
                       height: WALLET_TILE_HEIGHT,
                       backgroundColor: theme.card,
-                      borderColor: isDragged ? theme.accent : undefined,
+                      overflow: "hidden",
                       transform: [
                         { scale: !reordering && pressed ? 0.985 : 1 },
                       ],
                     },
                     bevelStyle(theme.dark),
+                    accentBorderStyle(theme),
                     cardShadow(theme.dark),
                     isDragged && {
                       borderColor: theme.accent,
@@ -1301,6 +1332,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
                     },
                   ]}
                 >
+                  <AccentSurfaceGlow theme={theme} />
                   <LinearGradient
                     colors={[pal.from, pal.to]}
                     start={{ x: 0, y: 0 }}
@@ -1720,11 +1752,13 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         <View
           style={[
             styles.activityFilterPanel,
-            { backgroundColor: theme.card, borderColor: theme.line },
+            { backgroundColor: theme.card, overflow: "hidden" },
             bevelStyle(theme.dark),
+            accentBorderStyle(theme),
             cardShadow(theme.dark),
           ]}
         >
+          <AccentSurfaceGlow theme={theme} />
           <View style={styles.activityFilterHeader}>
             <Text style={[styles.activityFilterTitle, { color: theme.muted }]}>
               FILTER & EXPORT
@@ -2043,12 +2077,15 @@ export const ActivityScreen = React.memo(function ActivityScreen({
             styles.budgetCard,
             {
               backgroundColor: theme.card,
+              overflow: "hidden",
               transform: [{ scale: pressed ? 0.99 : 1 }],
             },
             bevelStyle(theme.dark),
+            accentBorderStyle(theme),
             cardShadow(theme.dark),
           ]}
         >
+          <AccentSurfaceGlow theme={theme} />
           {monthlyBudget && monthlyBudget > 0 ? (() => {
             const pct = Math.min(
               100,
@@ -2331,11 +2368,13 @@ export const ActivityScreen = React.memo(function ActivityScreen({
           <View
             style={[
               styles.emptyState,
-              { backgroundColor: theme.card },
+              { backgroundColor: theme.card, overflow: "hidden" },
               bevelStyle(theme.dark),
+              accentBorderStyle(theme),
               cardShadow(theme.dark),
             ]}
           >
+            <AccentSurfaceGlow theme={theme} />
             <LinearGradient
               colors={theme.accentGradient}
               style={styles.emptyStateIcon}
@@ -2360,13 +2399,16 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                 styles.pageNavBtn,
                 {
                   backgroundColor: theme.card,
+                  overflow: "hidden",
                   opacity: safePage === 1 ? 0.4 : pressed ? 0.8 : 1,
                 },
                 bevelStyle(theme.dark),
+                accentBorderStyle(theme),
                 cardShadow(theme.dark),
               ]}
             >
-              <Icon name="back" size={16} color={theme.ink} />
+              <AccentSurfaceGlow theme={theme} intensity="medium" />
+              <Icon name="back" size={16} color={theme.accentText} />
             </Pressable>
 
             <View style={styles.pageNumsRow}>
@@ -2410,12 +2452,15 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                       styles.pageNumBtn,
                       {
                         backgroundColor: theme.card,
+                        overflow: "hidden",
                         transform: [{ scale: pressed ? 0.94 : 1 }],
                       },
                       bevelStyle(theme.dark),
+                      accentBorderStyle(theme),
                       cardShadow(theme.dark),
                     ]}
                   >
+                    <AccentSurfaceGlow theme={theme} />
                     <Text style={[styles.pageNumText, { color: theme.ink }]}>
                       {entry}
                     </Text>
@@ -2431,13 +2476,16 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                 styles.pageNavBtn,
                 {
                   backgroundColor: theme.card,
+                  overflow: "hidden",
                   opacity: safePage === totalPages ? 0.4 : pressed ? 0.8 : 1,
                 },
                 bevelStyle(theme.dark),
+                accentBorderStyle(theme),
                 cardShadow(theme.dark),
               ]}
             >
-              <Icon name="chevron" size={16} color={theme.ink} />
+              <AccentSurfaceGlow theme={theme} intensity="medium" />
+              <Icon name="chevron" size={16} color={theme.accentText} />
             </Pressable>
           </View>
         ) : null}
@@ -2760,11 +2808,14 @@ function SettingsGroup({
           styles.settingsGroupBox,
           {
             backgroundColor: theme.card,
+            overflow: "hidden",
           },
           bevelStyle(theme.dark),
+          accentBorderStyle(theme),
           cardShadow(theme.dark),
         ]}
       >
+        <AccentSurfaceGlow theme={theme} />
         {children}
       </View>
     </View>
@@ -2917,12 +2968,15 @@ export function WalletDetailScreen({
                 styles.roundBtn,
                 {
                   backgroundColor: theme.card,
+                  overflow: "hidden",
                 },
                 bevelStyle(theme.dark),
+                accentBorderStyle(theme),
                 cardShadow(theme.dark),
               ]}
             >
-              <Icon name="edit" size={18} color={theme.ink} />
+              <AccentSurfaceGlow theme={theme} intensity="medium" />
+              <Icon name="edit" size={18} color={theme.accentText} />
             </Pressable>
           }
         />
@@ -2949,13 +3003,16 @@ export function WalletDetailScreen({
             styles.detailActionBtn,
             {
               backgroundColor: theme.card,
+              overflow: "hidden",
               transform: [{ scale: pressed ? 0.97 : 1 }],
             },
             bevelStyle(theme.dark),
+            accentBorderStyle(theme),
             cardShadow(theme.dark),
           ]}
         >
-          <Icon name="edit" size={18} color={theme.ink} />
+          <AccentSurfaceGlow theme={theme} intensity="medium" />
+          <Icon name="edit" size={18} color={theme.accentText} />
           <Text style={[styles.detailActionText, { color: theme.ink }]}>
             Update balance
           </Text>
@@ -2967,13 +3024,16 @@ export function WalletDetailScreen({
             styles.detailActionBtn,
             {
               backgroundColor: theme.card,
+              overflow: "hidden",
               transform: [{ scale: pressed ? 0.97 : 1 }],
             },
             bevelStyle(theme.dark),
+            accentBorderStyle(theme),
             cardShadow(theme.dark),
           ]}
         >
-          <Icon name="swap" size={18} color={theme.ink} />
+          <AccentSurfaceGlow theme={theme} intensity="medium" />
+          <Icon name="swap" size={18} color={theme.accentText} />
           <Text style={[styles.detailActionText, { color: theme.ink }]}>
             Transfer
           </Text>

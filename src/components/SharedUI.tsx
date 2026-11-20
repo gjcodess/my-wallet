@@ -272,7 +272,7 @@ export function cardShadow(dark: boolean) {
   };
 }
 
-function hexToRgba(hex: string, alpha: number): string {
+export function hexToRgba(hex: string, alpha: number): string {
   const clean = hex.replace("#", "");
   if (clean.length !== 6) return `rgba(238, 243, 250, ${alpha})`;
   const r = parseInt(clean.slice(0, 2), 16);
@@ -280,6 +280,44 @@ function hexToRgba(hex: string, alpha: number): string {
   const b = parseInt(clean.slice(4, 6), 16);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
+
+export function accentBorderStyle(theme: ThemeColors) {
+  return {
+    borderColor: hexToRgba(theme.accent, theme.dark ? 0.22 : 0.16),
+  };
+}
+
+export const AccentSurfaceGlow = React.memo(function AccentSurfaceGlow({
+  theme,
+  intensity = "soft",
+}: {
+  theme: ThemeColors;
+  intensity?: "soft" | "medium";
+}) {
+  const startAlpha =
+    intensity === "medium"
+      ? theme.dark
+        ? 0.2
+        : 0.13
+      : theme.dark
+        ? 0.14
+        : 0.08;
+  const midAlpha = startAlpha * 0.35;
+  return (
+    <LinearGradient
+      pointerEvents="none"
+      colors={[
+        hexToRgba(theme.accent, startAlpha),
+        hexToRgba(theme.accent, midAlpha),
+        "transparent",
+      ]}
+      locations={[0, 0.45, 0.9]}
+      start={{ x: 0, y: 1 }}
+      end={{ x: 0.9, y: 0.1 }}
+      style={StyleSheet.absoluteFill}
+    />
+  );
+});
 
 export function EdgeFade({
   position,
@@ -391,12 +429,15 @@ export function TxRow({
         styles.txRow,
         {
           backgroundColor: theme.card,
+          overflow: "hidden",
           transform: [{ scale: pressed && onPress ? 0.985 : 1 }],
         },
         bevelStyle(theme.dark),
+        accentBorderStyle(theme),
         cardShadow(theme.dark),
       ]}
     >
+      <AccentSurfaceGlow theme={theme} />
       <View style={[styles.txIcon, { backgroundColor: iconBg }]}>
         <Icon name={item.icon} size={18} color={iconColor} />
       </View>
@@ -433,30 +474,18 @@ export function TxRow({
   );
 }
 
-const DEFAULT_ACTION_ICON_COLOR = { light: "#2563eb", dark: "#60a5fa" };
-
-const ACTION_ICON_COLORS: Partial<Record<Tone, { light: string; dark: string }>> = {
-  blue: DEFAULT_ACTION_ICON_COLOR,
-  yellow: { light: "#d97706", dark: "#facc15" },
-  navy: { light: "#172442", dark: "#f4f7ef" },
-  mint: { light: "#059669", dark: "#34d399" },
-};
-
 export const ActionButton = React.memo(function ActionButton({
   icon,
   label,
-  tone,
   onPress,
   theme,
 }: {
   icon: string;
   label: string;
-  tone: Tone;
+  tone?: Tone;
   onPress: () => void;
   theme: ThemeColors;
 }) {
-  const iconTone = ACTION_ICON_COLORS[tone] ?? DEFAULT_ACTION_ICON_COLOR;
-  const iconColor = theme.dark ? iconTone.dark : iconTone.light;
   return (
     <Pressable
       onPress={onPress}
@@ -464,13 +493,16 @@ export const ActionButton = React.memo(function ActionButton({
         styles.actionButton,
         {
           backgroundColor: theme.card,
+          overflow: "hidden",
           transform: [{ scale: pressed ? 0.95 : 1 }],
         },
         bevelStyle(theme.dark),
+        accentBorderStyle(theme),
         cardShadow(theme.dark),
       ]}
     >
-      <Icon name={icon} size={20} strokeWidth={2.2} color={iconColor} />
+      <AccentSurfaceGlow theme={theme} intensity="medium" />
+      <Icon name={icon} size={20} strokeWidth={2.2} color={theme.accentText} />
       <Text style={[styles.actionLabel, { color: theme.ink }]} numberOfLines={1}>
         {label}
       </Text>
@@ -543,12 +575,15 @@ export function TopBar({
             styles.roundButton,
             {
               backgroundColor: theme.card,
+              overflow: "hidden",
             },
             bevelStyle(theme.dark),
+            accentBorderStyle(theme),
             cardShadow(theme.dark),
           ]}
         >
-          <Icon name="back" size={20} color={theme.ink} />
+          <AccentSurfaceGlow theme={theme} intensity="medium" />
+          <Icon name="back" size={20} color={theme.accentText} />
         </Pressable>
       ) : (
         <View style={{ width: 42 }} />
@@ -677,12 +712,15 @@ export function BottomNav({
           backgroundColor: theme.dark
             ? "rgba(18, 24, 33, 0.96)"
             : "rgba(248, 251, 255, 0.96)",
+          overflow: "hidden",
           opacity,
           transform: [{ translateY }],
         },
         bevelStyle(theme.dark),
+        accentBorderStyle(theme),
       ]}
     >
+      <AccentSurfaceGlow theme={theme} />
       {items.slice(0, 2).map(renderNavItem)}
 
       <Pressable
