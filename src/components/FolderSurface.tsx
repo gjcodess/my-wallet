@@ -1,4 +1,4 @@
-import React, { useId, useState } from "react";
+import React, { useCallback, useId, useMemo, useState } from "react";
 import {
   ImageSourcePropType,
   LayoutChangeEvent,
@@ -75,7 +75,7 @@ function isDarkHex(hex: string): boolean {
   return luminance < 0.45;
 }
 
-export function FolderSurface({
+export const FolderSurface = React.memo(function FolderSurface({
   children,
   style,
   contentStyle,
@@ -120,27 +120,34 @@ export function FolderSurface({
   const gradId = `folderGrad-${uid}`;
   const folderClipId = `folderClip-${uid}`;
   const notchClipId = `notchClip-${uid}`;
+  const imageClipId = `imageClip-${uid}`;
   const [size, setSize] = useState({ width: 350, height: minHeight });
 
-  const onLayout = (e: LayoutChangeEvent) => {
+  const onLayout = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
     if (width > 0 && height > 0) {
-      if (Math.abs(width - size.width) > 1 || Math.abs(height - size.height) > 1) {
-        setSize({ width, height });
-      }
+      setSize((prev) =>
+        Math.abs(width - prev.width) > 1 || Math.abs(height - prev.height) > 1
+          ? { width, height }
+          : prev
+      );
     }
-  };
-
-  const geometry = folderGeometry(
-    size.width,
-    Math.max(size.height, minHeight),
-    tab,
-    tabHeight,
-    radius,
-    gap
-  );
+  }, []);
 
   const effectiveHeight = Math.max(size.height, minHeight);
+
+  const geometry = useMemo(
+    () =>
+      folderGeometry(
+        size.width,
+        effectiveHeight,
+        tab,
+        tabHeight,
+        radius,
+        gap
+      ),
+    [size.width, effectiveHeight, tab, tabHeight, radius, gap]
+  );
   const darkSurface = isDarkSurface ?? isDarkHex(toColor);
   const resolvedGloss =
     notchGloss ??
@@ -186,15 +193,18 @@ export function FolderSurface({
             <ClipPath id={notchClipId}>
               <Path d={geometry.notch} />
             </ClipPath>
+            {backgroundImage && (
+              <ClipPath id={imageClipId}>
+                <Path d={geometry.folder} />
+                {notch && <Path d={geometry.notch} />}
+              </ClipPath>
+            )}
           </Defs>
           {/* Soft upward depth shadow cast onto the card behind in a stack */}
           {topShadow &&
             [
-              { y: -10, op: 0.012 },
-              { y: -8, op: 0.018 },
-              { y: -6, op: 0.025 },
-              { y: -4, op: 0.034 },
-              { y: -2, op: 0.044 },
+              { y: -7, op: 0.032 },
+              { y: -2.5, op: 0.055 },
             ].map((s, idx) => (
               <G key={`top-${idx}`} transform={`translate(0, ${s.y})`}>
                 <Path d={geometry.folder} fill={`rgba(12, 18, 34, ${s.op})`} />
@@ -203,19 +213,17 @@ export function FolderSurface({
                 )}
               </G>
             ))}
-          {/* Soft diffused multi-step drop shadow calibrated to cardShadow */}
+          {/* Soft diffused drop shadow */}
           {[
-            { y: 10, op: 0.012 },
-            { y: 8, op: 0.016 },
-            { y: 6, op: 0.02 },
-            { y: 4, op: 0.024 },
-            { y: 2, op: 0.028 },
+            { y: 7, op: 0.028 },
+            { y: 2.5, op: 0.048 },
           ].map((s, idx) => (
             <G key={idx} transform={`translate(0, ${s.y})`}>
               <Path d={geometry.folder} fill={`rgba(18, 26, 45, ${s.op})`} />
             </G>
           ))}
           <Path d={geometry.folder} fill={`url(#${gradId})`} />
+          {notch && <Path d={geometry.notch} fill={`url(#${gradId})`} />}
           {backgroundImage && (
             <SvgImage
               href={backgroundImage}
@@ -224,7 +232,7 @@ export function FolderSurface({
               width={size.width}
               height={effectiveHeight}
               preserveAspectRatio="xMaxYMid slice"
-              clipPath={`url(#${folderClipId})`}
+              clipPath={`url(#${imageClipId})`}
             />
           )}
           {/* Subtle inner bevel highlight (top-left) & soft rim (bottom-right) */}
@@ -246,18 +254,6 @@ export function FolderSurface({
           </G>
           {notch && (
             <>
-              <Path d={geometry.notch} fill={`url(#${gradId})`} />
-              {backgroundImage && (
-                <SvgImage
-                  href={backgroundImage}
-                  x={0}
-                  y={0}
-                  width={size.width}
-                  height={effectiveHeight}
-                  preserveAspectRatio="xMaxYMid slice"
-                  clipPath={`url(#${notchClipId})`}
-                />
-              )}
               <Path d={geometry.notch} fill={resolvedGloss} />
               <G clipPath={`url(#${notchClipId})`}>
                 <Path
@@ -292,7 +288,7 @@ export function FolderSurface({
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   surface: {

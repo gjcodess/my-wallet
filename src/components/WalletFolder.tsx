@@ -18,7 +18,7 @@ import { splitMoney, tonePalette, Wallet } from "../types/wallet";
 import { FolderSurface } from "./FolderSurface";
 import { Icon } from "./Icon";
 
-export function WalletLogoBadge({
+export const WalletLogoBadge = React.memo(function WalletLogoBadge({
   logoKey,
   name,
   mark,
@@ -79,7 +79,7 @@ export function WalletLogoBadge({
       </Text>
     </View>
   );
-}
+});
 
 export function Amount({
   value,
@@ -125,7 +125,7 @@ export function Amount({
   );
 }
 
-export function WalletFolder({
+export const WalletFolder = React.memo(function WalletFolder({
   wallet,
   hidden,
   onPress,
@@ -388,7 +388,7 @@ export function WalletFolder({
       </FolderSurface>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrapper: {

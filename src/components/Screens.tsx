@@ -48,7 +48,7 @@ import {
 } from "./SharedUI";
 import { Amount, WalletFolder, WalletLogoBadge } from "./WalletFolder";
 
-export function TabHeader({
+export const TabHeader = React.memo(function TabHeader({
   tab,
   onAddWallet,
   onActivityFilter,
@@ -121,7 +121,7 @@ export function TabHeader({
       {tab === "settings" && <TopBar title="Settings" theme={theme} noMargin />}
     </View>
   );
-}
+});
 
 const STACK_SCROLL_STEP_PX = 88;
 
@@ -710,7 +710,7 @@ const WalletCardDeck = React.memo(function WalletCardDeck({
   );
 });
 
-export function HomeScreen({
+export const HomeScreen = React.memo(function HomeScreen({
   wallets,
   activities,
   total,
@@ -744,6 +744,24 @@ export function HomeScreen({
     (w: Wallet) => onSheet("update", w),
     [onSheet]
   );
+  const handleToggleHidden = useCallback(
+    () => setHidden(!hidden),
+    [setHidden, hidden]
+  );
+  const handleOpenUpdate = useCallback(
+    () => onSheet("update", featured),
+    [onSheet, featured]
+  );
+  const handleOpenTransfer = useCallback(
+    () => onSheet("transfer", featured),
+    [onSheet, featured]
+  );
+  const handleGoWallets = useCallback(() => setTab("wallets"), [setTab]);
+  const handleGoActivity = useCallback(() => setTab("activity"), [setTab]);
+  const recentActivities = useMemo(
+    () => activities.slice(0, 10),
+    [activities]
+  );
 
   return (
     <View style={styles.page}>
@@ -761,7 +779,7 @@ export function HomeScreen({
           />
         </View>
         <Pressable
-          onPress={() => setHidden(!hidden)}
+          onPress={handleToggleHidden}
           style={({ pressed }) => [
             styles.roundBtn,
             {
@@ -797,28 +815,28 @@ export function HomeScreen({
           icon="edit"
           label="Update"
           tone="blue"
-          onPress={() => onSheet("update", featured)}
+          onPress={handleOpenUpdate}
           theme={theme}
         />
         <ActionButton
           icon="swap"
           label="Transfer"
           tone="yellow"
-          onPress={() => onSheet("transfer", featured)}
+          onPress={handleOpenTransfer}
           theme={theme}
         />
         <ActionButton
           icon="plus"
           label="Add"
           tone="navy"
-          onPress={() => onSheet("add")}
+          onPress={handleOpenAdd}
           theme={theme}
         />
         <ActionButton
           icon="grid"
           label="Wallets"
           tone="mint"
-          onPress={() => setTab("wallets")}
+          onPress={handleGoWallets}
           theme={theme}
         />
       </View>
@@ -830,11 +848,11 @@ export function HomeScreen({
           action="View all"
           actionIcon="chevron"
           actionColor={theme.accentText}
-          onPress={() => setTab("activity")}
+          onPress={handleGoActivity}
           theme={theme}
         />
         <View style={styles.txList}>
-          {activities.slice(0, 10).map((item) => (
+          {recentActivities.map((item) => (
             <TxRow
               key={item.id}
               item={item}
@@ -846,7 +864,7 @@ export function HomeScreen({
         </View>
         {activities.length > 10 ? (
           <Pressable
-            onPress={() => setTab("activity")}
+            onPress={handleGoActivity}
             style={({ pressed }) => [
               styles.viewAllBtn,
               {
@@ -866,13 +884,13 @@ export function HomeScreen({
       </View>
     </View>
   );
-}
+});
 
 const WALLET_TILE_HEIGHT = 80;
 const WALLET_TILE_GAP = 9;
 const WALLET_SLOT_HEIGHT = WALLET_TILE_HEIGHT + WALLET_TILE_GAP;
 
-export function WalletsScreen({
+export const WalletsScreen = React.memo(function WalletsScreen({
   wallets,
   total,
   hidden,
@@ -1269,7 +1287,7 @@ export function WalletsScreen({
       )}
     </View>
   );
-}
+});
 
 type ActivityTypeFilter = "All" | "Expenses" | "Income" | "Transfers" | "Adjusted";
 
@@ -1281,7 +1299,7 @@ const DEFAULT_EXPENSE_CATEGORIES: { label: string; icon: string }[] = [
 const DEFAULT_INCOME_CATEGORIES: { label: string; icon: string }[] =
   INCOME_CATEGORIES.map(([label, icon]) => ({ label, icon }));
 
-export function ActivityScreen({
+export const ActivityScreen = React.memo(function ActivityScreen({
   activities,
   wallets = [],
   hidden,
@@ -1370,9 +1388,9 @@ export function ActivityScreen({
     barProgress.setValue(0);
     Animated.timing(barProgress, {
       toValue: 1,
-      duration: 520,
+      duration: 280,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
+      useNativeDriver: true,
     }).start();
   }, [range, barProgress, activities.length]);
 
@@ -1832,10 +1850,9 @@ export function ActivityScreen({
                             style={[
                               styles.bar,
                               {
-                                height: barProgress.interpolate({
-                                  inputRange: [0, 1],
-                                  outputRange: ["0%", `${b.inPct}%`],
-                                }),
+                                height: `${b.inPct}%`,
+                                transformOrigin: "bottom",
+                                transform: [{ scaleY: barProgress }],
                                 overflow: "hidden",
                               },
                             ]}
@@ -1849,10 +1866,9 @@ export function ActivityScreen({
                             style={[
                               styles.bar,
                               {
-                                height: barProgress.interpolate({
-                                  inputRange: [0, 1],
-                                  outputRange: ["0%", `${b.outPct}%`],
-                                }),
+                                height: `${b.outPct}%`,
+                                transformOrigin: "bottom",
+                                transform: [{ scaleY: barProgress }],
                                 overflow: "hidden",
                               },
                             ]}
@@ -2334,9 +2350,9 @@ export function ActivityScreen({
       </View>
     </View>
   );
-}
+});
 
-export function SettingsScreen({
+export const SettingsScreen = React.memo(function SettingsScreen({
   dark,
   setDark,
   accentColor,
@@ -2629,7 +2645,7 @@ export function SettingsScreen({
       </SettingsGroup>
     </View>
   );
-}
+});
 
 function SettingsGroup({
   title,

@@ -79,6 +79,12 @@ export default function App() {
   });
 
   const [tab, setTab] = useState<Tab>("home");
+  const [visitedTabs, setVisitedTabs] = useState<Record<Tab, boolean>>({
+    home: true,
+    wallets: false,
+    activity: false,
+    settings: false,
+  });
   const [wallets, setWallets] = useState<Wallet[]>(initialWallets);
   const [activityItems, setActivityItems] =
     useState<ActivityItem[]>(initialActivities);
@@ -107,6 +113,13 @@ export default function App() {
   const [lockModalMode, setLockModalMode] = useState<AppLockMode | null>(null);
   const appLockPinRef = useRef<string | null>(null);
   appLockPinRef.current = appLockPin;
+  const skipInitialPersistRef = useRef({
+    wallets: false,
+    activities: false,
+    dark: false,
+    hidden: false,
+    accent: false,
+  });
 
   const selected = useMemo(
     () => wallets.find((w) => w.id === selectedId) || null,
@@ -171,6 +184,9 @@ export default function App() {
   const handleTabChange = useCallback(
     (nextTab: Tab) => {
       setTab(nextTab);
+      setVisitedTabs((prev) =>
+        prev[nextTab] ? prev : { ...prev, [nextTab]: true }
+      );
       lastScrollY.current = 0;
       scrollY.setValue(0);
       scrollRef.current?.scrollTo({ y: 0, animated: false });
@@ -192,7 +208,7 @@ export default function App() {
     tabAnim.setValue(0);
     const anim = Animated.timing(tabAnim, {
       toValue: 1,
-      duration: 240,
+      duration: 135,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     });
@@ -251,6 +267,13 @@ export default function App() {
         if (state.appLockPin) {
           setIsLocked(true);
         }
+        skipInitialPersistRef.current = {
+          wallets: true,
+          activities: true,
+          dark: true,
+          hidden: true,
+          accent: true,
+        };
         setDbReady(true);
       })
       .catch(() => {
@@ -305,21 +328,37 @@ export default function App() {
   // 3. Persist changes to SQLite
   useEffect(() => {
     if (!dbReady) return;
+    if (skipInitialPersistRef.current.wallets) {
+      skipInitialPersistRef.current.wallets = false;
+      return;
+    }
     saveWalletsToSQLite(wallets).catch(() => {});
   }, [wallets, dbReady]);
 
   useEffect(() => {
     if (!dbReady) return;
+    if (skipInitialPersistRef.current.activities) {
+      skipInitialPersistRef.current.activities = false;
+      return;
+    }
     saveActivitiesToSQLite(activityItems).catch(() => {});
   }, [activityItems, dbReady]);
 
   useEffect(() => {
     if (!dbReady) return;
+    if (skipInitialPersistRef.current.dark) {
+      skipInitialPersistRef.current.dark = false;
+      return;
+    }
     saveSettingToSQLite("dark_mode", dark ? "true" : "false").catch(() => {});
   }, [dark, dbReady]);
 
   useEffect(() => {
     if (!dbReady) return;
+    if (skipInitialPersistRef.current.hidden) {
+      skipInitialPersistRef.current.hidden = false;
+      return;
+    }
     saveSettingToSQLite("hide_balances", hidden ? "true" : "false").catch(
       () => {}
     );
@@ -327,6 +366,10 @@ export default function App() {
 
   useEffect(() => {
     if (!dbReady) return;
+    if (skipInitialPersistRef.current.accent) {
+      skipInitialPersistRef.current.accent = false;
+      return;
+    }
     saveSettingToSQLite("accent_color", accentColor).catch(() => {});
   }, [accentColor, dbReady]);
 
@@ -524,7 +567,7 @@ export default function App() {
     scheduleCloudSync();
   };
 
-  const handleReorderWallets = (nextWallets: Wallet[]) => {
+  const handleReorderWallets = useCallback((nextWallets: Wallet[]) => {
     const nowIso = new Date().toISOString();
     const stamped = nextWallets.map((w) => ({
       ...w,
@@ -534,7 +577,49 @@ export default function App() {
     walletsRef.current = stamped;
     setWallets(stamped);
     scheduleCloudSync();
-  };
+  }, [scheduleCloudSync]);
+
+  const handleAddWalletSheet = useCallback(() => openSheet("add"), [openSheet]);
+  const handleAddEntrySheet = useCallback(() => openSheet("entry"), [openSheet]);
+  const handleOpenBudgetSheet = useCallback(() => openSheet("budget"), [openSheet]);
+  const handleOpenAuthSheet = useCallback(() => openSheet("auth"), [openSheet]);
+  const handleToggleActivityFilter = useCallback(
+    () => setShowActivityFilters((prev) => !prev),
+    []
+  );
+  const handleToggleAppLock = useCallback(
+    () => setLockModalMode(appLockPinRef.current ? "disable" : "setup"),
+    []
+  );
+  const handleChangeAppLockPin = useCallback(
+    () => setLockModalMode("change"),
+    []
+  );
+  const handleCloseSheet = useCallback(() => {
+    setSheet(null);
+    setSheetWalletId(null);
+    setSheetActivity(null);
+  }, []);
+  const handleSwitchSheet = useCallback(
+    (nextType: Exclude<Sheet, null>, nextWallet?: Wallet) => {
+      setSheetActivity(null);
+      if (nextWallet) setSheetWalletId(nextWallet.id);
+      setSheet(nextType);
+    },
+    []
+  );
+  const handleSheetDone = useCallback((message: string) => {
+    setSheet(null);
+    setSheetWalletId(null);
+    setSheetActivity(null);
+    setToast(message);
+  }, []);
+  const handleOpenWalletFromSheet = useCallback((w: Wallet) => {
+    setSheet(null);
+    setSheetWalletId(null);
+    setSheetActivity(null);
+    setSelectedId(w.id);
+  }, []);
 
   const handleToggleBiometrics = async () => {
     if (!appLockPin) return;
@@ -646,10 +731,8 @@ export default function App() {
           <View style={{ flex: 1 }}>
             <TabHeader
               tab={tab}
-              onAddWallet={() => openSheet("add")}
-              onActivityFilter={() =>
-                setShowActivityFilters((prev) => !prev)
-              }
+              onAddWallet={handleAddWalletSheet}
+              onActivityFilter={handleToggleActivityFilter}
               activityFilterActive={showActivityFilters}
               theme={theme}
             />
@@ -672,81 +755,87 @@ export default function App() {
                     {
                       translateY: tabAnim.interpolate({
                         inputRange: [0, 1],
-                        outputRange: [10, 0],
+                        outputRange: [6, 0],
                       }),
                     },
                   ],
                 }}
               >
-                {tab === "home" && (
-                  <HomeScreen
-                    wallets={wallets}
-                    activities={activityItems}
-                    total={total}
-                    hidden={hidden}
-                    setHidden={setHidden}
-                    onWallet={handleSelectWallet}
-                    onTransaction={openTransactionSheet}
-                    onSheet={openSheet}
-                    setTab={handleTabChange}
-                    onStackDragChange={handleStackDragChange}
-                    theme={theme}
-                  />
-                )}
+                {visitedTabs.home ? (
+                  <View style={{ display: tab === "home" ? "flex" : "none" }}>
+                    <HomeScreen
+                      wallets={wallets}
+                      activities={activityItems}
+                      total={total}
+                      hidden={hidden}
+                      setHidden={setHidden}
+                      onWallet={handleSelectWallet}
+                      onTransaction={openTransactionSheet}
+                      onSheet={openSheet}
+                      setTab={handleTabChange}
+                      onStackDragChange={handleStackDragChange}
+                      theme={theme}
+                    />
+                  </View>
+                ) : null}
 
-                {tab === "wallets" && (
-                  <WalletsScreen
-                    wallets={wallets}
-                    total={total}
-                    hidden={hidden}
-                    onWallet={handleSelectWallet}
-                    onReorderWallets={handleReorderWallets}
-                    onAddWallet={() => openSheet("add")}
-                    onDragChange={handleStackDragChange}
-                    isCloudSynced={Boolean(userEmail)}
-                    theme={theme}
-                  />
-                )}
+                {visitedTabs.wallets ? (
+                  <View style={{ display: tab === "wallets" ? "flex" : "none" }}>
+                    <WalletsScreen
+                      wallets={wallets}
+                      total={total}
+                      hidden={hidden}
+                      onWallet={handleSelectWallet}
+                      onReorderWallets={handleReorderWallets}
+                      onAddWallet={handleAddWalletSheet}
+                      onDragChange={handleStackDragChange}
+                      isCloudSynced={Boolean(userEmail)}
+                      theme={theme}
+                    />
+                  </View>
+                ) : null}
 
-                {tab === "activity" && (
-                  <ActivityScreen
-                    activities={activityItems}
-                    wallets={wallets}
-                    hidden={hidden}
-                    monthlyBudget={monthlyBudget}
-                    onEditBudget={() => openSheet("budget")}
-                    onTransaction={openTransactionSheet}
-                    onShowToast={setToast}
-                    showFilters={showActivityFilters}
-                    theme={theme}
-                  />
-                )}
+                {visitedTabs.activity ? (
+                  <View style={{ display: tab === "activity" ? "flex" : "none" }}>
+                    <ActivityScreen
+                      activities={activityItems}
+                      wallets={wallets}
+                      hidden={hidden}
+                      monthlyBudget={monthlyBudget}
+                      onEditBudget={handleOpenBudgetSheet}
+                      onTransaction={openTransactionSheet}
+                      onShowToast={setToast}
+                      showFilters={showActivityFilters}
+                      theme={theme}
+                    />
+                  </View>
+                ) : null}
 
-                {tab === "settings" && (
-                  <SettingsScreen
-                    dark={dark}
-                    setDark={setDark}
-                    accentColor={accentColor}
-                    setAccentColor={setAccentColor}
-                    hidden={hidden}
-                    setHidden={setHidden}
-                    showToast={setToast}
-                    profile={profile}
-                    userEmail={userEmail}
-                    lastSyncedAt={lastSyncedAt}
-                    appLockEnabled={Boolean(appLockPin)}
-                    biometricsSupported={biometricsSupported}
-                    biometricsEnabled={biometricsEnabled}
-                    onToggleAppLock={() =>
-                      setLockModalMode(appLockPin ? "disable" : "setup")
-                    }
-                    onChangeAppLockPin={() => setLockModalMode("change")}
-                    onToggleBiometrics={handleToggleBiometrics}
-                    onOpenAuth={() => openSheet("auth")}
-                    onSyncNow={handleSyncNow}
-                    theme={theme}
-                  />
-                )}
+                {visitedTabs.settings ? (
+                  <View style={{ display: tab === "settings" ? "flex" : "none" }}>
+                    <SettingsScreen
+                      dark={dark}
+                      setDark={setDark}
+                      accentColor={accentColor}
+                      setAccentColor={setAccentColor}
+                      hidden={hidden}
+                      setHidden={setHidden}
+                      showToast={setToast}
+                      profile={profile}
+                      userEmail={userEmail}
+                      lastSyncedAt={lastSyncedAt}
+                      appLockEnabled={Boolean(appLockPin)}
+                      biometricsSupported={biometricsSupported}
+                      biometricsEnabled={biometricsEnabled}
+                      onToggleAppLock={handleToggleAppLock}
+                      onChangeAppLockPin={handleChangeAppLockPin}
+                      onToggleBiometrics={handleToggleBiometrics}
+                      onOpenAuth={handleOpenAuthSheet}
+                      onSyncNow={handleSyncNow}
+                      theme={theme}
+                    />
+                  </View>
+                ) : null}
               </Animated.View>
             </Animated.ScrollView>
 
@@ -769,70 +858,13 @@ export default function App() {
             <BottomNav
               tab={tab}
               setTab={handleTabChange}
-              onAdd={() => openSheet("entry")}
+              onAdd={handleAddEntrySheet}
               navAnim={navAnim}
               visible={navVisible}
               theme={theme}
             />
             </View>
           </View>
-        )}
-
-        {sheet && (
-          <SheetModal
-            type={sheet}
-            wallets={wallets}
-            selected={sheetWallet}
-            activity={sheetActivity}
-            hidden={hidden}
-            onSaveWallets={(nextWallets) => {
-              walletsRef.current = nextWallets;
-              setWallets(nextWallets);
-              scheduleCloudSync();
-            }}
-            onDeleteWallet={handleDeleteWallet}
-            onRecordActivity={(item) => {
-              recordActivity(item);
-            }}
-            onUpdateActivity={handleUpdateActivity}
-            onDeleteActivity={handleDeleteActivity}
-            onRenameWalletActivities={handleRenameWalletActivities}
-            onOpenWallet={(w) => {
-              setSheet(null);
-              setSheetWalletId(null);
-              setSheetActivity(null);
-              setSelectedId(w.id);
-            }}
-            onClose={() => {
-              setSheet(null);
-              setSheetWalletId(null);
-              setSheetActivity(null);
-            }}
-            onSwitchSheet={(nextType, nextWallet) => {
-              setSheetActivity(null);
-              if (nextWallet) setSheetWalletId(nextWallet.id);
-              setSheet(nextType);
-            }}
-            onDone={(message) => {
-              setSheet(null);
-              setSheetWalletId(null);
-              setSheetActivity(null);
-              setToast(message);
-            }}
-            profile={profile}
-            onUpdateProfile={handleUpdateProfile}
-            monthlyBudget={monthlyBudget}
-            onSaveMonthlyBudget={(next) => {
-              setMonthlyBudget(next);
-              saveSettingToSQLite(
-                "monthly_budget",
-                next && next > 0 ? String(next) : ""
-              ).catch(() => {});
-            }}
-            userEmail={userEmail}
-            onSyncNow={handleSyncNow}
-            theme={theme}
-          />
         )}
 
         {toast ? (
@@ -891,6 +923,45 @@ export default function App() {
           </>
         )}
       </SafeAreaView>
+
+      {!isLocked && sheet && (
+        <SheetModal
+          type={sheet}
+          wallets={wallets}
+          selected={sheetWallet}
+          activity={sheetActivity}
+          hidden={hidden}
+          onSaveWallets={(nextWallets) => {
+            walletsRef.current = nextWallets;
+            setWallets(nextWallets);
+            scheduleCloudSync();
+          }}
+          onDeleteWallet={handleDeleteWallet}
+          onRecordActivity={(item) => {
+            recordActivity(item);
+          }}
+          onUpdateActivity={handleUpdateActivity}
+          onDeleteActivity={handleDeleteActivity}
+          onRenameWalletActivities={handleRenameWalletActivities}
+          onOpenWallet={handleOpenWalletFromSheet}
+          onClose={handleCloseSheet}
+          onSwitchSheet={handleSwitchSheet}
+          onDone={handleSheetDone}
+          profile={profile}
+          onUpdateProfile={handleUpdateProfile}
+          monthlyBudget={monthlyBudget}
+          onSaveMonthlyBudget={(next) => {
+            setMonthlyBudget(next);
+            saveSettingToSQLite(
+              "monthly_budget",
+              next && next > 0 ? String(next) : ""
+            ).catch(() => {});
+          }}
+          userEmail={userEmail}
+          onSyncNow={handleSyncNow}
+          theme={theme}
+        />
+      )}
     </SafeAreaProvider>
   );
 }

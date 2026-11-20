@@ -1,10 +1,12 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
+  BackHandler,
+  Easing,
+  FlatList,
   Keyboard,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -13,6 +15,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { AmountKeypad, formatAmountInput } from "./AmountKeypad";
 import {
@@ -103,6 +106,8 @@ export function SheetModal({
   onSyncNow: () => Promise<void>;
   theme: ThemeColors;
 }) {
+  const insets = useSafeAreaInsets();
+  const openAnim = useRef(new Animated.Value(0)).current;
   const fallback = selected?.id || wallets[0]?.id || 1;
   const editTarget =
     type === "edit" ? selected || wallets[0] : null;
@@ -223,18 +228,30 @@ export function SheetModal({
   const sourceWallet = wallets.find((w) => w.id === source) || wallets[0];
   const destWallet = wallets.find((w) => w.id === destination) || wallets[0];
 
-  const selectedPreset = walletPresets.find((p) => p.key === selectedPresetKey);
-  const filteredPresets = walletPresets.filter((p) => {
-    const matchesGroup = presetGroup === "All" || p.group === presetGroup;
-    const q = presetSearch.trim().toLowerCase();
-    const matchesQuery =
-      !q ||
-      p.name.toLowerCase().includes(q) ||
-      p.type.toLowerCase().includes(q);
-    return matchesGroup && matchesQuery;
-  });
+  const isPresetSheet = type === "add" || type === "edit";
 
-  const handleSelectPreset = (preset: WalletPreset | "custom") => {
+  const selectedPreset = useMemo(
+    () =>
+      isPresetSheet
+        ? walletPresets.find((p) => p.key === selectedPresetKey)
+        : undefined,
+    [isPresetSheet, selectedPresetKey]
+  );
+
+  const filteredPresets = useMemo(() => {
+    if (!isPresetSheet) return [];
+    const q = presetSearch.trim().toLowerCase();
+    return walletPresets.filter((p) => {
+      const matchesGroup = presetGroup === "All" || p.group === presetGroup;
+      const matchesQuery =
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        p.type.toLowerCase().includes(q);
+      return matchesGroup && matchesQuery;
+    });
+  }, [isPresetSheet, presetGroup, presetSearch]);
+
+  const handleSelectPreset = useCallback((preset: WalletPreset | "custom") => {
     if (preset === "custom") {
       setSelectedPresetKey("custom");
       setLogoKey(undefined);
@@ -250,18 +267,39 @@ export function SheetModal({
     setTone(preset.recommendedTone);
     setRecommendedTone(preset.recommendedTone);
     setAccountLabel(preset.account);
-  };
+  }, []);
 
-  const preview: Wallet = {
-    id: 0,
-    name: name || "New wallet",
-    type: category,
-    balance: Number(balance) || 0,
-    mark: selectedPreset?.mark || (name || "NW").slice(0, 2).toUpperCase(),
-    tone,
-    account: accountLabel.trim() || "Manual tracking",
-    logoKey,
-  };
+  const preview: Wallet = useMemo(
+    () => ({
+      id: 0,
+      name: name || "New wallet",
+      type: category,
+      balance: Number(balance) || 0,
+      mark: selectedPreset?.mark || (name || "NW").slice(0, 2).toUpperCase(),
+      tone,
+      account: accountLabel.trim() || "Manual tracking",
+      logoKey,
+    }),
+    [name, category, balance, selectedPreset?.mark, tone, accountLabel, logoKey]
+  );
+
+  useEffect(() => {
+    openAnim.setValue(0);
+    Animated.timing(openAnim, {
+      toValue: 1,
+      duration: 190,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [openAnim]);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      onClose();
+      return true;
+    });
+    return () => sub.remove();
+  }, [onClose]);
 
   const transferValue = Number(amount);
   const transferTotalDebit = Number(
@@ -597,23 +635,31 @@ export function SheetModal({
   };
 
   return (
-    <Modal
-      visible
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <View style={[styles.overlayRoot, { paddingTop: insets.top }]}>
       <KeyboardAvoidingView
         style={styles.sheetLayer}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <Pressable style={styles.backdrop} onPress={onClose} />
-        <View
+        <Animated.View
+          style={[styles.backdrop, { opacity: openAnim }]}
+          pointerEvents="none"
+        />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <Animated.View
           style={[
             styles.bottomSheet,
             {
               backgroundColor: theme.page,
+              paddingBottom: Math.max(20, insets.bottom + 8),
               maxHeight: type === "add" || type === "entry" || type === "auth" ? "92%" : "86%",
+              transform: [
+                {
+                  translateY: openAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [340, 0],
+                  }),
+                },
+              ],
             },
           ]}
         >
@@ -701,101 +747,107 @@ export function SheetModal({
 
                 {/* Horizontal Preset Cards + Custom Option */}
                 <View style={{ position: "relative" }}>
-                  <ScrollView
+                  <FlatList
                     horizontal
+                    data={filteredPresets}
+                    keyExtractor={(item) => item.key}
                     showsHorizontalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    initialNumToRender={6}
+                    maxToRenderPerBatch={6}
+                    windowSize={3}
+                    removeClippedSubviews
                     contentContainerStyle={{ gap: 9, paddingVertical: 2, paddingHorizontal: 4 }}
-                  >
-                  <Pressable
-                    onPress={() => handleSelectPreset("custom")}
-                    style={[
-                      styles.presetCard,
-                      {
-                        backgroundColor:
-                          selectedPresetKey === "custom"
-                            ? theme.surface
-                            : theme.soft,
-                        borderColor:
-                          selectedPresetKey === "custom"
-                            ? theme.accent
-                            : theme.line,
-                      },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.presetCustomIcon,
-                        { backgroundColor: theme.accentSoft },
-                      ]}
-                    >
-                      <Icon name="plus" size={18} color={theme.accentText} />
-                    </View>
-                    <Text
-                      style={[styles.presetName, { color: theme.ink }]}
-                      numberOfLines={1}
-                    >
-                      Custom
-                    </Text>
-                    <Text
-                      style={[styles.presetSub, { color: theme.muted }]}
-                      numberOfLines={1}
-                    >
-                      Any name
-                    </Text>
-                  </Pressable>
-
-                  {filteredPresets.map((preset) => {
-                    const active = selectedPresetKey === preset.key;
-                    const pPal = tonePalette[preset.recommendedTone];
-                    return (
+                    ListHeaderComponent={
                       <Pressable
-                        key={preset.key}
-                        onPress={() => handleSelectPreset(preset)}
+                        onPress={() => handleSelectPreset("custom")}
                         style={[
                           styles.presetCard,
                           {
-                            backgroundColor: active ? theme.surface : theme.soft,
-                            borderColor: active ? theme.accent : theme.line,
+                            backgroundColor:
+                              selectedPresetKey === "custom"
+                                ? theme.surface
+                                : theme.soft,
+                            borderColor:
+                              selectedPresetKey === "custom"
+                                ? theme.accent
+                                : theme.line,
                           },
                         ]}
                       >
-                        <WalletLogoBadge
-                          logoKey={preset.key}
-                          name={preset.name}
-                          mark={preset.mark}
-                          size={34}
-                          radius={11}
-                          ink={pPal.ink}
-                          fontSize={10}
-                        />
+                        <View
+                          style={[
+                            styles.presetCustomIcon,
+                            { backgroundColor: theme.accentSoft },
+                          ]}
+                        >
+                          <Icon name="plus" size={18} color={theme.accentText} />
+                        </View>
                         <Text
                           style={[styles.presetName, { color: theme.ink }]}
                           numberOfLines={1}
                         >
-                          {preset.name}
+                          Custom
                         </Text>
                         <Text
                           style={[styles.presetSub, { color: theme.muted }]}
                           numberOfLines={1}
                         >
-                          {preset.type}
+                          Any name
                         </Text>
                       </Pressable>
-                    );
-                  })}
-                  {filteredPresets.length === 0 ? (
-                    <View
-                      style={[
-                        styles.presetEmptyNote,
-                        { backgroundColor: theme.soft, borderColor: theme.line },
-                      ]}
-                    >
-                      <Text style={[styles.presetSub, { color: theme.muted }]}>
-                        No matching preset — tap Custom
-                      </Text>
-                    </View>
-                  ) : null}
-                  </ScrollView>
+                    }
+                    renderItem={({ item: preset }) => {
+                      const active = selectedPresetKey === preset.key;
+                      const pPal = tonePalette[preset.recommendedTone];
+                      return (
+                        <Pressable
+                          onPress={() => handleSelectPreset(preset)}
+                          style={[
+                            styles.presetCard,
+                            {
+                              backgroundColor: active ? theme.surface : theme.soft,
+                              borderColor: active ? theme.accent : theme.line,
+                            },
+                          ]}
+                        >
+                          <WalletLogoBadge
+                            logoKey={preset.key}
+                            name={preset.name}
+                            mark={preset.mark}
+                            size={34}
+                            radius={11}
+                            ink={pPal.ink}
+                            fontSize={10}
+                          />
+                          <Text
+                            style={[styles.presetName, { color: theme.ink }]}
+                            numberOfLines={1}
+                          >
+                            {preset.name}
+                          </Text>
+                          <Text
+                            style={[styles.presetSub, { color: theme.muted }]}
+                            numberOfLines={1}
+                          >
+                            {preset.type}
+                          </Text>
+                        </Pressable>
+                      );
+                    }}
+                    ListEmptyComponent={
+                      <View
+                        style={[
+                          styles.presetEmptyNote,
+                          { backgroundColor: theme.soft, borderColor: theme.line },
+                        ]}
+                      >
+                        <Text style={[styles.presetSub, { color: theme.muted }]}>
+                          No matching preset — tap Custom
+                        </Text>
+                      </View>
+                    }
+                  />
                   <EdgeFade position="left" color={theme.page} size={14} />
                   <EdgeFade position="right" color={theme.page} size={14} />
                 </View>
@@ -3036,9 +3088,9 @@ export function SheetModal({
             />
             <EdgeFade position="bottom" color={theme.page} size={28} />
           </View>
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
-    </Modal>
+    </View>
   );
 }
 
@@ -3091,6 +3143,14 @@ function PrimaryButton({
 }
 
 const styles = StyleSheet.create({
+  overlayRoot: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 80,
+  },
   sheetLayer: {
     flex: 1,
     justifyContent: "flex-end",

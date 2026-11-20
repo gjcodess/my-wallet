@@ -53,7 +53,7 @@ export function applyKeypadKey(current: string, key: string): string {
   return `${current}${key}`;
 }
 
-export function AmountKeypad({
+export const AmountKeypad = React.memo(function AmountKeypad({
   value,
   onChange,
   quickAmounts,
@@ -158,7 +158,7 @@ export function AmountKeypad({
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrapper: {
