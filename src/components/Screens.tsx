@@ -50,61 +50,19 @@ import { Amount, WalletFolder, WalletLogoBadge } from "./WalletFolder";
 
 export function TabHeader({
   tab,
-  profile,
-  setTab,
   onAddWallet,
   onActivityFilter,
   activityFilterActive,
   theme,
 }: {
   tab: Tab;
-  profile: UserProfile;
-  setTab: (t: Tab) => void;
   onAddWallet: () => void;
   onActivityFilter?: () => void;
   activityFilterActive?: boolean;
   theme: ThemeColors;
 }) {
-  const firstName = profile.fullName.split(" ")[0] || "Justin";
-
   if (tab === "home") {
-    return (
-      <View style={styles.fixedHomeHeader}>
-        <View style={styles.homeHeader}>
-          <View>
-            <Text style={[styles.greetingSub, { color: theme.ink }]}>
-              Hi, {firstName}
-            </Text>
-            <Text style={[styles.greetingTitle, { color: theme.ink }]}>
-              Welcome back!
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => setTab("settings")}
-            style={styles.profileOrbWrapper}
-          >
-            <LinearGradient
-              colors={theme.accentGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.profileOrb}
-            >
-              <Text style={[styles.profileOrbText, { color: theme.accentInk }]}>
-                {profile.initials}
-              </Text>
-            </LinearGradient>
-            <View
-              style={[
-                styles.profileOrbBadge,
-                { backgroundColor: theme.page },
-              ]}
-            >
-              <Icon name="grid" size={13} color={theme.ink} />
-            </View>
-          </Pressable>
-        </View>
-      </View>
-    );
+    return null;
   }
 
   return (
@@ -789,25 +747,26 @@ export function HomeScreen({
 
   return (
     <View style={styles.page}>
-      {/* Total Strip */}
+      {/* Net Worth Header */}
       <View style={styles.totalStrip}>
-        <View>
+        <View style={styles.totalTextCol}>
           <Text style={[styles.totalLabel, { color: theme.muted }]}>
-            Total money
+            Net worth
           </Text>
           <Amount
             value={total}
             hidden={hidden}
-            size="sm"
+            size="lg"
             color={theme.ink}
           />
         </View>
         <Pressable
           onPress={() => setHidden(!hidden)}
-          style={[
+          style={({ pressed }) => [
             styles.roundBtn,
             {
               backgroundColor: theme.card,
+              transform: [{ scale: pressed ? 0.94 : 1 }],
             },
             bevelStyle(theme.dark),
             cardShadow(theme.dark),
@@ -2983,72 +2942,28 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 105,
   },
-  fixedHomeHeader: {
-    paddingHorizontal: 18,
-    paddingTop: 10,
-    paddingBottom: 4,
-  },
   fixedTopBarHeader: {
     paddingHorizontal: 18,
     paddingTop: 10,
     paddingBottom: 4,
   },
-  homeHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  greetingSub: {
-    fontFamily: "Urbanist_600SemiBold",
-    fontWeight: "600",
-    fontSize: 15,
-    marginBottom: 2,
-  },
-  greetingTitle: {
-    fontFamily: "Urbanist_800ExtraBold",
-    fontWeight: "800",
-    fontSize: 25,
-    letterSpacing: -0.8,
-  },
-  profileOrbWrapper: {
-    position: "relative",
-    width: 52,
-    height: 52,
-  },
-  profileOrb: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  profileOrbText: {
-    fontFamily: "Urbanist_800ExtraBold",
-    fontWeight: "800",
-    fontSize: 15,
-  },
-  profileOrbBadge: {
-    position: "absolute",
-    right: -6,
-    bottom: -6,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   totalStrip: {
-    marginTop: 2,
-    marginBottom: 15,
+    marginTop: 6,
+    marginBottom: 18,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  totalTextCol: {
+    flex: 1,
+    paddingRight: 12,
   },
   totalLabel: {
-    fontFamily: "Urbanist_700Bold",
-    fontWeight: "700",
-    fontSize: 11,
-    marginBottom: 2,
+    fontFamily: "Urbanist_600SemiBold",
+    fontWeight: "600",
+    fontSize: 13,
+    letterSpacing: 0.1,
+    marginBottom: 4,
   },
   roundBtn: {
     width: 42,

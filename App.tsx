@@ -646,8 +646,6 @@ export default function App() {
           <View style={{ flex: 1 }}>
             <TabHeader
               tab={tab}
-              profile={profile}
-              setTab={handleTabChange}
               onAddWallet={() => openSheet("add")}
               onActivityFilter={() =>
                 setShowActivityFilters((prev) => !prev)
