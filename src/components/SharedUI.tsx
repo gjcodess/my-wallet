@@ -404,15 +404,10 @@ export function TxRow({
   theme: ThemeColors;
 }) {
   const isPositive = item.amount > 0;
-  const iconBg = isPositive
-    ? theme.dark
-      ? "rgba(250, 204, 21, 0.16)"
-      : "#fef1a8"
-    : theme.accentSoft;
   const iconColor = isPositive
     ? theme.dark
       ? "#fde047"
-      : "#9a6700"
+      : "#b45309"
     : theme.accentText;
 
   return (
@@ -431,8 +426,8 @@ export function TxRow({
       ]}
     >
       <AccentSurfaceGlow theme={theme} />
-      <View style={[styles.txIcon, { backgroundColor: iconBg }]}>
-        <Icon name={item.icon} size={18} color={iconColor} />
+      <View style={styles.txIcon}>
+        <Icon name={item.icon} size={25} strokeWidth={2.05} color={iconColor} />
       </View>
       <View style={styles.rowMain}>
         <Text
@@ -780,16 +775,15 @@ const styles = StyleSheet.create({
     minHeight: 68,
     flexDirection: "row",
     alignItems: "center",
-    gap: 13,
+    gap: 14,
     paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1,
   },
   txIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
     alignItems: "center",
     justifyContent: "center",
   },
