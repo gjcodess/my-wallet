@@ -994,38 +994,52 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   onDragChange?: (dragging: boolean) => void;
   theme: ThemeColors;
 }) {
-  const { monthLabel, walletFlows } = useMemo(() => {
-    const now = new Date();
-    const curYear = now.getFullYear();
-    const curMonth = now.getMonth();
-    const shortMonth = now.toLocaleDateString("en-US", { month: "short" });
-    const flows = new Map<number, { earned: number; spent: number }>();
-    for (const w of wallets) {
-      flows.set(w.id, { earned: 0, spent: 0 });
-    }
-    for (const item of activities) {
-      if (isAdjustmentActivity(item)) continue;
-      const d = getActivityDate(item, now);
-      if (d.getFullYear() !== curYear || d.getMonth() !== curMonth) continue;
+  const { monthLabel, fullMonthLabel, totalEarned, totalSpent, walletFlows } =
+    useMemo(() => {
+      const now = new Date();
+      const curYear = now.getFullYear();
+      const curMonth = now.getMonth();
+      const shortMonth = now.toLocaleDateString("en-US", { month: "short" });
+      const longMonth = now.toLocaleDateString("en-US", { month: "long" });
+      let earnedSum = 0;
+      let spentSum = 0;
+      const flows = new Map<number, { earned: number; spent: number }>();
       for (const w of wallets) {
-        const match = isActivityForWallet(item, w);
-        if (!match.matched) continue;
-        const entry = flows.get(w.id)!;
-        if (isTransferActivity(item)) {
-          if (match.isIncomingTransfer) {
-            entry.earned += Math.abs(item.amount);
-          } else {
+        flows.set(w.id, { earned: 0, spent: 0 });
+      }
+      for (const item of activities) {
+        if (isAdjustmentActivity(item)) continue;
+        const d = getActivityDate(item, now);
+        if (d.getFullYear() !== curYear || d.getMonth() !== curMonth) continue;
+        if (!isTransferActivity(item)) {
+          if (item.amount > 0) earnedSum += item.amount;
+          else if (item.amount < 0) spentSum += Math.abs(item.amount);
+        }
+        for (const w of wallets) {
+          const match = isActivityForWallet(item, w);
+          if (!match.matched) continue;
+          const entry = flows.get(w.id)!;
+          if (isTransferActivity(item)) {
+            if (match.isIncomingTransfer) {
+              entry.earned += Math.abs(item.amount);
+            } else {
+              entry.spent += Math.abs(item.amount);
+            }
+          } else if (item.amount > 0) {
+            entry.earned += item.amount;
+          } else if (item.amount < 0) {
             entry.spent += Math.abs(item.amount);
           }
-        } else if (item.amount > 0) {
-          entry.earned += item.amount;
-        } else if (item.amount < 0) {
-          entry.spent += Math.abs(item.amount);
         }
       }
-    }
-    return { monthLabel: shortMonth, walletFlows: flows };
-  }, [wallets, activities]);
+      return {
+        monthLabel: shortMonth,
+        fullMonthLabel: longMonth,
+        totalEarned: earnedSum,
+        totalSpent: spentSum,
+        walletFlows: flows,
+      };
+    }, [wallets, activities]);
   const [reordering, setReordering] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -1281,6 +1295,54 @@ export const WalletsScreen = React.memo(function WalletsScreen({
         <View style={styles.walletsHeroBalance}>
           <Text style={styles.walletsHeroLabel}>Combined balance</Text>
           <Amount value={total} hidden={hidden} size="lg" color="#ffffff" />
+        </View>
+
+        <View style={styles.walletsHeroFlowRow}>
+          <View style={styles.walletsHeroFlowHalf}>
+            <Icon
+              name="arrow-down"
+              size={18}
+              strokeWidth={2.4}
+              color="#86efac"
+            />
+            <View style={styles.walletsHeroFlowMeta}>
+              <Text style={styles.walletsHeroFlowLabel} numberOfLines={1}>
+                {fullMonthLabel} in
+              </Text>
+              <Text
+                style={styles.walletsHeroFlowVal}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.78}
+              >
+                {hidden ? "••••" : money(totalEarned)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.walletsHeroFlowDivider} />
+
+          <View style={styles.walletsHeroFlowHalf}>
+            <Icon
+              name="arrow-up"
+              size={18}
+              strokeWidth={2.4}
+              color="#fda4af"
+            />
+            <View style={styles.walletsHeroFlowMeta}>
+              <Text style={styles.walletsHeroFlowLabel} numberOfLines={1}>
+                {fullMonthLabel} out
+              </Text>
+              <Text
+                style={styles.walletsHeroFlowVal}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.78}
+              >
+                {hidden ? "••••" : money(totalSpent)}
+              </Text>
+            </View>
+          </View>
         </View>
       </View>
 
@@ -3435,6 +3497,44 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 12.5,
     color: "rgba(255, 255, 255, 0.78)",
+  },
+  walletsHeroFlowRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.16)",
+  },
+  walletsHeroFlowHalf: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  walletsHeroFlowDivider: {
+    width: 1,
+    alignSelf: "stretch",
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
+    marginHorizontal: 12,
+    marginVertical: 2,
+  },
+  walletsHeroFlowMeta: {
+    flex: 1,
+    gap: 1,
+  },
+  walletsHeroFlowLabel: {
+    fontFamily: "Urbanist_600SemiBold",
+    fontWeight: "600",
+    fontSize: 11.5,
+    color: "rgba(255, 255, 255, 0.74)",
+  },
+  walletsHeroFlowVal: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 16,
+    letterSpacing: -0.3,
+    color: "#ffffff",
   },
   walletsTotalSub: {
     fontFamily: "Urbanist_700Bold",
