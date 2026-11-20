@@ -85,10 +85,10 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
         colors={
           theme.dark
             ? [
-                hexToRgba(theme.accent, 0.36),
-                hexToRgba(theme.accent, 0.14),
-                "#0c121b",
-              ]
+              hexToRgba(theme.accent, 0.36),
+              hexToRgba(theme.accent, 0.14),
+              "#0c121b",
+            ]
             : [theme.accent, theme.accentGradient[1]]
         }
         locations={theme.dark ? [0, 0.48, 1] : [0, 1]}
@@ -239,15 +239,15 @@ const RingCard = React.memo(function RingCard({
     const op =
       totalWallets === 2
         ? modRel.interpolate({
-            inputRange: [0, 0.02, 0.4, 1, 2, 2.65, 3, ringSize - 0.1, ringSize],
-            outputRange: [0, 0.05, 0.72, 1, 1, 0.35, 0, 0, 0],
-            extrapolate: "clamp",
-          })
+          inputRange: [0, 0.02, 0.4, 1, 2, 2.65, 3, ringSize - 0.1, ringSize],
+          outputRange: [0, 0.05, 0.72, 1, 1, 0.35, 0, 0, 0],
+          extrapolate: "clamp",
+        })
         : modRel.interpolate({
-            inputRange: [0, 0.02, 0.4, 1, 2, 3, 3.7, 4, ringSize - 0.1, ringSize],
-            outputRange: [0, 0.05, 0.72, 1, 1, 1, 0.35, 0, 0, 0],
-            extrapolate: "clamp",
-          });
+          inputRange: [0, 0.02, 0.4, 1, 2, 3, 3.7, 4, ringSize - 0.1, ringSize],
+          outputRange: [0, 0.05, 0.72, 1, 1, 1, 0.35, 0, 0, 0],
+          extrapolate: "clamp",
+        });
 
     const y = modRel.interpolate({
       inputRange: [0, 1, 2, 3, 4, ringSize - 0.1, ringSize],
@@ -481,17 +481,17 @@ const WalletCardDeck = React.memo(function WalletCardDeck({
       const anim =
         dist <= 1.2
           ? Animated.spring(scrollAnim, {
-              toValue: target,
-              tension: 95,
-              friction: 13,
-              useNativeDriver: true,
-            })
+            toValue: target,
+            tension: 95,
+            friction: 13,
+            useNativeDriver: true,
+          })
           : Animated.timing(scrollAnim, {
-              toValue: target,
-              duration: Math.min(680, Math.max(240, dist * 155)),
-              easing: Easing.out(Easing.cubic),
-              useNativeDriver: true,
-            });
+            toValue: target,
+            duration: Math.min(680, Math.max(240, dist * 155)),
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          });
 
       anim.start(({ finished }) => {
         if (!finished || isDraggingRef.current || mSize <= 1) return;
@@ -857,24 +857,28 @@ export const HomeScreen = React.memo(function HomeScreen({
 
   const greetingText = useMemo(() => {
     const hour = new Date().getHours();
-    const part =
-      hour < 12
-        ? "Good morning"
-        : hour < 18
-          ? "Good afternoon"
-          : "Good evening";
-    const firstName = profile?.fullName?.split(" ")[0]?.trim();
-    return firstName ? `${part}, ${firstName}` : part;
-  }, [profile?.fullName]);
+    return hour < 12
+      ? "Good morning"
+      : hour < 18
+        ? "Good afternoon"
+        : "Good evening";
+  }, []);
+
+  const fullName = profile?.fullName?.trim() || "Justin Santos";
 
   return (
     <View style={[styles.page, { paddingTop: 0 }]}>
       {/* Net Worth Hero Header */}
       <HeroHeaderSurface theme={theme} style={{ marginBottom: 18 }}>
         <View style={styles.heroTopRow}>
-          <Text style={styles.heroGreetingTitle} numberOfLines={1}>
-            {greetingText}
-          </Text>
+          <View style={styles.heroGreetingCol}>
+            <Text style={styles.heroGreetingTitle} numberOfLines={1}>
+              {greetingText}
+            </Text>
+            <Text style={styles.heroGreetingName} numberOfLines={1}>
+              {fullName}
+            </Text>
+          </View>
           <View style={styles.heroHeaderActions}>
             <Pressable
               onPress={handleOpenSearch}
@@ -886,26 +890,30 @@ export const HomeScreen = React.memo(function HomeScreen({
             >
               <Icon name="search" size={17} color="#ffffff" />
             </Pressable>
-            <Pressable
-              onPress={handleToggleHidden}
-              accessibilityLabel={hidden ? "Show balances" : "Hide balances"}
-              style={({ pressed }) => [
-                styles.heroIconBtn,
-                { transform: [{ scale: pressed ? 0.92 : 1 }] },
-              ]}
-            >
-              <Icon
-                name={hidden ? "eye-off" : "eye"}
-                size={17}
-                color="#ffffff"
-              />
-            </Pressable>
           </View>
         </View>
 
         <View style={styles.heroBalanceBlock}>
           <Text style={styles.heroHeaderLabel}>Net worth</Text>
-          <Amount value={total} hidden={hidden} size="lg" color="#ffffff" />
+          <View style={styles.heroBalanceValueRow}>
+            <View style={{ flex: 1, paddingRight: 10 }}>
+              <Amount value={total} hidden={hidden} size="lg" color="#ffffff" />
+            </View>
+            <Pressable
+              onPress={handleToggleHidden}
+              accessibilityLabel={hidden ? "Show balances" : "Hide balances"}
+              style={({ pressed }) => [
+                styles.heroEyeBtnSmall,
+                { transform: [{ scale: pressed ? 0.92 : 1 }] },
+              ]}
+            >
+              <Icon
+                name={hidden ? "eye-off" : "eye"}
+                size={14}
+                color="#ffffff"
+              />
+            </Pressable>
+          </View>
         </View>
 
         <HeroMonthlyFlowRow
@@ -955,7 +963,7 @@ export const HomeScreen = React.memo(function HomeScreen({
       {/* Recent Transactions */}
       <View style={[styles.section, { marginTop: 10 }]}>
         <SectionTitle
-          title="Recent transactions"
+          title="Recent Transactions"
           action="View all"
           actionIcon="chevron"
           actionColor={theme.accentText}
@@ -1372,9 +1380,9 @@ export const WalletsScreen = React.memo(function WalletsScreen({
                       {
                         scale: isDragged
                           ? liftAnim.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [1, 1.03],
-                            })
+                            inputRange: [0, 1],
+                            outputRange: [1, 1.03],
+                          })
                           : 1,
                       },
                     ],
@@ -2451,12 +2459,12 @@ export const ActivityScreen = React.memo(function ActivityScreen({
           onPress={
             hasFilter
               ? () => {
-                  setSelectedCategory(null);
-                  setSelectedWalletFilter(null);
-                  setSearchQuery("");
-                  setTypeFilter("All");
-                  setPage(1);
-                }
+                setSelectedCategory(null);
+                setSelectedWalletFilter(null);
+                setSearchQuery("");
+                setTypeFilter("All");
+                setPage(1);
+              }
               : undefined
           }
           theme={theme}
@@ -3037,10 +3045,10 @@ export function WalletDetailScreen({
         if (!match.matched) return null;
         const displayItem: ActivityItem = match.isIncomingTransfer
           ? {
-              ...item,
-              amount: Math.abs(item.amount),
-              kind: "Transfer in",
-            }
+            ...item,
+            amount: Math.abs(item.amount),
+            kind: "Transfer in",
+          }
           : item;
         return { original: item, display: displayItem, isIncomingTransfer: match.isIncomingTransfer };
       })
@@ -3133,111 +3141,111 @@ export function WalletDetailScreen({
           scrollEventThrottle={16}
         >
 
-      <WalletFolder wallet={wallet} hidden={hidden} onMenu={onEdit} />
+          <WalletFolder wallet={wallet} hidden={hidden} onMenu={onEdit} />
 
-      <View style={styles.detailActions}>
-        <Pressable
-          onPress={onUpdate}
-          style={({ pressed }) => [
-            styles.detailActionBtn,
-            {
-              backgroundColor: theme.card,
-              overflow: "hidden",
-              transform: [{ scale: pressed ? 0.97 : 1 }],
-            },
-            bevelStyle(theme.dark),
-            cardShadow(theme.dark),
-          ]}
-        >
-          <AccentSurfaceGlow theme={theme} intensity="medium" />
-          <Icon name="edit" size={18} color={theme.accentText} />
-          <Text style={[styles.detailActionText, { color: theme.ink }]}>
-            Update balance
-          </Text>
-        </Pressable>
+          <View style={styles.detailActions}>
+            <Pressable
+              onPress={onUpdate}
+              style={({ pressed }) => [
+                styles.detailActionBtn,
+                {
+                  backgroundColor: theme.card,
+                  overflow: "hidden",
+                  transform: [{ scale: pressed ? 0.97 : 1 }],
+                },
+                bevelStyle(theme.dark),
+                cardShadow(theme.dark),
+              ]}
+            >
+              <AccentSurfaceGlow theme={theme} intensity="medium" />
+              <Icon name="edit" size={18} color={theme.accentText} />
+              <Text style={[styles.detailActionText, { color: theme.ink }]}>
+                Update balance
+              </Text>
+            </Pressable>
 
-        <Pressable
-          onPress={onTransfer}
-          style={({ pressed }) => [
-            styles.detailActionBtn,
-            {
-              backgroundColor: theme.card,
-              overflow: "hidden",
-              transform: [{ scale: pressed ? 0.97 : 1 }],
-            },
-            bevelStyle(theme.dark),
-            cardShadow(theme.dark),
-          ]}
-        >
-          <AccentSurfaceGlow theme={theme} intensity="medium" />
-          <Icon name="swap" size={18} color={theme.accentText} />
-          <Text style={[styles.detailActionText, { color: theme.ink }]}>
-            Transfer
-          </Text>
-        </Pressable>
-      </View>
+            <Pressable
+              onPress={onTransfer}
+              style={({ pressed }) => [
+                styles.detailActionBtn,
+                {
+                  backgroundColor: theme.card,
+                  overflow: "hidden",
+                  transform: [{ scale: pressed ? 0.97 : 1 }],
+                },
+                bevelStyle(theme.dark),
+                cardShadow(theme.dark),
+              ]}
+            >
+              <AccentSurfaceGlow theme={theme} intensity="medium" />
+              <Icon name="swap" size={18} color={theme.accentText} />
+              <Text style={[styles.detailActionText, { color: theme.ink }]}>
+                Transfer
+              </Text>
+            </Pressable>
+          </View>
 
-      <SectionTitle
-        title="Wallet activity"
-        action={detailFilter}
-        actionColor={detailFilter !== "Recent" ? theme.accentText : undefined}
-        onPress={cycleDetailFilter}
-        theme={theme}
-      />
+          <SectionTitle
+            title="Wallet activity"
+            action={detailFilter}
+            actionColor={detailFilter !== "Recent" ? theme.accentText : undefined}
+            onPress={cycleDetailFilter}
+            theme={theme}
+          />
 
-      {related.length ? (
-        <View style={styles.txList}>
-          {related.map(({ original, display }) => (
-            <TxRow
-              key={original.id}
-              item={display}
-              hidden={hidden}
-              onPress={onTransaction ? () => onTransaction(original) : undefined}
-              theme={theme}
-            />
-          ))}
-        </View>
-      ) : (
-        <View
-          style={[
-            styles.emptyState,
-            {
-              backgroundColor: theme.card,
-            },
-            bevelStyle(theme.dark),
-            cardShadow(theme.dark),
-          ]}
-        >
-          <LinearGradient
-            colors={theme.accentGradient}
-            style={styles.emptyStateIcon}
-          >
-            <Icon name="activity" size={22} color={theme.accentInk} />
-          </LinearGradient>
-          <Text style={[styles.emptyStateTitle, { color: theme.ink }]}>
-            No activity yet
-          </Text>
-          <Text style={[styles.emptyStateSub, { color: theme.muted }]}>
-            Balance updates and transfers for this wallet will appear here.
-          </Text>
-        </View>
-      )}
-      </Animated.ScrollView>
-      <EdgeFade
-        position="top"
-        color={theme.dark ? "#121923" : "#f6f9fd"}
-        size={24}
-        opacity={detailScrollY.interpolate({
-          inputRange: [0, 16],
-          outputRange: [0, 1],
-          extrapolate: "clamp",
-        })}
-      />
-      <EdgeFade
-        position="bottom"
-        color={theme.dark ? "#090d12" : "#dce6f5"}
-        size={48}
-      />
+          {related.length ? (
+            <View style={styles.txList}>
+              {related.map(({ original, display }) => (
+                <TxRow
+                  key={original.id}
+                  item={display}
+                  hidden={hidden}
+                  onPress={onTransaction ? () => onTransaction(original) : undefined}
+                  theme={theme}
+                />
+              ))}
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.emptyState,
+                {
+                  backgroundColor: theme.card,
+                },
+                bevelStyle(theme.dark),
+                cardShadow(theme.dark),
+              ]}
+            >
+              <LinearGradient
+                colors={theme.accentGradient}
+                style={styles.emptyStateIcon}
+              >
+                <Icon name="activity" size={22} color={theme.accentInk} />
+              </LinearGradient>
+              <Text style={[styles.emptyStateTitle, { color: theme.ink }]}>
+                No activity yet
+              </Text>
+              <Text style={[styles.emptyStateSub, { color: theme.muted }]}>
+                Balance updates and transfers for this wallet will appear here.
+              </Text>
+            </View>
+          )}
+        </Animated.ScrollView>
+        <EdgeFade
+          position="top"
+          color={theme.dark ? "#121923" : "#f6f9fd"}
+          size={24}
+          opacity={detailScrollY.interpolate({
+            inputRange: [0, 16],
+            outputRange: [0, 1],
+            extrapolate: "clamp",
+          })}
+        />
+        <EdgeFade
+          position="bottom"
+          color={theme.dark ? "#090d12" : "#dce6f5"}
+          size={48}
+        />
       </View>
     </Animated.View>
   );
@@ -3420,13 +3428,37 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 10,
   },
-  heroGreetingTitle: {
+  heroGreetingCol: {
     flex: 1,
-    fontFamily: "Urbanist_800ExtraBold",
-    fontWeight: "800",
-    fontSize: 19,
-    letterSpacing: -0.4,
+    gap: 1,
+  },
+  heroGreetingTitle: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 17,
+    letterSpacing: -0.3,
     color: "#ffffff",
+  },
+  heroGreetingName: {
+    fontFamily: "Urbanist_600SemiBold",
+    fontWeight: "600",
+    fontSize: 13,
+    color: "rgba(255, 255, 255, 0.78)",
+  },
+  heroBalanceValueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  heroEyeBtnSmall: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(255, 255, 255, 0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.22)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   heroHeaderTitle: {
     fontFamily: "Urbanist_800ExtraBold",
