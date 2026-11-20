@@ -767,7 +767,7 @@ export const HomeScreen = React.memo(function HomeScreen({
     const now = new Date();
     const curYear = now.getFullYear();
     const curMonth = now.getMonth();
-    const monthLabel = now.toLocaleDateString("en-US", { month: "short" });
+    const monthLabel = now.toLocaleDateString("en-US", { month: "long" });
     let earned = 0;
     let spent = 0;
     for (const item of activities) {
@@ -828,84 +828,95 @@ export const HomeScreen = React.memo(function HomeScreen({
         theme={theme}
       />
 
-      {/* Current Month In / Out Summary Cards */}
-      <View style={styles.homeMonthRow}>
-        <Pressable
-          onPress={handleGoActivity}
-          style={({ pressed }) => [
-            styles.homeMonthCard,
-            {
-              backgroundColor: theme.card,
-              transform: [{ scale: pressed ? 0.975 : 1 }],
-            },
-            bevelStyle(theme.dark),
-            cardShadow(theme.dark),
-          ]}
-        >
-          <LinearGradient
-            colors={["#fff58a", "#f2c715"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.homeMonthIcon}
-          >
-            <Icon name="arrow-down" size={16} color="#241c03" />
-          </LinearGradient>
-          <View style={styles.homeMonthMeta}>
+      {/* Current Month In / Out Summary Card */}
+      <Pressable
+        onPress={handleGoActivity}
+        style={({ pressed }) => [
+          styles.homeMonthCard,
+          {
+            backgroundColor: theme.card,
+            transform: [{ scale: pressed ? 0.985 : 1 }],
+          },
+          bevelStyle(theme.dark),
+          cardShadow(theme.dark),
+        ]}
+      >
+        <View style={styles.homeMonthHalf}>
+          <View style={styles.homeMonthTop}>
             <Text
               style={[styles.homeMonthLabel, { color: theme.muted }]}
               numberOfLines={1}
             >
               {monthlySummary.monthLabel} in
             </Text>
-            <Text
-              style={[styles.homeMonthValue, { color: theme.ink }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.78}
+            <View
+              style={[
+                styles.homeMonthBadge,
+                {
+                  backgroundColor: theme.dark
+                    ? "rgba(52, 211, 153, 0.16)"
+                    : "#dcfce7",
+                },
+              ]}
             >
-              {hidden ? "••••" : money(monthlySummary.earned)}
-            </Text>
+              <Icon
+                name="arrow-down"
+                size={13}
+                strokeWidth={2.3}
+                color={theme.dark ? "#34d399" : "#059669"}
+              />
+            </View>
           </View>
-        </Pressable>
-
-        <Pressable
-          onPress={handleGoActivity}
-          style={({ pressed }) => [
-            styles.homeMonthCard,
-            {
-              backgroundColor: theme.card,
-              transform: [{ scale: pressed ? 0.975 : 1 }],
-            },
-            bevelStyle(theme.dark),
-            cardShadow(theme.dark),
-          ]}
-        >
-          <LinearGradient
-            colors={theme.accentGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.homeMonthIcon}
+          <Text
+            style={[styles.homeMonthValue, { color: theme.ink }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.78}
           >
-            <Icon name="arrow-up" size={16} color={theme.accentInk} />
-          </LinearGradient>
-          <View style={styles.homeMonthMeta}>
+            {hidden ? "••••" : money(monthlySummary.earned)}
+          </Text>
+        </View>
+
+        <View
+          style={[styles.homeMonthDivider, { backgroundColor: theme.line }]}
+        />
+
+        <View style={styles.homeMonthHalf}>
+          <View style={styles.homeMonthTop}>
             <Text
               style={[styles.homeMonthLabel, { color: theme.muted }]}
               numberOfLines={1}
             >
               {monthlySummary.monthLabel} out
             </Text>
-            <Text
-              style={[styles.homeMonthValue, { color: theme.ink }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.78}
+            <View
+              style={[
+                styles.homeMonthBadge,
+                {
+                  backgroundColor: theme.dark
+                    ? "rgba(251, 113, 133, 0.16)"
+                    : "#ffe4e6",
+                },
+              ]}
             >
-              {hidden ? "••••" : money(monthlySummary.spent)}
-            </Text>
+              <Icon
+                name="arrow-up"
+                size={13}
+                strokeWidth={2.3}
+                color={theme.dark ? "#fb7185" : "#e11d48"}
+              />
+            </View>
           </View>
-        </Pressable>
-      </View>
+          <Text
+            style={[styles.homeMonthValue, { color: theme.ink }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.78}
+          >
+            {hidden ? "••••" : money(monthlySummary.spent)}
+          </Text>
+        </View>
+      </Pressable>
 
       {/* 4-Column Quick Action Grid */}
       <View style={styles.actionGrid}>
@@ -3198,42 +3209,49 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
   },
-  homeMonthRow: {
-    flexDirection: "row",
-    gap: 9,
-    marginBottom: 10,
-  },
   homeMonthCard: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingVertical: 11,
-    paddingHorizontal: 12,
-    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 22,
     borderWidth: 1,
+    marginBottom: 10,
   },
-  homeMonthIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+  homeMonthHalf: {
+    flex: 1,
+    gap: 5,
+  },
+  homeMonthDivider: {
+    width: 1,
+    alignSelf: "stretch",
+    marginHorizontal: 14,
+    marginVertical: 2,
+  },
+  homeMonthTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  homeMonthBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
-  homeMonthMeta: {
-    flex: 1,
-    gap: 1,
-  },
   homeMonthLabel: {
-    fontFamily: "Urbanist_700Bold",
-    fontWeight: "700",
-    fontSize: 11,
+    flex: 1,
+    fontFamily: "Urbanist_600SemiBold",
+    fontWeight: "600",
+    fontSize: 12,
   },
   homeMonthValue: {
     fontFamily: "Urbanist_800ExtraBold",
     fontWeight: "800",
-    fontSize: 15,
-    letterSpacing: -0.3,
+    fontSize: 18,
+    letterSpacing: -0.4,
   },
   actionGrid: {
     flexDirection: "row",

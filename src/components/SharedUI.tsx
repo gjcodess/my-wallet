@@ -8,7 +8,7 @@ import Svg, {
   Path as SvgPath,
   Stop,
 } from "react-native-svg";
-import { ActivityItem, money, Tab, Tone, tonePalette } from "../types/wallet";
+import { ActivityItem, money, Tab, Tone } from "../types/wallet";
 import { Icon } from "./Icon";
 
 export type AccentPaletteId =
@@ -433,7 +433,16 @@ export function TxRow({
   );
 }
 
-export function ActionButton({
+const DEFAULT_ACTION_ICON_COLOR = { light: "#2563eb", dark: "#60a5fa" };
+
+const ACTION_ICON_COLORS: Partial<Record<Tone, { light: string; dark: string }>> = {
+  blue: DEFAULT_ACTION_ICON_COLOR,
+  yellow: { light: "#d97706", dark: "#facc15" },
+  navy: { light: "#172442", dark: "#f4f7ef" },
+  mint: { light: "#059669", dark: "#34d399" },
+};
+
+export const ActionButton = React.memo(function ActionButton({
   icon,
   label,
   tone,
@@ -446,7 +455,8 @@ export function ActionButton({
   onPress: () => void;
   theme: ThemeColors;
 }) {
-  const palette = tonePalette[tone] || tonePalette.blue;
+  const iconTone = ACTION_ICON_COLORS[tone] ?? DEFAULT_ACTION_ICON_COLOR;
+  const iconColor = theme.dark ? iconTone.dark : iconTone.light;
   return (
     <Pressable
       onPress={onPress}
@@ -460,18 +470,13 @@ export function ActionButton({
         cardShadow(theme.dark),
       ]}
     >
-      <LinearGradient
-        colors={[palette.from, palette.to]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.actionIconBadge}
-      >
-        <Icon name={icon} size={18} color={palette.ink} />
-      </LinearGradient>
-      <Text style={[styles.actionLabel, { color: theme.ink }]}>{label}</Text>
+      <Icon name={icon} size={20} strokeWidth={2.2} color={iconColor} />
+      <Text style={[styles.actionLabel, { color: theme.ink }]} numberOfLines={1}>
+        {label}
+      </Text>
     </Pressable>
   );
-}
+});
 
 export function SectionTitle({
   title,
@@ -790,31 +795,19 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    height: 78,
-    borderRadius: 24,
+    height: 58,
+    borderRadius: 19,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 7,
-    paddingVertical: 9,
-    paddingHorizontal: 5,
-  },
-  actionIconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#121a2d",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    gap: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
   },
   actionLabel: {
-    fontFamily: "Urbanist_800ExtraBold",
-    fontWeight: "800",
-    fontSize: 11,
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 11.5,
   },
   sectionTitle: {
     flexDirection: "row",
