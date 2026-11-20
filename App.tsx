@@ -208,7 +208,7 @@ export default function App() {
     tabAnim.setValue(0);
     const anim = Animated.timing(tabAnim, {
       toValue: 1,
-      duration: 135,
+      duration: 210,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     });
@@ -750,12 +750,15 @@ export default function App() {
               >
               <Animated.View
                 style={{
-                  opacity: tabAnim,
+                  opacity: tabAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.35, 1],
+                  }),
                   transform: [
                     {
                       translateY: tabAnim.interpolate({
                         inputRange: [0, 1],
-                        outputRange: [6, 0],
+                        outputRange: [10, 0],
                       }),
                     },
                   ],
@@ -806,6 +809,7 @@ export default function App() {
                       onTransaction={openTransactionSheet}
                       onShowToast={setToast}
                       showFilters={showActivityFilters}
+                      isActive={tab === "activity"}
                       theme={theme}
                     />
                   </View>

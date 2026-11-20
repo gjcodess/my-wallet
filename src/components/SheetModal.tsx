@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -71,10 +72,10 @@ export function SheetModal({
   onUpdateActivity,
   onDeleteActivity,
   onRenameWalletActivities,
-  onOpenWallet,
-  onClose,
+  onOpenWallet: onOpenWalletProp,
+  onClose: onCloseProp,
   onSwitchSheet,
-  onDone,
+  onDone: onDoneProp,
   profile,
   onUpdateProfile,
   monthlyBudget = null,
@@ -107,7 +108,43 @@ export function SheetModal({
   theme: ThemeColors;
 }) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const sheetStartY = Math.min(Math.max(windowHeight, 560), 760);
   const openAnim = useRef(new Animated.Value(0)).current;
+  const closingRef = useRef(false);
+
+  const closeWith = useCallback(
+    (cb: () => void) => {
+      if (closingRef.current) return;
+      closingRef.current = true;
+      Keyboard.dismiss();
+      Animated.timing(openAnim, {
+        toValue: 0,
+        duration: 185,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(() => {
+        cb();
+      });
+    },
+    [openAnim]
+  );
+
+  const onClose = useCallback(
+    () => closeWith(onCloseProp),
+    [closeWith, onCloseProp]
+  );
+  const onDone = useCallback(
+    (message: string) => closeWith(() => onDoneProp(message)),
+    [closeWith, onDoneProp]
+  );
+  const onOpenWallet = useMemo(
+    () =>
+      onOpenWalletProp
+        ? (w: Wallet) => closeWith(() => onOpenWalletProp(w))
+        : undefined,
+    [closeWith, onOpenWalletProp]
+  );
   const fallback = selected?.id || wallets[0]?.id || 1;
   const editTarget =
     type === "edit" ? selected || wallets[0] : null;
@@ -284,13 +321,17 @@ export function SheetModal({
   );
 
   useEffect(() => {
+    closingRef.current = false;
     openAnim.setValue(0);
-    Animated.timing(openAnim, {
-      toValue: 1,
-      duration: 190,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
+    const raf = requestAnimationFrame(() => {
+      Animated.timing(openAnim, {
+        toValue: 1,
+        duration: 250,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    });
+    return () => cancelAnimationFrame(raf);
   }, [openAnim]);
 
   useEffect(() => {
@@ -656,7 +697,7 @@ export function SheetModal({
                 {
                   translateY: openAnim.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [340, 0],
+                    outputRange: [sheetStartY, 0],
                   }),
                 },
               ],

@@ -1308,6 +1308,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   onTransaction,
   onShowToast,
   showFilters = false,
+  isActive = true,
   theme,
 }: {
   activities: ActivityItem[];
@@ -1318,6 +1319,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   onTransaction?: (item: ActivityItem) => void;
   onShowToast?: (msg: string) => void;
   showFilters?: boolean;
+  isActive?: boolean;
   theme: ThemeColors;
 }) {
   const [range, setRange] = useState<"Month" | "Week">("Month");
@@ -1385,14 +1387,17 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   }, [page, totalPages]);
 
   useEffect(() => {
+    if (!isActive) return;
     barProgress.setValue(0);
-    Animated.timing(barProgress, {
+    const anim = Animated.timing(barProgress, {
       toValue: 1,
-      duration: 280,
+      duration: 380,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [range, barProgress, activities.length]);
+      useNativeDriver: false,
+    });
+    anim.start();
+    return () => anim.stop();
+  }, [isActive, range, barProgress, activities.length]);
 
   const visiblePages = useMemo<(number | "dots-l" | "dots-r")[]>(() => {
     if (totalPages <= 5) {
@@ -1850,9 +1855,10 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                             style={[
                               styles.bar,
                               {
-                                height: `${b.inPct}%`,
-                                transformOrigin: "bottom",
-                                transform: [{ scaleY: barProgress }],
+                                height: barProgress.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: ["0%", `${b.inPct}%`],
+                                }),
                                 overflow: "hidden",
                               },
                             ]}
@@ -1866,9 +1872,10 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                             style={[
                               styles.bar,
                               {
-                                height: `${b.outPct}%`,
-                                transformOrigin: "bottom",
-                                transform: [{ scaleY: barProgress }],
+                                height: barProgress.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: ["0%", `${b.outPct}%`],
+                                }),
                                 overflow: "hidden",
                               },
                             ]}
