@@ -113,6 +113,86 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
   );
 });
 
+const HeroMonthlyFlowRow = React.memo(function HeroMonthlyFlowRow({
+  monthLabel,
+  earned,
+  spent,
+  hidden,
+  onPress,
+}: {
+  monthLabel: string;
+  earned: number;
+  spent: number;
+  hidden: boolean;
+  onPress?: () => void;
+}) {
+  const inner = (
+    <>
+      <View style={styles.walletsHeroFlowHalf}>
+        <Icon
+          name="arrow-down"
+          size={18}
+          strokeWidth={2.4}
+          color="#86efac"
+        />
+        <View style={styles.walletsHeroFlowMeta}>
+          <Text style={styles.walletsHeroFlowLabel} numberOfLines={1}>
+            {monthLabel} in
+          </Text>
+          <Text
+            style={styles.walletsHeroFlowVal}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.78}
+          >
+            {hidden ? "••••" : money(earned)}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.walletsHeroFlowDivider} />
+
+      <View style={styles.walletsHeroFlowHalf}>
+        <Icon
+          name="arrow-up"
+          size={18}
+          strokeWidth={2.4}
+          color="#fda4af"
+        />
+        <View style={styles.walletsHeroFlowMeta}>
+          <Text style={styles.walletsHeroFlowLabel} numberOfLines={1}>
+            {monthLabel} out
+          </Text>
+          <Text
+            style={styles.walletsHeroFlowVal}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.78}
+          >
+            {hidden ? "••••" : money(spent)}
+          </Text>
+        </View>
+      </View>
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.walletsHeroFlowRow,
+          { opacity: pressed ? 0.8 : 1 },
+        ]}
+      >
+        {inner}
+      </Pressable>
+    );
+  }
+
+  return <View style={styles.walletsHeroFlowRow}>{inner}</View>;
+});
+
 const STACK_SCROLL_STEP_PX = 88;
 
 const RingCard = React.memo(function RingCard({
@@ -706,6 +786,7 @@ export const HomeScreen = React.memo(function HomeScreen({
   total,
   hidden,
   setHidden,
+  profile,
   onWallet,
   onTransaction,
   onSheet,
@@ -718,6 +799,7 @@ export const HomeScreen = React.memo(function HomeScreen({
   total: number;
   hidden: boolean;
   setHidden: (v: boolean) => void;
+  profile?: UserProfile;
   onWallet: (w: Wallet) => void;
   onTransaction?: (item: ActivityItem) => void;
   onSheet: (s: Sheet, w?: Wallet) => void;
@@ -730,6 +812,7 @@ export const HomeScreen = React.memo(function HomeScreen({
   const featured = wallets.length ? wallets[safeFront] : undefined;
 
   const handleOpenAdd = useCallback(() => onSheet("add"), [onSheet]);
+  const handleOpenSearch = useCallback(() => onSheet("search"), [onSheet]);
   const handleOpenMenu = useCallback(
     (w: Wallet) => onSheet("update", w),
     [onSheet]
@@ -772,29 +855,66 @@ export const HomeScreen = React.memo(function HomeScreen({
     return { monthLabel, earned, spent };
   }, [activities]);
 
+  const greetingText = useMemo(() => {
+    const hour = new Date().getHours();
+    const part =
+      hour < 12
+        ? "Good morning"
+        : hour < 18
+          ? "Good afternoon"
+          : "Good evening";
+    const firstName = profile?.fullName?.split(" ")[0]?.trim();
+    return firstName ? `${part}, ${firstName}` : part;
+  }, [profile?.fullName]);
+
   return (
     <View style={[styles.page, { paddingTop: 0 }]}>
       {/* Net Worth Hero Header */}
       <HeroHeaderSurface theme={theme} style={{ marginBottom: 18 }}>
-        <View style={styles.heroSingleRow}>
-          <View style={styles.totalTextCol}>
-            <Text style={styles.heroHeaderLabel}>Net worth</Text>
-            <Amount value={total} hidden={hidden} size="lg" color="#ffffff" />
+        <View style={styles.heroTopRow}>
+          <Text style={styles.heroGreetingTitle} numberOfLines={1}>
+            {greetingText}
+          </Text>
+          <View style={styles.heroHeaderActions}>
+            <Pressable
+              onPress={handleOpenSearch}
+              accessibilityLabel="Search"
+              style={({ pressed }) => [
+                styles.heroIconBtn,
+                { transform: [{ scale: pressed ? 0.92 : 1 }] },
+              ]}
+            >
+              <Icon name="search" size={17} color="#ffffff" />
+            </Pressable>
+            <Pressable
+              onPress={handleToggleHidden}
+              accessibilityLabel={hidden ? "Show balances" : "Hide balances"}
+              style={({ pressed }) => [
+                styles.heroIconBtn,
+                { transform: [{ scale: pressed ? 0.92 : 1 }] },
+              ]}
+            >
+              <Icon
+                name={hidden ? "eye-off" : "eye"}
+                size={17}
+                color="#ffffff"
+              />
+            </Pressable>
           </View>
-          <Pressable
-            onPress={handleToggleHidden}
-            style={({ pressed }) => [
-              styles.heroIconBtn,
-              { transform: [{ scale: pressed ? 0.92 : 1 }] },
-            ]}
-          >
-            <Icon
-              name={hidden ? "eye-off" : "eye"}
-              size={18}
-              color="#ffffff"
-            />
-          </Pressable>
         </View>
+
+        <View style={styles.heroBalanceBlock}>
+          <Text style={styles.heroHeaderLabel}>Net worth</Text>
+          <Amount value={total} hidden={hidden} size="lg" color="#ffffff" />
+        </View>
+
+        <HeroMonthlyFlowRow
+          monthLabel={monthlySummary.monthLabel}
+          earned={monthlySummary.earned}
+          spent={monthlySummary.spent}
+          hidden={hidden}
+          onPress={handleGoActivity}
+        />
       </HeroHeaderSurface>
 
       <WalletCardDeck
@@ -807,76 +927,6 @@ export const HomeScreen = React.memo(function HomeScreen({
         onStackDragChange={onStackDragChange}
         theme={theme}
       />
-
-      {/* Current Month In / Out Summary Card */}
-      <Pressable
-        onPress={handleGoActivity}
-        style={({ pressed }) => [
-          styles.homeMonthCard,
-          {
-            backgroundColor: theme.card,
-            overflow: "hidden",
-            transform: [{ scale: pressed ? 0.985 : 1 }],
-          },
-          bevelStyle(theme.dark),
-          cardShadow(theme.dark),
-        ]}
-      >
-        <AccentSurfaceGlow theme={theme} />
-        <View style={styles.homeMonthHalf}>
-          <Icon
-            name="arrow-down"
-            size={20}
-            strokeWidth={2.4}
-            color={theme.dark ? "#34d399" : "#059669"}
-          />
-          <View style={styles.homeMonthMeta}>
-            <Text
-              style={[styles.homeMonthLabel, { color: theme.muted }]}
-              numberOfLines={1}
-            >
-              {monthlySummary.monthLabel} in
-            </Text>
-            <Text
-              style={[styles.homeMonthValue, { color: theme.ink }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.78}
-            >
-              {hidden ? "••••" : money(monthlySummary.earned)}
-            </Text>
-          </View>
-        </View>
-
-        <View
-          style={[styles.homeMonthDivider, { backgroundColor: theme.line }]}
-        />
-
-        <View style={styles.homeMonthHalf}>
-          <Icon
-            name="arrow-up"
-            size={20}
-            strokeWidth={2.4}
-            color={theme.dark ? "#fb7185" : "#e11d48"}
-          />
-          <View style={styles.homeMonthMeta}>
-            <Text
-              style={[styles.homeMonthLabel, { color: theme.muted }]}
-              numberOfLines={1}
-            >
-              {monthlySummary.monthLabel} out
-            </Text>
-            <Text
-              style={[styles.homeMonthValue, { color: theme.ink }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.78}
-            >
-              {hidden ? "••••" : money(monthlySummary.spent)}
-            </Text>
-          </View>
-        </View>
-      </Pressable>
 
       {/* 4-Column Quick Action Grid */}
       <View style={styles.actionGrid}>
@@ -1247,53 +1297,12 @@ export const WalletsScreen = React.memo(function WalletsScreen({
           <Amount value={total} hidden={hidden} size="lg" color="#ffffff" />
         </View>
 
-        <View style={styles.walletsHeroFlowRow}>
-          <View style={styles.walletsHeroFlowHalf}>
-            <Icon
-              name="arrow-down"
-              size={18}
-              strokeWidth={2.4}
-              color="#86efac"
-            />
-            <View style={styles.walletsHeroFlowMeta}>
-              <Text style={styles.walletsHeroFlowLabel} numberOfLines={1}>
-                {fullMonthLabel} in
-              </Text>
-              <Text
-                style={styles.walletsHeroFlowVal}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.78}
-              >
-                {hidden ? "••••" : money(totalEarned)}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.walletsHeroFlowDivider} />
-
-          <View style={styles.walletsHeroFlowHalf}>
-            <Icon
-              name="arrow-up"
-              size={18}
-              strokeWidth={2.4}
-              color="#fda4af"
-            />
-            <View style={styles.walletsHeroFlowMeta}>
-              <Text style={styles.walletsHeroFlowLabel} numberOfLines={1}>
-                {fullMonthLabel} out
-              </Text>
-              <Text
-                style={styles.walletsHeroFlowVal}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.78}
-              >
-                {hidden ? "••••" : money(totalSpent)}
-              </Text>
-            </View>
-          </View>
-        </View>
+        <HeroMonthlyFlowRow
+          monthLabel={fullMonthLabel}
+          earned={totalEarned}
+          spent={totalSpent}
+          hidden={hidden}
+        />
       </HeroHeaderSurface>
 
       {wallets.length > 1 && onReorderWallets ? (
@@ -3383,43 +3392,8 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
   },
-  homeMonthCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 13,
-    paddingHorizontal: 15,
-    borderRadius: 22,
-    borderWidth: 1,
-    marginBottom: 10,
-  },
-  homeMonthHalf: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 11,
-  },
-  homeMonthDivider: {
-    width: 1,
-    alignSelf: "stretch",
-    marginHorizontal: 12,
-    marginVertical: 2,
-  },
-  homeMonthMeta: {
-    flex: 1,
-    gap: 2,
-  },
-  homeMonthLabel: {
-    fontFamily: "Urbanist_600SemiBold",
-    fontWeight: "600",
-    fontSize: 12,
-  },
-  homeMonthValue: {
-    fontFamily: "Urbanist_800ExtraBold",
-    fontWeight: "800",
-    fontSize: 17,
-    letterSpacing: -0.4,
-  },
   actionGrid: {
+    marginTop: 14,
     flexDirection: "row",
     gap: 9,
   },
@@ -3452,6 +3426,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 10,
+  },
+  heroGreetingTitle: {
+    flex: 1,
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 19,
+    letterSpacing: -0.4,
+    color: "#ffffff",
   },
   heroHeaderTitle: {
     fontFamily: "Urbanist_800ExtraBold",

@@ -28,6 +28,7 @@ import {
   isTransferActivity,
   money,
   Sheet,
+  Tab,
   Tone,
   tonePalette,
   UserProfile,
@@ -36,11 +37,13 @@ import {
 import { FolderSurface } from "./FolderSurface";
 import { Icon } from "./Icon";
 import {
+  AccentSurfaceGlow,
   bevelStyle,
   cardShadow,
   EdgeFade,
   ThemeColors,
   TopBar,
+  TxRow,
 } from "./SharedUI";
 import { WalletFolder, WalletLogoBadge } from "./WalletFolder";
 import {
@@ -63,6 +66,7 @@ const PRESET_GROUPS: ("All" | WalletPresetGroup)[] = [
 export function SheetModal({
   type,
   wallets,
+  activities = [],
   selected,
   activity,
   hidden = false,
@@ -73,6 +77,8 @@ export function SheetModal({
   onDeleteActivity,
   onRenameWalletActivities,
   onOpenWallet: onOpenWalletProp,
+  onOpenTransaction,
+  onNavigateTab,
   onClose: onCloseProp,
   onSwitchSheet,
   onDone: onDoneProp,
@@ -86,6 +92,7 @@ export function SheetModal({
 }: {
   type: Exclude<Sheet, null>;
   wallets: Wallet[];
+  activities?: ActivityItem[];
   selected: Wallet | null;
   activity?: ActivityItem | null;
   hidden?: boolean;
@@ -96,6 +103,8 @@ export function SheetModal({
   onDeleteActivity?: (item: ActivityItem, nextWallets: Wallet[]) => void;
   onRenameWalletActivities?: (wallet: Wallet, newName: string) => void;
   onOpenWallet?: (w: Wallet) => void;
+  onOpenTransaction?: (item: ActivityItem) => void;
+  onNavigateTab?: (tab: Tab) => void;
   onClose: () => void;
   onSwitchSheet?: (nextType: Exclude<Sheet, null>, wallet?: Wallet) => void;
   onDone: (message: string) => void;
@@ -172,12 +181,14 @@ export function SheetModal({
   );
   const [showOpeningKeypad, setShowOpeningKeypad] = useState(false);
   const [walletConfirmDelete, setWalletConfirmDelete] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState("");
   const sheetScrollY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     sheetScrollY.setValue(0);
     setShowOpeningKeypad(false);
     setWalletConfirmDelete(false);
+    setGlobalSearch("");
     setTransferFee(0);
     setPickingTransferSide(null);
     setUpdateMode("set");
@@ -266,6 +277,130 @@ export function SheetModal({
   const destWallet = wallets.find((w) => w.id === destination) || wallets[0];
 
   const isPresetSheet = type === "add" || type === "edit";
+
+  const globalSearchResults = useMemo(() => {
+    if (type !== "search") {
+      return {
+        wallets: [] as Wallet[],
+        activities: [] as ActivityItem[],
+        actions: [] as {
+          id: string;
+          label: string;
+          sub: string;
+          icon: string;
+          keywords: string;
+          sheet?: Exclude<Sheet, null>;
+          tab?: Tab;
+        }[],
+      };
+    }
+
+    const quickItems: {
+      id: string;
+      label: string;
+      sub: string;
+      icon: string;
+      keywords: string;
+      sheet?: Exclude<Sheet, null>;
+      tab?: Tab;
+    }[] = [
+      {
+        id: "act-entry",
+        label: "Add transaction",
+        sub: "Log an expense or money in",
+        icon: "plus",
+        keywords: "expense income spend earn money in out log record",
+        sheet: "entry",
+      },
+      {
+        id: "act-add",
+        label: "Add new wallet",
+        sub: "Bank, e-wallet, or cash card",
+        icon: "wallet",
+        keywords: "new card bank ewallet account create",
+        sheet: "add",
+      },
+      {
+        id: "act-transfer",
+        label: "Transfer between wallets",
+        sub: "Move money across cards",
+        icon: "swap",
+        keywords: "move send transfer fee",
+        sheet: "transfer",
+      },
+      {
+        id: "act-update",
+        label: "Update balance",
+        sub: "Adjust or edit wallet balance",
+        icon: "edit",
+        keywords: "adjust balance edit wallet",
+        sheet: "update",
+      },
+      {
+        id: "act-budget",
+        label: "Monthly budget",
+        sub: "Set or adjust spending target",
+        icon: "trend",
+        keywords: "target spending limit budget",
+        sheet: "budget",
+      },
+      {
+        id: "tab-wallets",
+        label: "My Wallets",
+        sub: "View & reorder all cards",
+        icon: "wallet",
+        keywords: "cards wallets combined balance reorder",
+        tab: "wallets",
+      },
+      {
+        id: "tab-activity",
+        label: "Activity & analytics",
+        sub: "Charts, categories, CSV export",
+        icon: "activity",
+        keywords: "charts spending history filter export csv",
+        tab: "activity",
+      },
+      {
+        id: "tab-settings",
+        label: "Settings",
+        sub: "Theme, accent color, PIN lock, sync",
+        icon: "settings",
+        keywords: "dark mode theme accent pin lock biometrics backup supabase",
+        tab: "settings",
+      },
+    ];
+
+    const q = globalSearch.trim().toLowerCase();
+    if (!q) {
+      return {
+        wallets: wallets.slice(0, 4),
+        activities: activities.slice(0, 6),
+        actions: quickItems.slice(0, 4),
+      };
+    }
+
+    const matchedWallets = wallets.filter((w) =>
+      `${w.name} ${w.type} ${w.account} ${w.balance}`
+        .toLowerCase()
+        .includes(q)
+    );
+    const matchedActivities = activities
+      .filter((item) =>
+        `${item.title} ${item.wallet} ${item.kind} ${item.date} ${Math.abs(item.amount)}`
+          .toLowerCase()
+          .includes(q)
+      )
+      .slice(0, 20);
+    const matchedActions = quickItems.filter((a) =>
+      `${a.label} ${a.sub} ${a.keywords}`.toLowerCase().includes(q)
+    );
+
+    return {
+      wallets: matchedWallets,
+      activities: matchedActivities,
+      actions: matchedActions,
+    };
+  }, [type, globalSearch, wallets, activities]);
 
   const selectedPreset = useMemo(
     () =>
@@ -607,7 +742,9 @@ export function SheetModal({
                 ? "Transaction Details"
                 : type === "budget"
                   ? "Monthly Budget"
-                  : "Account & Cloud Sync";
+                  : type === "search"
+                    ? "Search"
+                    : "Account & Cloud Sync";
 
   const heroTone: Tone = entryType === "expense" ? "blue" : "yellow";
   const heroPal = tonePalette[heroTone];
@@ -692,7 +829,13 @@ export function SheetModal({
             {
               backgroundColor: theme.page,
               paddingBottom: Math.max(20, insets.bottom + 8),
-              maxHeight: type === "add" || type === "entry" || type === "auth" ? "92%" : "86%",
+              maxHeight:
+                type === "add" ||
+                type === "entry" ||
+                type === "auth" ||
+                type === "search"
+                  ? "92%"
+                  : "86%",
               transform: [
                 {
                   translateY: openAnim.interpolate({
@@ -3116,6 +3259,228 @@ export function SheetModal({
                 ) : null}
               </View>
             )}
+
+            {/* ==================== GLOBAL SEARCH SHEET ==================== */}
+            {type === "search" && (
+              <View>
+                <View
+                  style={[
+                    styles.presetSearchBox,
+                    { backgroundColor: theme.soft, borderColor: theme.line },
+                  ]}
+                >
+                  <Icon name="search" size={16} color={theme.accentText} />
+                  <TextInput
+                    value={globalSearch}
+                    onChangeText={setGlobalSearch}
+                    autoFocus
+                    placeholder="Search cards, transactions, actions..."
+                    placeholderTextColor={theme.muted}
+                    style={[styles.presetSearchInput, { color: theme.ink }]}
+                  />
+                  {globalSearch ? (
+                    <Pressable onPress={() => setGlobalSearch("")} hitSlop={8}>
+                      <Icon name="close" size={14} color={theme.muted} />
+                    </Pressable>
+                  ) : null}
+                </View>
+
+                {globalSearchResults.wallets.length > 0 ? (
+                  <View style={styles.searchSection}>
+                    <Text
+                      style={[styles.searchSectionLabel, { color: theme.muted }]}
+                    >
+                      CARDS & WALLETS
+                    </Text>
+                    <View style={{ gap: 8 }}>
+                      {globalSearchResults.wallets.map((w) => {
+                        const pal = tonePalette[w.tone] || tonePalette.blue;
+                        return (
+                          <Pressable
+                            key={w.id}
+                            onPress={() => onOpenWallet?.(w)}
+                            style={({ pressed }) => [
+                              styles.searchWalletRow,
+                              {
+                                backgroundColor: theme.card,
+                                overflow: "hidden",
+                                transform: [{ scale: pressed ? 0.985 : 1 }],
+                              },
+                              bevelStyle(theme.dark),
+                              cardShadow(theme.dark),
+                            ]}
+                          >
+                            <AccentSurfaceGlow theme={theme} />
+                            <LinearGradient
+                              colors={[pal.from, pal.to]}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 1 }}
+                              style={styles.searchWalletBadge}
+                            >
+                              <WalletLogoBadge
+                                logoKey={w.logoKey}
+                                name={w.name}
+                                mark={w.mark}
+                                size={36}
+                                radius={12}
+                                ink={pal.ink}
+                                fontSize={9}
+                              />
+                            </LinearGradient>
+                            <View style={{ flex: 1, gap: 1 }}>
+                              <Text
+                                style={[
+                                  styles.searchItemTitle,
+                                  { color: theme.ink },
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {w.name}
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.searchItemSub,
+                                  { color: theme.muted },
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {w.type} · {w.account}
+                              </Text>
+                            </View>
+                            <Text
+                              style={[
+                                styles.searchWalletBal,
+                                { color: theme.ink },
+                              ]}
+                            >
+                              {hidden ? "••••" : money(w.balance)}
+                            </Text>
+                            <Icon
+                              name="chevron"
+                              size={15}
+                              color={theme.muted}
+                            />
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ) : null}
+
+                {globalSearchResults.activities.length > 0 ? (
+                  <View style={styles.searchSection}>
+                    <Text
+                      style={[styles.searchSectionLabel, { color: theme.muted }]}
+                    >
+                      TRANSACTIONS
+                    </Text>
+                    <View style={{ gap: 8 }}>
+                      {globalSearchResults.activities.map((item) => (
+                        <TxRow
+                          key={item.id}
+                          item={item}
+                          hidden={hidden}
+                          onPress={() => onOpenTransaction?.(item)}
+                          theme={theme}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+
+                {globalSearchResults.actions.length > 0 ? (
+                  <View style={styles.searchSection}>
+                    <Text
+                      style={[styles.searchSectionLabel, { color: theme.muted }]}
+                    >
+                      PAGES & ACTIONS
+                    </Text>
+                    <View style={{ gap: 8 }}>
+                      {globalSearchResults.actions.map((act) => (
+                        <Pressable
+                          key={act.id}
+                          onPress={() => {
+                            if (act.sheet) {
+                              onSwitchSheet?.(act.sheet);
+                            } else if (act.tab && onNavigateTab) {
+                              closeWith(() => onNavigateTab(act.tab!));
+                            }
+                          }}
+                          style={({ pressed }) => [
+                            styles.searchWalletRow,
+                            {
+                              backgroundColor: theme.card,
+                              overflow: "hidden",
+                              transform: [{ scale: pressed ? 0.985 : 1 }],
+                            },
+                            bevelStyle(theme.dark),
+                            cardShadow(theme.dark),
+                          ]}
+                        >
+                          <AccentSurfaceGlow theme={theme} />
+                          <View
+                            style={[
+                              styles.searchActionIcon,
+                              { backgroundColor: theme.accentSoft },
+                            ]}
+                          >
+                            <Icon
+                              name={act.icon}
+                              size={16}
+                              color={theme.accentText}
+                            />
+                          </View>
+                          <View style={{ flex: 1, gap: 1 }}>
+                            <Text
+                              style={[
+                                styles.searchItemTitle,
+                                { color: theme.ink },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {act.label}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.searchItemSub,
+                                { color: theme.muted },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {act.sub}
+                            </Text>
+                          </View>
+                          <Icon
+                            name="chevron"
+                            size={15}
+                            color={theme.muted}
+                          />
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+
+                {globalSearch.trim().length > 0 &&
+                globalSearchResults.wallets.length === 0 &&
+                globalSearchResults.activities.length === 0 &&
+                globalSearchResults.actions.length === 0 ? (
+                  <View style={styles.searchEmptyBox}>
+                    <Icon name="search" size={24} color={theme.muted} />
+                    <Text
+                      style={[styles.searchEmptyTitle, { color: theme.ink }]}
+                    >
+                      No matches found
+                    </Text>
+                    <Text
+                      style={[styles.searchEmptySub, { color: theme.muted }]}
+                    >
+                      Try searching a card name, merchant, category, or action.
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            )}
             </Animated.ScrollView>
             <EdgeFade
               position="top"
@@ -3184,6 +3549,73 @@ function PrimaryButton({
 }
 
 const styles = StyleSheet.create({
+  searchSection: {
+    marginTop: 14,
+  },
+  searchSectionLabel: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 11,
+    letterSpacing: 0.7,
+    marginBottom: 8,
+    marginLeft: 2,
+  },
+  searchWalletRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 11,
+    paddingVertical: 11,
+    paddingHorizontal: 13,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  searchWalletBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  searchActionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  searchItemTitle: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 13.5,
+  },
+  searchItemSub: {
+    fontFamily: "Urbanist_600SemiBold",
+    fontWeight: "600",
+    fontSize: 11,
+  },
+  searchWalletBal: {
+    fontFamily: "Urbanist_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 13,
+  },
+  searchEmptyBox: {
+    alignItems: "center",
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    gap: 6,
+  },
+  searchEmptyTitle: {
+    fontFamily: "Urbanist_700Bold",
+    fontWeight: "700",
+    fontSize: 15,
+    marginTop: 4,
+  },
+  searchEmptySub: {
+    fontFamily: "Urbanist_600SemiBold",
+    fontWeight: "600",
+    fontSize: 12,
+    textAlign: "center",
+  },
   overlayRoot: {
     position: "absolute",
     top: 0,

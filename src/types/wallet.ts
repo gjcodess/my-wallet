@@ -41,6 +41,7 @@ export type Sheet =
   | "tx"
   | "auth"
   | "budget"
+  | "search"
   | null;
 export type Tone =
   | "blue"

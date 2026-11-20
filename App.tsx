@@ -605,6 +605,14 @@ export default function App() {
   }, []);
   const handleSwitchSheet = useCallback(
     (nextType: Exclude<Sheet, null>, nextWallet?: Wallet) => {
+      if ((nextType === "entry" || nextType === "update") && walletsRef.current.length === 0) {
+        setToast("Add a wallet first");
+        return;
+      }
+      if (nextType === "transfer" && walletsRef.current.length < 2) {
+        setToast("Add at least 2 wallets to transfer");
+        return;
+      }
       setSheetActivity(null);
       if (nextWallet) setSheetWalletId(nextWallet.id);
       setSheet(nextType);
@@ -770,6 +778,7 @@ export default function App() {
                       total={total}
                       hidden={hidden}
                       setHidden={setHidden}
+                      profile={profile}
                       onWallet={handleSelectWallet}
                       onTransaction={openTransactionSheet}
                       onSheet={openSheet}
@@ -923,6 +932,7 @@ export default function App() {
         <SheetModal
           type={sheet}
           wallets={wallets}
+          activities={activityItems}
           selected={sheetWallet}
           activity={sheetActivity}
           hidden={hidden}
@@ -939,6 +949,8 @@ export default function App() {
           onDeleteActivity={handleDeleteActivity}
           onRenameWalletActivities={handleRenameWalletActivities}
           onOpenWallet={handleOpenWalletFromSheet}
+          onOpenTransaction={openTransactionSheet}
+          onNavigateTab={handleTabChange}
           onClose={handleCloseSheet}
           onSwitchSheet={handleSwitchSheet}
           onDone={handleSheetDone}
