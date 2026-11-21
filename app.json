@@ -26,6 +26,7 @@
     "plugins": [
       "expo-sqlite",
       "expo-font",
+      "expo-notifications",
       [
         "expo-local-authentication",
         {

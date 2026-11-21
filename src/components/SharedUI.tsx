@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, {
   Circle as SvgCircle,
@@ -47,11 +47,11 @@ export const ACCENT_PALETTES: AccentPaletteSpec[] = [
     label: "Blue",
     swatch: ["#8fd0ff", "#2563eb"],
     light: {
-      accent: "#2563eb",
+      accent: "#5594f5",
       accentSoft: "#dcebff",
-      accentInk: "#ffffff",
+      accentInk: "#102440",
       accentText: "#1d4ed8",
-      accentGradient: ["#8fd0ff", "#2563eb"],
+      accentGradient: ["#b1d9ff", "#75aaff"],
     },
     dark: {
       accent: "#60a5fa",
@@ -66,11 +66,11 @@ export const ACCENT_PALETTES: AccentPaletteSpec[] = [
     label: "Emerald",
     swatch: ["#6ee7b7", "#059669"],
     light: {
-      accent: "#059669",
+      accent: "#34c88b",
       accentSoft: "#d1fae5",
-      accentInk: "#ffffff",
+      accentInk: "#073523",
       accentText: "#047857",
-      accentGradient: ["#34d399", "#059669"],
+      accentGradient: ["#a2efd0", "#60dba6"],
     },
     dark: {
       accent: "#34d399",
@@ -85,11 +85,11 @@ export const ACCENT_PALETTES: AccentPaletteSpec[] = [
     label: "Violet",
     swatch: ["#c4b5fd", "#7c3aed"],
     light: {
-      accent: "#7c3aed",
+      accent: "#a78bfa",
       accentSoft: "#ede9fe",
-      accentInk: "#ffffff",
+      accentInk: "#28164d",
       accentText: "#6d28d9",
-      accentGradient: ["#a78bfa", "#6d28d9"],
+      accentGradient: ["#ddd1ff", "#b6a0fa"],
     },
     dark: {
       accent: "#a78bfa",
@@ -104,11 +104,11 @@ export const ACCENT_PALETTES: AccentPaletteSpec[] = [
     label: "Rose",
     swatch: ["#fda4af", "#e11d48"],
     light: {
-      accent: "#e11d48",
+      accent: "#fb8da7",
       accentSoft: "#ffe4e6",
-      accentInk: "#ffffff",
+      accentInk: "#4b1527",
       accentText: "#be123c",
-      accentGradient: ["#fb7185", "#e11d48"],
+      accentGradient: ["#ffc5d3", "#fb9bb2"],
     },
     dark: {
       accent: "#fb7185",
@@ -123,11 +123,11 @@ export const ACCENT_PALETTES: AccentPaletteSpec[] = [
     label: "Amber",
     swatch: ["#fcd34d", "#d97706"],
     light: {
-      accent: "#d97706",
+      accent: "#edb849",
       accentSoft: "#fef3c7",
-      accentInk: "#ffffff",
+      accentInk: "#422a08",
       accentText: "#b45309",
-      accentGradient: ["#f59e0b", "#b45309"],
+      accentGradient: ["#ffe3a0", "#f5c76b"],
     },
     dark: {
       accent: "#fbbf24",
@@ -142,11 +142,11 @@ export const ACCENT_PALETTES: AccentPaletteSpec[] = [
     label: "Teal",
     swatch: ["#5eead4", "#0d9488"],
     light: {
-      accent: "#0d9488",
+      accent: "#39c8b6",
       accentSoft: "#ccfbf1",
-      accentInk: "#ffffff",
+      accentInk: "#07382f",
       accentText: "#0f766e",
-      accentGradient: ["#2dd4bf", "#0d9488"],
+      accentGradient: ["#a6eee3", "#65d8c8"],
     },
     dark: {
       accent: "#2dd4bf",
@@ -158,21 +158,21 @@ export const ACCENT_PALETTES: AccentPaletteSpec[] = [
   },
   {
     id: "coral",
-    label: "Coral",
-    swatch: ["#fdba74", "#ea580c"],
+    label: "Copper",
+    swatch: ["#ffad87", "#d64b20"],
     light: {
-      accent: "#ea580c",
-      accentSoft: "#ffedd5",
-      accentInk: "#ffffff",
-      accentText: "#c2410c",
-      accentGradient: ["#fb923c", "#ea580c"],
+      accent: "#f18b65",
+      accentSoft: "#fce7dd",
+      accentInk: "#472014",
+      accentText: "#a53619",
+      accentGradient: ["#ffd1ba", "#ffa582"],
     },
     dark: {
-      accent: "#fb923c",
-      accentSoft: "rgba(251, 146, 60, 0.15)",
-      accentInk: "#291003",
-      accentText: "#fed7aa",
-      accentGradient: ["#fed7aa", "#fb923c"],
+      accent: "#ff865c",
+      accentSoft: "rgba(255, 134, 92, 0.13)",
+      accentInk: "#260d05",
+      accentText: "#ffad87",
+      accentGradient: ["#ffad87", "#ec6035"],
     },
   },
   {
@@ -180,11 +180,11 @@ export const ACCENT_PALETTES: AccentPaletteSpec[] = [
     label: "Indigo",
     swatch: ["#a5b4fc", "#4f46e5"],
     light: {
-      accent: "#4f46e5",
+      accent: "#929cf5",
       accentSoft: "#e0e7ff",
-      accentInk: "#ffffff",
+      accentInk: "#20244c",
       accentText: "#4338ca",
-      accentGradient: ["#818cf8", "#4338ca"],
+      accentGradient: ["#d1d6ff", "#a4affb"],
     },
     dark: {
       accent: "#818cf8",
@@ -221,11 +221,31 @@ export type ThemeColors = {
   accentInk: string;
   accentText: string;
   accentGradient: [string, string];
+  heroGradient: [string, string, string];
+  heroGlow: string;
+  heroInk: string;
+  heroMuted: string;
+  heroLine: string;
+  heroControl: string;
+  positive: string;
+  incomeGradient: [string, string];
+  incomeInk: string;
 };
+
+function mixHex(color: string, base: string, weight: number): string {
+  const channels = [1, 3, 5].map((offset) => {
+    const value = Math.round(
+      parseInt(color.slice(offset, offset + 2), 16) * weight +
+      parseInt(base.slice(offset, offset + 2), 16) * (1 - weight)
+    );
+    return value.toString(16).padStart(2, "0");
+  });
+  return `#${channels.join("")}`;
+}
 
 export function getThemeColors(
   dark: boolean,
-  accentId: AccentPaletteId = "blue"
+  accentId: AccentPaletteId = "coral"
 ): ThemeColors {
   const spec = getAccentPalette(accentId);
   const accentSet = dark ? spec.dark : spec.light;
@@ -234,30 +254,56 @@ export function getThemeColors(
     return {
       dark: true,
       accentId: spec.id,
-      page: "#090d12",
-      surface: "#121821",
-      card: "#161f2c",
-      soft: "#18212c",
-      soft2: "#253140",
-      ink: "#f4f7ef",
-      muted: "#8f9aa8",
-      line: "rgba(255, 255, 255, 0.08)",
-      navy: "#1b2a48",
+      page: mixHex(accentSet.accent, "#08090b", 0.02),
+      surface: mixHex(accentSet.accent, "#141519", 0.04),
+      card: mixHex(accentSet.accent, "#1a1b20", 0.04),
+      soft: mixHex(accentSet.accent, "#22242a", 0.05),
+      soft2: mixHex(accentSet.accent, "#30323a", 0.08),
+      ink: "#f6f7fb",
+      muted: "#b4b7c2",
+      line: "rgba(255, 255, 255, 0.10)",
+      navy: mixHex(accentSet.accent, "#17191e", 0.12),
+      heroGradient: [
+        mixHex(accentSet.accent, "#08090b", 0.20),
+        mixHex(accentSet.accent, "#08090b", 0.09),
+        mixHex(accentSet.accent, "#101114", 0.05),
+      ],
+      heroGlow: mixHex(accentSet.accentGradient[1], "#08090b", 0.62),
+      heroInk: "#f6f7fb",
+      heroMuted: "#d5d7df",
+      heroLine: "rgba(255, 255, 255, 0.13)",
+      heroControl: "rgba(255, 255, 255, 0.07)",
+      positive: "#45cd92",
+      incomeGradient: ["#214a35", "#122a1e"],
+      incomeInk: "#ddf5e7",
       ...accentSet,
     };
   }
   return {
     dark: false,
     accentId: spec.id,
-    page: "#e8eff8",
-    surface: "#f8fbff",
+    page: mixHex(accentSet.accent, "#f7f8fa", 0.025),
+    surface: "#ffffff",
     card: "#ffffff",
-    soft: "#dfe8f4",
-    soft2: "#d3dfef",
-    ink: "#121a2d",
-    muted: "#6c7a91",
-    line: "rgba(18, 26, 45, 0.08)",
-    navy: "#172442",
+    soft: mixHex(accentSet.accent, "#f0f2f6", 0.06),
+    soft2: mixHex(accentSet.accent, "#e2e6ed", 0.10),
+    ink: "#181c25",
+    muted: "#606573",
+    line: "rgba(24, 28, 37, 0.10)",
+    navy: "#242936",
+    heroGradient: [
+      mixHex(accentSet.accent, "#ffffff", 0.44),
+      mixHex(accentSet.accent, "#ffffff", 0.72),
+      mixHex(accentSet.accent, "#ffffff", 0.24),
+    ],
+    heroGlow: mixHex(accentSet.accent, "#ffffff", 0.82),
+    heroInk: "#181c25",
+    heroMuted: "#353a47",
+    heroLine: hexToRgba(accentSet.accentText, 0.24),
+    heroControl: "rgba(255, 255, 255, 0.44)",
+    positive: "#13613c",
+    incomeGradient: ["#e1f1e5", "#b9ddc7"],
+    incomeInk: "#173c28",
     ...accentSet,
   };
 }
@@ -291,10 +337,10 @@ export const AccentSurfaceGlow = React.memo(function AccentSurfaceGlow({
   const startAlpha =
     intensity === "medium"
       ? theme.dark
-        ? 0.19
+        ? 0.13
         : 0.18
       : theme.dark
-        ? 0.14
+        ? 0.08
         : 0.13;
   const midAlpha = startAlpha * 0.36;
   return (
@@ -303,7 +349,7 @@ export const AccentSurfaceGlow = React.memo(function AccentSurfaceGlow({
       colors={[
         hexToRgba(theme.accent, startAlpha),
         hexToRgba(theme.accent, midAlpha),
-        "transparent",
+        hexToRgba(theme.accent, 0),
       ]}
       locations={[0, 0.45, 0.92]}
       start={{ x: 0, y: 1 }}
@@ -371,14 +417,14 @@ export function EdgeFade({
 export function bevelStyle(dark: boolean) {
   return dark
     ? {
-        borderTopWidth: 1.25,
+        borderTopWidth: 1,
         borderLeftWidth: 1,
         borderRightWidth: 1,
-        borderBottomWidth: 2,
-        borderTopColor: "rgba(255, 255, 255, 0.14)",
+        borderBottomWidth: 1,
+        borderTopColor: "rgba(255, 255, 255, 0.13)",
         borderLeftColor: "rgba(255, 255, 255, 0.09)",
-        borderRightColor: "rgba(255, 255, 255, 0.06)",
-        borderBottomColor: "rgba(0, 0, 0, 0.45)",
+        borderRightColor: "rgba(255, 255, 255, 0.07)",
+        borderBottomColor: "rgba(255, 255, 255, 0.05)",
       }
     : {
         borderTopWidth: 1.5,
@@ -404,11 +450,7 @@ export function TxRow({
   theme: ThemeColors;
 }) {
   const isPositive = item.amount > 0;
-  const iconColor = isPositive
-    ? theme.dark
-      ? "#fde047"
-      : "#b45309"
-    : theme.accentText;
+  const iconColor = theme.muted;
 
   return (
     <Pressable
@@ -421,12 +463,11 @@ export function TxRow({
           overflow: "hidden",
           transform: [{ scale: pressed && onPress ? 0.985 : 1 }],
         },
-        bevelStyle(theme.dark),
-        cardShadow(theme.dark),
+        theme.dark ? bevelStyle(true) : styles.lightTxLift,
       ]}
     >
       <AccentSurfaceGlow theme={theme} />
-      <View style={styles.txIcon}>
+      <View style={[styles.txIcon, { backgroundColor: theme.soft }]}>
         <Icon name={item.icon} size={25} strokeWidth={2.05} color={iconColor} />
       </View>
       <View style={styles.rowMain}>
@@ -447,7 +488,7 @@ export function TxRow({
         <Text
           style={[
             styles.txAmount,
-            { color: isPositive ? theme.accentText : theme.ink },
+            { color: isPositive ? theme.positive : theme.ink },
           ]}
         >
           {hidden
@@ -462,29 +503,43 @@ export function TxRow({
   );
 }
 
+export function heroControlStyle(theme: ThemeColors) {
+  return { backgroundColor: theme.heroControl, borderColor: theme.heroLine };
+}
+
 export const ActionButton = React.memo(function ActionButton({
   icon,
   label,
   onPress,
+  theme,
 }: {
   icon: string;
   label: string;
   tone?: Tone;
   onPress: () => void;
-  theme?: ThemeColors;
+  theme: ThemeColors;
 }) {
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
       style={({ pressed }) => [
         styles.actionButton,
         { transform: [{ scale: pressed ? 0.94 : 1 }] },
       ]}
     >
-      <View style={styles.actionPill}>
-        <Icon name={icon} size={19} strokeWidth={2.15} color="#ffffff" />
+      <View style={[styles.actionPill, heroControlStyle(theme)]}>
+        <LinearGradient
+          pointerEvents="none"
+          colors={["rgba(255, 255, 255, 0.09)", "rgba(255, 255, 255, 0.01)"]}
+          start={{ x: 0.2, y: 0 }}
+          end={{ x: 0.8, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <Icon name={icon} size={19} strokeWidth={2.15} color={theme.heroInk} />
       </View>
-      <Text style={styles.actionLabel} numberOfLines={1}>
+      <Text style={[styles.actionLabel, { color: theme.heroInk }]} numberOfLines={1}>
         {label}
       </Text>
     </Pressable>
@@ -669,13 +724,13 @@ export function BottomNav({
           name={item.icon}
           size={22}
           strokeWidth={active ? 2.65 : 2.25}
-          color={active ? theme.accent : theme.muted}
+          color={active ? theme.accentText : theme.muted}
         />
         {active ? (
           <View
             style={[
               styles.navIndicator,
-              { backgroundColor: theme.accent },
+              { backgroundColor: theme.accentText },
             ]}
           />
         ) : null}
@@ -689,9 +744,7 @@ export function BottomNav({
       style={[
         styles.bottomNav,
         {
-          backgroundColor: theme.dark
-            ? "rgba(18, 24, 33, 0.96)"
-            : "rgba(248, 251, 255, 0.96)",
+          backgroundColor: theme.surface,
           overflow: "hidden",
           opacity,
           transform: [{ translateY }],
@@ -699,7 +752,6 @@ export function BottomNav({
         bevelStyle(theme.dark),
       ]}
     >
-      <AccentSurfaceGlow theme={theme} />
       {items.slice(0, 2).map(renderNavItem)}
 
       <Pressable
@@ -747,13 +799,13 @@ export function BottomNav({
               cx="24"
               cy="24"
               r="20.5"
-              stroke="url(#navAddRing)"
+              stroke={theme.dark ? "url(#navAddRing)" : theme.accentText}
               strokeWidth="3.4"
               fill="none"
             />
             <SvgPath
               d="M 23.3 14.8 Q 24 14.3 24.7 14.8 Q 25.6 22.4 33.2 23.3 Q 33.7 24 33.2 24.7 Q 25.6 25.6 24.7 33.2 Q 24 33.7 23.3 33.2 Q 22.4 25.6 14.8 24.7 Q 14.3 24 14.8 23.3 Q 22.4 22.4 23.3 14.8 Z"
-              fill="url(#navAddStar)"
+              fill={theme.dark ? "url(#navAddStar)" : theme.accentText}
             />
           </Svg>
         </View>
@@ -772,12 +824,19 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
   },
+  lightTxLift: {
+    borderWidth: 0,
+    ...(Platform.OS === "android" && Platform.Version < 28
+      ? { elevation: 3 }
+      : { boxShadow: "0px 4px 9px rgba(24, 32, 54, 0.14)" }),
+  },
   txIcon: {
-    width: 32,
-    height: 32,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -786,8 +845,8 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   rowTitle: {
-    fontFamily: "Poppins_700Bold",
-    fontWeight: "700",
+    fontFamily: "Poppins_500Medium",
+    fontWeight: "500",
     fontSize: 13.5,
   },
   rowSub: {
@@ -800,15 +859,15 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   txAmount: {
-    fontFamily: "Poppins_800ExtraBold",
-    fontWeight: "800",
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
     fontSize: 12.5,
-    letterSpacing: 0.15,
+    fontVariant: ["tabular-nums"],
   },
   txDate: {
     fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
-    fontSize: 10,
+    fontSize: 11,
   },
   actionButton: {
     flex: 1,
@@ -819,9 +878,10 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255, 255, 255, 0.14)",
+    overflow: "hidden",
+    backgroundColor: "rgba(255, 255, 255, 0.07)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.24)",
+    borderColor: "rgba(255, 255, 255, 0.18)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -838,10 +898,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitleText: {
-    fontFamily: "Poppins_700Bold",
-    fontWeight: "700",
-    fontSize: 21,
-    letterSpacing: -0.6,
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 19,
+    letterSpacing: -0.4,
   },
   sectionActionBtn: {
     flexDirection: "row",
@@ -902,7 +962,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 31,
     borderWidth: 1,
-    shadowColor: "#121a2d",
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.14,
     shadowRadius: 22,

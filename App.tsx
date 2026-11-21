@@ -8,7 +8,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -31,7 +30,10 @@ import Svg, {
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ActivityItem,
+  EXPENSE_CATEGORIES,
+  getActivityDate,
   getWalletLocalId,
+  INCOME_CATEGORIES,
   initialActivities,
   initialWallets,
   isTransferActivity,
@@ -40,8 +42,15 @@ import {
   UserProfile,
   Wallet,
 } from "./src/types/wallet";
+import { firstFutureMonthlyDate, getDueSchedules, localDateKey, occurrenceId } from "./src/types/schedule";
+import type { DueSchedule, Schedule } from "./src/types/schedule";
+import { refreshReminders } from "./src/lib/scheduleReminders";
 import {
   loadLocalState,
+  loadSchedules,
+  deleteSchedule,
+  recordScheduledActivity,
+  saveSchedule,
   queueDeletedActivityIds,
   queueDeletedWalletIds,
   saveActivitiesToSQLite,
@@ -68,7 +77,6 @@ import { AppLockModal, AppLockMode } from "./src/components/AppLockModal";
 import { Icon } from "./src/components/Icon";
 
 export default function App() {
-  const systemColorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_500Medium,
@@ -88,8 +96,8 @@ export default function App() {
   const [activityItems, setActivityItems] =
     useState<ActivityItem[]>(initialActivities);
   const [hidden, setHidden] = useState(false);
-  const [dark, setDark] = useState(false);
-  const [accentColor, setAccentColor] = useState<AccentPaletteId>("blue");
+  const [dark, setDark] = useState(true);
+  const [accentColor, setAccentColor] = useState<AccentPaletteId>("coral");
   const [profile, setProfile] = useState<UserProfile>({
     fullName: "Justin Santos",
     initials: "JS",
@@ -98,6 +106,10 @@ export default function App() {
   const [sheetWalletId, setSheetWalletId] = useState<number | null>(null);
   const [sheetActivity, setSheetActivity] = useState<ActivityItem | null>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [scheduleSeed, setScheduleSeed] = useState<Schedule | null>(null);
+  const [scheduledEntry, setScheduledEntry] = useState<DueSchedule | null>(null);
+  const [today, setToday] = useState(localDateKey);
   const [showActivityFilters, setShowActivityFilters] = useState(false);
   const [toast, setToast] = useState("");
   const [dbReady, setDbReady] = useState(false);
@@ -139,6 +151,7 @@ export default function App() {
     () => getThemeColors(dark, accentColor),
     [dark, accentColor]
   );
+  const dueSchedules = useMemo(() => getDueSchedules(schedules, activityItems, today), [schedules, activityItems, today]);
 
   // Scroll-reactive bottom navbar & screen/toast animations
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
@@ -146,8 +159,6 @@ export default function App() {
   const lastScrollY = useRef(0);
   const navVisibleRef = useRef(true);
   const [navVisible, setNavVisible] = useState(true);
-  const isScrolledRef = useRef(false);
-  const [isScrolled, setIsScrolled] = useState(false);
   const [heroHeights, setHeroHeights] = useState<Record<Tab, number>>({
     home: 290,
     wallets: 220,
@@ -160,8 +171,6 @@ export default function App() {
     24,
     Math.min(heroClearY - 24, activeHeroHeight - 76)
   );
-  const heroClearYRef = useRef(heroClearY);
-  heroClearYRef.current = heroClearY;
   const [stackDragging, setStackDragging] = useState(false);
   const stackDraggingRef = useRef(false);
   const navAnim = useRef(new Animated.Value(1)).current;
@@ -205,10 +214,6 @@ export default function App() {
       lastScrollY.current = 0;
       scrollY.setValue(0);
       scrollRef.current?.scrollTo({ y: 0, animated: false });
-      if (isScrolledRef.current) {
-        isScrolledRef.current = false;
-        setIsScrolled(false);
-      }
       setNavbarVisible(true);
     },
     [setNavbarVisible, scrollY]
@@ -221,10 +226,6 @@ export default function App() {
       tabAnim.setValue(1);
       lastScrollY.current = 0;
       scrollY.setValue(0);
-      if (isScrolledRef.current) {
-        isScrolledRef.current = false;
-        setIsScrolled(false);
-      }
       setNavbarVisible(true);
       return;
     }
@@ -276,11 +277,6 @@ export default function App() {
   const handleScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       const y = e.nativeEvent.contentOffset.y;
-      const scrolledNow = y >= heroClearYRef.current - 6;
-      if (isScrolledRef.current !== scrolledNow) {
-        isScrolledRef.current = scrolledNow;
-        setIsScrolled(scrolledNow);
-      }
       if (y <= 12) {
         lastScrollY.current = y;
         setNavbarVisible(true);
@@ -302,8 +298,10 @@ export default function App() {
   useEffect(() => {
     let mounted = true;
     loadLocalState()
-      .then((state) => {
+      .then(async (state) => {
+        const localSchedules = await loadSchedules().catch(() => []);
         if (!mounted) return;
+        setSchedules(localSchedules);
         setWallets(state.wallets);
         setActivityItems(state.activities);
         setDark(state.dark);
@@ -343,6 +341,28 @@ export default function App() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!dbReady) return;
+    const updateDay = () => setToday(localDateKey());
+    const timer = setInterval(updateDay, 60_000);
+    const listener = AppState.addEventListener("change", (state) => {
+      if (state === "active") updateDay();
+    });
+    return () => { clearInterval(timer); listener.remove(); };
+  }, [dbReady]);
+
+  useEffect(() => {
+    if (!dbReady) return;
+    const sync = () => refreshReminders(schedules, activityItems).catch(() => {
+      if (schedules.some(({ reminder }) => reminder)) setToast("Could not update phone reminders");
+    });
+    void sync();
+    const listener = AppState.addEventListener("change", (state) => {
+      if (state === "active") void sync();
+    });
+    return () => listener.remove();
+  }, [dbReady, schedules, activityItems]);
 
   // 2. Listen to Supabase Auth session
   useEffect(() => {
@@ -481,11 +501,14 @@ export default function App() {
       return;
     }
     setSheetActivity(null);
+    setScheduleSeed(null);
+    setScheduledEntry(null);
     setSheetWalletId(wallet ? wallet.id : null);
     setSheet(next);
   }, []);
 
   const openTransactionSheet = useCallback((item: ActivityItem) => {
+    setScheduledEntry(null);
     setSheetActivity(item);
     setSheetWalletId(null);
     setSheet("tx");
@@ -511,7 +534,7 @@ export default function App() {
     });
   }, [userId, dark, hidden, profile]);
 
-  const recordActivity = (item: Omit<ActivityItem, "id" | "date">) => {
+  const buildActivity = (item: Omit<ActivityItem, "id" | "date">): ActivityItem => {
     const nowIso = item.occurredAt || new Date().toISOString();
     const timeStr = new Intl.DateTimeFormat("en-PH", {
       hour: "numeric",
@@ -522,16 +545,73 @@ export default function App() {
       (max, a) => (a.id > max ? a.id : max),
       0
     );
-    const newItem: ActivityItem = {
+    return {
       ...item,
       id: Math.max(Date.now(), maxId + 1),
       date,
       occurredAt: nowIso,
     };
-    const nextActivities = [newItem, ...activitiesRef.current];
+  };
+
+  const prependActivity = (item: ActivityItem) => {
+    const nextActivities = [item, ...activitiesRef.current];
     activitiesRef.current = nextActivities;
     setActivityItems(nextActivities);
     scheduleCloudSync();
+  };
+
+  const recordActivity = (item: Omit<ActivityItem, "id" | "date">) => {
+    prependActivity(buildActivity(item));
+  };
+
+  const handleScheduleFromActivity = (item: ActivityItem) => {
+    const wallet = walletsRef.current.find((entry) => item.walletLocalId
+      ? item.walletLocalId === getWalletLocalId(entry)
+      : item.wallet === entry.name);
+    const direction = item.amount > 0 ? "income" : "expense";
+    const categories = direction === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+    setScheduleSeed({
+      id: `plan-${Date.now()}`, title: item.title, amount: Math.abs(item.amount), direction,
+      category: categories.some(([label]) => label === item.kind) ? item.kind : "Other",
+      walletLocalId: wallet ? getWalletLocalId(wallet) : "",
+      firstDue: firstFutureMonthlyDate(localDateKey(getActivityDate(item)), localDateKey()),
+      repeat: "monthly", reminder: false,
+    });
+    setSheet("schedule");
+  };
+
+  const handleOpenScheduledEntry = useCallback((item: DueSchedule) => {
+    if (!walletsRef.current.length) { setToast("Add a wallet first"); return; }
+    const wallet = walletsRef.current.find((entry) => getWalletLocalId(entry) === item.walletLocalId);
+    if (!wallet) { setToast("Choose a wallet in Manage schedules first"); return; }
+    setScheduledEntry(item);
+    setSheetActivity(null);
+    setSheetWalletId(wallet.id);
+    setSheet("entry");
+  }, []);
+
+  const handleRecordScheduledEntry = async (item: Omit<ActivityItem, "id" | "date">) => {
+    if (!scheduledEntry) throw new Error("Schedule is missing");
+    const localId = occurrenceId(scheduledEntry.id, scheduledEntry.dueDate);
+    if (activitiesRef.current.some((entry) => entry.localId === localId)) throw new Error("Already recorded");
+    const activity = buildActivity({ ...item, localId });
+    const balance = await recordScheduledActivity(activity);
+    const nextWallets = walletsRef.current.map((wallet) => getWalletLocalId(wallet) === activity.walletLocalId
+      ? { ...wallet, balance, updatedAt: activity.updatedAt, synced: false }
+      : wallet);
+    walletsRef.current = nextWallets;
+    setWallets(nextWallets);
+    prependActivity(activity);
+  };
+
+  const handleSaveSchedule = async (next: Schedule) => {
+    await saveSchedule(next);
+    setSchedules((current) => [...current.filter((item) => item.id !== next.id), next]);
+  };
+
+  const handleDeleteSchedule = async (id: string) => {
+    await deleteSchedule(id);
+    setSchedules((current) => current.filter((item) => item.id !== id));
   };
 
   const handleRenameWalletActivities = (targetWallet: Wallet, newName: string) => {
@@ -651,6 +731,7 @@ export default function App() {
   );
   const handleCloseSheet = useCallback(() => {
     setSheet(null);
+    setScheduledEntry(null);
     setSheetWalletId(null);
     setSheetActivity(null);
   }, []);
@@ -665,6 +746,7 @@ export default function App() {
         return;
       }
       setSheetActivity(null);
+      setScheduledEntry(null);
       if (nextWallet) setSheetWalletId(nextWallet.id);
       setSheet(nextType);
     },
@@ -672,6 +754,7 @@ export default function App() {
   );
   const handleSheetDone = useCallback((message: string) => {
     setSheet(null);
+    setScheduledEntry(null);
     setSheetWalletId(null);
     setSheetActivity(null);
     setToast(message);
@@ -721,7 +804,7 @@ export default function App() {
       <View
         style={{
           flex: 1,
-          backgroundColor: systemColorScheme === "dark" ? "#090d12" : "#e8eff8",
+          backgroundColor: theme.page,
         }}
       />
     );
@@ -733,17 +816,9 @@ export default function App() {
         style={[styles.container, { backgroundColor: theme.page }]}
         edges={["left", "right", "bottom"]}
       >
-        {/* Top Background Gradient (clean vertical wash in dark mode, soft radial in light mode) */}
+        {/* Warm surfaces continue beneath the copper header. */}
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          {dark ? (
-            <LinearGradient
-              colors={["#121923", "#0c1118", "#090d12"]}
-              locations={[0, 0.5, 1]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
-          ) : (
+          {!dark && (
             <Svg width="100%" height="100%">
               <Defs>
                 <SvgRadialGradient
@@ -754,8 +829,8 @@ export default function App() {
                   ry="48%"
                 >
                   <Stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
-                  <Stop offset="50%" stopColor="#eef3fa" stopOpacity="1" />
-                  <Stop offset="100%" stopColor="#dbe6f5" stopOpacity="1" />
+                  <Stop offset="50%" stopColor={theme.surface} stopOpacity="1" />
+                  <Stop offset="100%" stopColor={theme.page} stopOpacity="1" />
                 </SvgRadialGradient>
               </Defs>
               <SvgRect x="0" y="0" width="100%" height="100%" fill="url(#bgRadial)" />
@@ -763,13 +838,7 @@ export default function App() {
           )}
         </View>
 
-        <StatusBar
-          style={
-            dark || (!isLocked && (Boolean(selected) || !isScrolled))
-              ? "light"
-              : "dark"
-          }
-        />
+        <StatusBar style={dark ? "light" : "dark"} />
 
         {isLocked ? (
           <AppLockModal
@@ -839,6 +908,8 @@ export default function App() {
                       onWallet={handleSelectWallet}
                       onTransaction={openTransactionSheet}
                       onSheet={openSheet}
+                      schedules={dueSchedules}
+                      onRecordScheduled={handleOpenScheduledEntry}
                       setTab={handleTabChange}
                       onStackDragChange={handleStackDragChange}
                       onHeroHeight={handleHomeHeroHeight}
@@ -917,7 +988,7 @@ export default function App() {
             {/* Adaptive Top Edge Fade: blends into hero accent while over hero, then page background once scrolled past */}
             <EdgeFade
               position="top"
-              color={dark ? "#0c121b" : theme.accent}
+              color={theme.heroGradient[0]}
               size={76}
               opacity={scrollY.interpolate({
                 inputRange: [0, 18, heroFadeOutStart, heroClearY],
@@ -928,7 +999,7 @@ export default function App() {
 
             <EdgeFade
               position="top"
-              color={dark ? "#121923" : "#f4f7fc"}
+              color={theme.page}
               size={76}
               opacity={scrollY.interpolate({
                 inputRange: [heroFadeOutStart, heroClearY],
@@ -939,7 +1010,7 @@ export default function App() {
 
             <EdgeFade
               position="bottom"
-              color={dark ? "#090d12" : "#dce6f5"}
+              color={theme.page}
               size={108}
             />
 
@@ -960,7 +1031,7 @@ export default function App() {
             style={[
               styles.toast,
               {
-                backgroundColor: dark ? "#1b2633" : "#172442",
+                backgroundColor: theme.navy,
                 borderColor: theme.line,
                 opacity: toastAnim,
                 transform: [
@@ -1014,11 +1085,20 @@ export default function App() {
 
       {!isLocked && sheet && (
         <SheetModal
+          key={scheduledEntry ? occurrenceId(scheduledEntry.id, scheduledEntry.dueDate) : sheet === "schedule" ? "schedules" : "sheet"}
           type={sheet}
           wallets={wallets}
           activities={activityItems}
           selected={sheetWallet}
           activity={sheetActivity}
+          schedules={dueSchedules}
+          scheduleSeed={scheduleSeed}
+          scheduledEntry={scheduledEntry}
+          onScheduleFromActivity={handleScheduleFromActivity}
+          onSaveSchedule={handleSaveSchedule}
+          onDeleteSchedule={handleDeleteSchedule}
+          onOpenScheduledEntry={handleOpenScheduledEntry}
+          onRecordScheduledEntry={handleRecordScheduledEntry}
           hidden={hidden}
           onSaveWallets={(nextWallets) => {
             walletsRef.current = nextWallets;

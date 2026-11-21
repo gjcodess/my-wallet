@@ -15,6 +15,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityItem,
@@ -44,13 +45,15 @@ import {
   cardShadow,
   EdgeFade,
   getAccentPalette,
-  hexToRgba,
+  heroControlStyle,
   SectionTitle,
   SwitchControl,
   ThemeColors,
   TxRow,
 } from "./SharedUI";
 import { Amount, WalletFolder, WalletLogoBadge } from "./WalletFolder";
+import { Upcoming } from "./Schedules";
+import type { DueSchedule } from "../types/schedule";
 
 const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
   theme,
@@ -68,6 +71,7 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
   children: React.ReactNode;
 }) {
   const insets = useSafeAreaInsets();
+  const gradientId = React.useId().replace(/:/g, "");
   return (
     <View
       onLayout={
@@ -84,35 +88,43 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
           marginHorizontal: fullBleed ? -18 : 0,
           paddingTop: insets.top + (compact ? 10 : 14),
           paddingBottom: compact ? 16 : 22,
-          backgroundColor: theme.dark ? "#0c121b" : theme.accentGradient[1],
+          backgroundColor: theme.heroGradient[0],
           shadowColor: theme.dark ? "#000000" : theme.accent,
         },
+        !theme.dark && styles.lightHeroLift,
         style,
       ]}
     >
       <LinearGradient
         pointerEvents="none"
-        colors={
-          theme.dark
-            ? [
-              hexToRgba(theme.accent, 0.36),
-              hexToRgba(theme.accent, 0.14),
-              "#0c121b",
-            ]
-            : [theme.accent, theme.accentGradient[1]]
-        }
-        locations={theme.dark ? [0, 0.48, 1] : [0, 1]}
-        start={{ x: 0.9, y: 0 }}
-        end={{ x: 0.1, y: 1 }}
+        colors={theme.heroGradient}
+        locations={[0, 0.52, 1]}
+        start={{ x: 0.7, y: 0 }}
+        end={{ x: 0.3, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <Svg width="100%" height="100%">
+          <Defs>
+            <RadialGradient id={`${gradientId}Accent`} cx="31%" cy="83%" rx="68%" ry="80%">
+              <Stop offset="0%" stopColor={theme.heroGlow} stopOpacity="0.78" />
+              <Stop offset="42%" stopColor={theme.heroGlow} stopOpacity="0.32" />
+              <Stop offset="100%" stopColor={theme.heroGlow} stopOpacity="0" />
+            </RadialGradient>
+            <RadialGradient id={`${gradientId}Silk`} cx="106%" cy="93%" rx="45%" ry="72%">
+              <Stop offset="0%" stopColor="#ffffff" stopOpacity={theme.dark ? 0.14 : 0.22} />
+              <Stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Rect width="100%" height="100%" fill={`url(#${gradientId}Accent)`} />
+          <Rect width="100%" height="100%" fill={`url(#${gradientId}Silk)`} />
+        </Svg>
+      </View>
       <LinearGradient
         pointerEvents="none"
         colors={[
-          theme.dark
-            ? hexToRgba(theme.accentGradient[0], 0.24)
-            : "rgba(255, 255, 255, 0.22)",
-          "transparent",
+          "rgba(255, 255, 255, 0.035)",
+          "rgba(255, 255, 255, 0)",
         ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0.75, y: 0.85 }}
@@ -129,12 +141,14 @@ const HeroMonthlyFlowRow = React.memo(function HeroMonthlyFlowRow({
   spent,
   hidden,
   onPress,
+  theme,
 }: {
   monthLabel: string;
   earned: number;
   spent: number;
   hidden: boolean;
   onPress?: () => void;
+  theme: ThemeColors;
 }) {
   const inner = (
     <>
@@ -143,14 +157,14 @@ const HeroMonthlyFlowRow = React.memo(function HeroMonthlyFlowRow({
           name="arrow-down"
           size={18}
           strokeWidth={2.4}
-          color="#86efac"
+          color={theme.positive}
         />
         <View style={styles.walletsHeroFlowMeta}>
-          <Text style={styles.walletsHeroFlowLabel} numberOfLines={1}>
+          <Text style={[styles.walletsHeroFlowLabel, { color: theme.heroMuted, opacity: 1 }]} numberOfLines={1}>
             {monthLabel} in
           </Text>
           <Text
-            style={styles.walletsHeroFlowVal}
+            style={[styles.walletsHeroFlowVal, { color: theme.heroInk }]}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.78}
@@ -160,21 +174,21 @@ const HeroMonthlyFlowRow = React.memo(function HeroMonthlyFlowRow({
         </View>
       </View>
 
-      <View style={styles.walletsHeroFlowDivider} />
+      <View style={[styles.walletsHeroFlowDivider, { backgroundColor: theme.heroLine }]} />
 
       <View style={styles.walletsHeroFlowHalf}>
         <Icon
           name="arrow-up"
           size={18}
           strokeWidth={2.4}
-          color="#fda4af"
+          color={theme.dark ? "#fda4af" : "#871f35"}
         />
         <View style={styles.walletsHeroFlowMeta}>
-          <Text style={styles.walletsHeroFlowLabel} numberOfLines={1}>
+          <Text style={[styles.walletsHeroFlowLabel, { color: theme.heroMuted, opacity: 1 }]} numberOfLines={1}>
             {monthLabel} out
           </Text>
           <Text
-            style={styles.walletsHeroFlowVal}
+            style={[styles.walletsHeroFlowVal, { color: theme.heroInk }]}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.78}
@@ -192,6 +206,7 @@ const HeroMonthlyFlowRow = React.memo(function HeroMonthlyFlowRow({
         onPress={onPress}
         style={({ pressed }) => [
           styles.walletsHeroFlowRow,
+          { borderTopColor: theme.heroLine },
           { opacity: pressed ? 0.8 : 1 },
         ]}
       >
@@ -200,7 +215,7 @@ const HeroMonthlyFlowRow = React.memo(function HeroMonthlyFlowRow({
     );
   }
 
-  return <View style={styles.walletsHeroFlowRow}>{inner}</View>;
+  return <View style={[styles.walletsHeroFlowRow, { borderTopColor: theme.heroLine }]}>{inner}</View>;
 });
 
 const STACK_SCROLL_STEP_PX = 88;
@@ -214,6 +229,7 @@ const RingCard = React.memo(function RingCard({
   scrollAnim,
   zIndex,
   isInteractive,
+  raised,
   onPressSlot,
   onTouchCard,
   onTouchEndCard,
@@ -226,6 +242,7 @@ const RingCard = React.memo(function RingCard({
   scrollAnim: Animated.Value;
   zIndex: number;
   isInteractive: boolean;
+  raised: boolean;
   onPressSlot: (ringIndex: number, isMenu?: boolean) => void;
   onTouchCard: (ringIndex: number) => void;
   onTouchEndCard: () => void;
@@ -307,12 +324,13 @@ const RingCard = React.memo(function RingCard({
         wallet={wallet}
         hidden={hidden}
         topShadow
+        raised={raised}
         notchProgress={notchProgress}
         onPress={totalWallets <= 1 ? handlePress : undefined}
         onMenu={handleMenu}
       />
     ),
-    [wallet, hidden, notchProgress, totalWallets, handlePress, handleMenu]
+    [wallet, hidden, notchProgress, totalWallets, handlePress, handleMenu, raised]
   );
 
   return (
@@ -459,9 +477,9 @@ const WalletCardDeck = React.memo(function WalletCardDeck({
   const onFrontChangeRef = useRef(onFrontChange);
   onFrontChangeRef.current = onFrontChange;
 
-  const addFrom = theme.dark ? "#354052" : "#4c586b";
-  const addTo = theme.dark ? "#1e2531" : "#2d3645";
-  const addInk = "#ffffff";
+  const addFrom = theme.dark ? theme.soft2 : theme.heroGradient[0];
+  const addTo = theme.dark ? theme.soft : theme.heroGradient[2];
+  const addInk = theme.ink;
 
   useEffect(() => {
     const id = scrollAnim.addListener(({ value }) => {
@@ -787,6 +805,7 @@ const WalletCardDeck = React.memo(function WalletCardDeck({
                 scrollAnim={scrollAnim}
                 zIndex={zIndex}
                 isInteractive={isInteractive}
+                raised={!theme.dark}
                 onPressSlot={handlePressSlot}
                 onTouchCard={handleTouchCard}
                 onTouchEndCard={handleTouchEndCard}
@@ -805,7 +824,7 @@ const WalletCardDeck = React.memo(function WalletCardDeck({
             len={len}
             scrollAnim={scrollAnim}
             inkColor={theme.ink}
-            accentColor={theme.accent}
+            accentColor={theme.dark ? theme.accent : theme.accentText}
             onPress={handleDotPress}
           />
         ))}
@@ -824,6 +843,8 @@ export const HomeScreen = React.memo(function HomeScreen({
   onWallet,
   onTransaction,
   onSheet,
+  schedules,
+  onRecordScheduled,
   setTab,
   onStackDragChange,
   onHeroHeight,
@@ -838,6 +859,8 @@ export const HomeScreen = React.memo(function HomeScreen({
   onWallet: (w: Wallet) => void;
   onTransaction?: (item: ActivityItem) => void;
   onSheet: (s: Sheet, w?: Wallet) => void;
+  schedules: DueSchedule[];
+  onRecordScheduled: (schedule: DueSchedule) => void;
   setTab: (t: Tab) => void;
   onStackDragChange?: (dragging: boolean) => void;
   onHeroHeight?: (height: number) => void;
@@ -912,10 +935,10 @@ export const HomeScreen = React.memo(function HomeScreen({
       >
         <View style={styles.heroTopRow}>
           <View style={styles.heroGreetingCol}>
-            <Text style={styles.heroGreetingTitle} numberOfLines={1}>
+            <Text style={[styles.heroGreetingTitle, { color: theme.heroInk }]} numberOfLines={1}>
               {greetingText}
             </Text>
-            <Text style={styles.heroGreetingName} numberOfLines={1}>
+            <Text style={[styles.heroGreetingName, { color: theme.heroMuted, opacity: 1 }]} numberOfLines={1}>
               {fullName}
             </Text>
           </View>
@@ -925,38 +948,41 @@ export const HomeScreen = React.memo(function HomeScreen({
               accessibilityLabel="Search"
               style={({ pressed }) => [
                 styles.heroIconBtn,
+                heroControlStyle(theme),
                 { transform: [{ scale: pressed ? 0.92 : 1 }] },
               ]}
             >
-              <Icon name="search" size={17} color="#ffffff" />
+              <Icon name="search" size={17} color={theme.heroInk} />
             </Pressable>
           </View>
         </View>
 
         <View style={styles.heroBalanceBlock}>
-          <Text style={styles.heroHeaderLabel}>Total Available Balance</Text>
+          <Text style={[styles.heroHeaderLabel, { color: theme.heroMuted, opacity: 1 }]}>Total Available Balance</Text>
           <View style={styles.heroBalanceValueRow}>
             <View style={{ flex: 1, paddingRight: 10 }}>
-              <Amount value={total} hidden={hidden} size="lg" color="#ffffff" />
+              <Amount value={total} hidden={hidden} size="lg" color={theme.heroInk} />
             </View>
             <Pressable
               onPress={handleToggleHidden}
               accessibilityLabel={hidden ? "Show balances" : "Hide balances"}
               style={({ pressed }) => [
                 styles.heroEyeBtnSmall,
+                heroControlStyle(theme),
                 { transform: [{ scale: pressed ? 0.92 : 1 }] },
               ]}
             >
               <Icon
                 name={hidden ? "eye-off" : "eye"}
                 size={14}
-                color="#ffffff"
+                color={theme.heroInk}
               />
             </Pressable>
           </View>
         </View>
 
         <HeroMonthlyFlowRow
+          theme={theme}
           monthLabel={monthlySummary.monthLabel}
           earned={monthlySummary.earned}
           spent={monthlySummary.spent}
@@ -967,21 +993,25 @@ export const HomeScreen = React.memo(function HomeScreen({
         {/* 4-Column Glass Quick Action Pills */}
         <View style={styles.actionGrid}>
           <ActionButton
+            theme={theme}
             icon="edit"
             label="Update"
             onPress={handleOpenUpdate}
           />
           <ActionButton
+            theme={theme}
             icon="swap"
             label="Transfer"
             onPress={handleOpenTransfer}
           />
           <ActionButton
+            theme={theme}
             icon="plus"
             label="Add"
             onPress={handleOpenAdd}
           />
           <ActionButton
+            theme={theme}
             icon="grid"
             label="Wallets"
             onPress={handleGoWallets}
@@ -999,6 +1029,9 @@ export const HomeScreen = React.memo(function HomeScreen({
         onStackDragChange={onStackDragChange}
         theme={theme}
       />
+
+      <Upcoming schedules={schedules} wallets={wallets} hidden={hidden} theme={theme}
+        onRecord={onRecordScheduled} onManage={() => onSheet("schedule")} />
 
       {/* Recent Transactions */}
       <View style={[styles.section, { marginTop: 10 }]}>
@@ -1307,20 +1340,21 @@ export const WalletsScreen = React.memo(function WalletsScreen({
         style={{ marginBottom: 22 }}
       >
         <View style={styles.heroTopRow}>
-          <Text style={styles.heroHeaderTitle}>My Wallets</Text>
+          <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>My Wallets</Text>
           <View style={styles.heroHeaderActions}>
             {onToggleHidden ? (
               <Pressable
                 onPress={onToggleHidden}
                 style={({ pressed }) => [
                   styles.heroIconBtn,
+                  heroControlStyle(theme),
                   { transform: [{ scale: pressed ? 0.92 : 1 }] },
                 ]}
               >
                 <Icon
                   name={hidden ? "eye-off" : "eye"}
                   size={17}
-                  color="#ffffff"
+                  color={theme.heroInk}
                 />
               </Pressable>
             ) : null}
@@ -1329,21 +1363,23 @@ export const WalletsScreen = React.memo(function WalletsScreen({
                 onPress={onAddWallet}
                 style={({ pressed }) => [
                   styles.heroIconBtn,
+                  heroControlStyle(theme),
                   { transform: [{ scale: pressed ? 0.92 : 1 }] },
                 ]}
               >
-                <Icon name="plus" size={18} color="#ffffff" />
+                <Icon name="plus" size={18} color={theme.heroInk} />
               </Pressable>
             ) : null}
           </View>
         </View>
 
         <View style={styles.heroBalanceBlock}>
-          <Text style={styles.heroHeaderLabel}>Combined balance</Text>
-          <Amount value={total} hidden={hidden} size="lg" color="#ffffff" />
+          <Text style={[styles.heroHeaderLabel, { color: theme.heroMuted, opacity: 1 }]}>Combined balance</Text>
+          <Amount value={total} hidden={hidden} size="lg" color={theme.heroInk} />
         </View>
 
         <HeroMonthlyFlowRow
+          theme={theme}
           monthLabel={fullMonthLabel}
           earned={totalEarned}
           spent={totalSpent}
@@ -1914,20 +1950,21 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         style={{ marginBottom: 14 }}
       >
         <View style={styles.heroTopRow}>
-          <Text style={styles.heroHeaderTitle}>Activity</Text>
+          <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>Activity</Text>
           <View style={styles.heroHeaderActions}>
             {onToggleHidden ? (
               <Pressable
                 onPress={onToggleHidden}
                 style={({ pressed }) => [
                   styles.heroIconBtn,
+                  heroControlStyle(theme),
                   { transform: [{ scale: pressed ? 0.92 : 1 }] },
                 ]}
               >
                 <Icon
                   name={hidden ? "eye-off" : "eye"}
                   size={17}
-                  color="#ffffff"
+                  color={theme.heroInk}
                 />
               </Pressable>
             ) : null}
@@ -1936,19 +1973,20 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                 onPress={onToggleFilters}
                 style={({ pressed }) => [
                   styles.heroIconBtn,
+                  heroControlStyle(theme),
                   showFilters && styles.heroIconBtnActive,
                   { transform: [{ scale: pressed ? 0.92 : 1 }] },
                 ]}
               >
-                <Icon name="more" size={18} color="#ffffff" />
+                <Icon name="more" size={18} color={theme.heroInk} />
               </Pressable>
             ) : null}
           </View>
         </View>
 
         <View style={styles.heroBalanceBlock}>
-          <Text style={styles.heroHeaderLabel}>Total spending</Text>
-          <Amount value={totalOut} hidden={hidden} size="lg" color="#ffffff" />
+          <Text style={[styles.heroHeaderLabel, { color: theme.heroMuted, opacity: 1 }]}>Total spending</Text>
+          <Amount value={totalOut} hidden={hidden} size="lg" color={theme.heroInk} />
         </View>
       </HeroHeaderSurface>
 
@@ -2098,8 +2136,8 @@ export const ActivityScreen = React.memo(function ActivityScreen({
           tabHeight={42}
           radius={28}
           notch
-          fromColor={theme.dark ? "#263c69" : "#3c5c9a"}
-          toColor={theme.dark ? "#0d1528" : "#111b34"}
+          fromColor={theme.heroGradient[0]}
+          toColor={theme.heroGradient[2]}
           minHeight={232}
         >
           {({ notchX, notchHeight }) => (
@@ -2107,7 +2145,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
               {/* Chart Legend / Selected Bucket Summary in Folder Tab */}
               <View style={[styles.chartTabLegend, { height: 42 }]}>
                 {activeBucket ? (
-                  <Text style={styles.chartTabSummary} numberOfLines={1}>
+                  <Text style={[styles.chartTabSummary, { color: theme.heroInk }]} numberOfLines={1}>
                     {activeBucket.label}: +
                     {hidden ? "••" : money(activeBucket.income, true)} / -
                     {hidden ? "••" : money(activeBucket.expense, true)}
@@ -2118,19 +2156,19 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                       <View
                         style={[
                           styles.chartLegendDot,
-                          { backgroundColor: "#f5c414" },
+                          { backgroundColor: theme.positive },
                         ]}
                       />
-                      <Text style={styles.chartLegendText}>Money in</Text>
+                      <Text style={[styles.chartLegendText, { color: theme.heroMuted, opacity: 1 }]}>Money in</Text>
                     </View>
                     <View style={styles.chartLegendItem}>
                       <View
                         style={[
                           styles.chartLegendDot,
-                          { backgroundColor: theme.accent },
+                          { backgroundColor: theme.dark ? theme.accent : theme.accentText },
                         ]}
                       />
-                      <Text style={styles.chartLegendText}>Spending</Text>
+                      <Text style={[styles.chartLegendText, { color: theme.heroMuted, opacity: 1 }]}>Spending</Text>
                     </View>
                   </View>
                 )}
@@ -2146,16 +2184,19 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                   { left: notchX, height: notchHeight },
                 ]}
               >
-                <Text style={styles.rangePillText}>{range}</Text>
-                <Icon name="down" size={13} color="#ffffff" />
+                <Text style={[styles.rangePillText, { color: theme.heroInk }]}>{range}</Text>
+                <Icon name="down" size={13} color={theme.heroInk} />
               </Pressable>
 
               {/* Chart Grid & Bars */}
               <View style={styles.chartBody}>
                 <View style={styles.chartGrid}>
                   {chartData.gridLabels.map((lvl, idx) => (
-                    <View key={`${idx}-${lvl}`} style={styles.chartGridLine}>
-                      <Text style={styles.chartGridText}>{lvl}</Text>
+                    <View
+                      key={`${idx}-${lvl}`}
+                      style={[styles.chartGridLine, !theme.dark && { borderBottomColor: theme.heroLine }]}
+                    >
+                      <Text style={[styles.chartGridText, { color: theme.heroMuted, opacity: 1 }]}>{lvl}</Text>
                     </View>
                   ))}
                 </View>
@@ -2188,7 +2229,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                             ]}
                           >
                             <LinearGradient
-                              colors={["#fff99a", "#f5c414"]}
+                              colors={[theme.positive, theme.positive]}
                               style={StyleSheet.absoluteFill}
                             />
                           </Animated.View>
@@ -2205,7 +2246,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                             ]}
                           >
                             <LinearGradient
-                              colors={theme.accentGradient}
+                              colors={theme.dark ? theme.accentGradient : [theme.accentText, theme.accentInk]}
                               style={StyleSheet.absoluteFill}
                             />
                           </Animated.View>
@@ -2213,7 +2254,8 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                         <Text
                           style={[
                             styles.barLabel,
-                            isSelected && { color: "#ffffff", fontWeight: "800" },
+                            { color: theme.heroMuted },
+                            isSelected && { color: theme.heroInk, fontWeight: "800" },
                           ]}
                         >
                           {b.label}
@@ -2231,39 +2273,39 @@ export const ActivityScreen = React.memo(function ActivityScreen({
       {/* Money In / Money Out Flow Cards */}
       <View style={styles.flowCards}>
         <LinearGradient
-          colors={["#fff58a", "#f2c715"]}
+          colors={[theme.card, theme.surface]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.flowCard, cardShadow(theme.dark)]}
         >
           <View style={styles.flowCardBevel} pointerEvents="none" />
           <View style={styles.flowIconBox}>
-            <Icon name="arrow-down" size={16} color="#172442" />
+            <Icon name="arrow-down" size={16} color={theme.positive} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.flowLabel}>Money in</Text>
-            <Text style={styles.flowValue} numberOfLines={1}>
+            <Text style={[styles.flowLabel, { color: theme.muted }]}>Money in</Text>
+            <Text style={[styles.flowValue, { color: theme.positive }]} numberOfLines={1}>
               {hidden ? "••••" : money(totalIn)}
             </Text>
           </View>
         </LinearGradient>
 
         <LinearGradient
-          colors={theme.accentGradient}
+          colors={[theme.card, theme.surface]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.flowCard, cardShadow(theme.dark)]}
         >
           <View style={styles.flowCardBevel} pointerEvents="none" />
           <View style={styles.flowIconBox}>
-            <Icon name="arrow-up" size={16} color={theme.accentInk} />
+            <Icon name="arrow-up" size={16} color={theme.accentText} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.flowLabel, { color: theme.accentInk }]}>
+            <Text style={[styles.flowLabel, { color: theme.muted }]}>
               Money out
             </Text>
             <Text
-              style={[styles.flowValue, { color: theme.accentInk }]}
+              style={[styles.flowValue, { color: theme.accentText }]}
               numberOfLines={1}
             >
               {hidden ? "••••" : money(totalOut)}
@@ -2433,15 +2475,15 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                     active
                       ? theme.accentGradient[0]
                       : theme.dark
-                        ? "#1b2531"
+                        ? theme.soft
                         : theme.card
                   }
                   toColor={
                     active
                       ? theme.accentGradient[1]
                       : theme.dark
-                        ? "#121922"
-                        : "#edf3fc"
+                        ? theme.surface
+                        : theme.soft
                   }
                   minHeight={108}
                 >
@@ -2479,12 +2521,12 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         </ScrollView>
         <EdgeFade
           position="left"
-          color={theme.dark ? "#0b1018" : "#e4edf8"}
+          color={theme.page}
           size={18}
         />
         <EdgeFade
           position="right"
-          color={theme.dark ? "#0b1018" : "#e4edf8"}
+          color={theme.page}
           size={18}
         />
       </View>
@@ -2746,7 +2788,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
         style={{ marginBottom: 20 }}
       >
         <View style={styles.heroTopRow}>
-          <Text style={styles.heroHeaderTitle}>Settings</Text>
+          <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>Settings</Text>
         </View>
 
         <Pressable
@@ -2756,20 +2798,20 @@ export const SettingsScreen = React.memo(function SettingsScreen({
             { opacity: pressed ? 0.85 : 1 },
           ]}
         >
-          <View style={styles.profileCardAvatar}>
-            <Text style={styles.profileCardInitials}>{profile.initials}</Text>
+          <View style={[styles.profileCardAvatar, { backgroundColor: theme.heroControl }]}>
+            <Text style={[styles.profileCardInitials, { color: theme.heroInk }]}>{profile.initials}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.profileCardName} numberOfLines={1}>
+            <Text style={[styles.profileCardName, { color: theme.heroInk }]} numberOfLines={1}>
               {profile.fullName}
             </Text>
-            <Text style={styles.profileCardSub} numberOfLines={1}>
+            <Text style={[styles.profileCardSub, { color: theme.heroMuted, opacity: 1 }]} numberOfLines={1}>
               {userEmail
                 ? `${userEmail} · Cloud Synced`
                 : "Offline-first wallet profile · Tap to sign in"}
             </Text>
           </View>
-          <Icon name="chevron" size={18} color="#ffffff" />
+          <Icon name="chevron" size={18} color={theme.heroInk} />
         </Pressable>
       </HeroHeaderSurface>
 
@@ -3165,22 +3207,24 @@ export function WalletDetailScreen({
             onPress={onBack}
             style={({ pressed }) => [
               styles.heroIconBtn,
+              heroControlStyle(theme),
               { transform: [{ scale: pressed ? 0.92 : 1 }] },
             ]}
           >
-            <Icon name="back" size={19} color="#ffffff" />
+            <Icon name="back" size={19} color={theme.heroInk} />
           </Pressable>
-          <Text style={styles.heroDetailTitle} numberOfLines={1}>
+          <Text style={[styles.heroDetailTitle, { color: theme.heroInk }]} numberOfLines={1}>
             {wallet.name}
           </Text>
           <Pressable
             onPress={onEdit}
             style={({ pressed }) => [
               styles.heroIconBtn,
+              heroControlStyle(theme),
               { transform: [{ scale: pressed ? 0.92 : 1 }] },
             ]}
           >
-            <Icon name="edit" size={17} color="#ffffff" />
+            <Icon name="edit" size={17} color={theme.heroInk} />
           </Pressable>
         </View>
       </HeroHeaderSurface>
@@ -3199,7 +3243,7 @@ export function WalletDetailScreen({
           scrollEventThrottle={16}
         >
 
-          <WalletFolder wallet={wallet} hidden={hidden} onMenu={onEdit} />
+          <WalletFolder wallet={wallet} hidden={hidden} onMenu={onEdit} raised={!theme.dark} />
 
           <View style={styles.detailActions}>
             <Pressable
@@ -3291,7 +3335,7 @@ export function WalletDetailScreen({
         </Animated.ScrollView>
         <EdgeFade
           position="top"
-          color={theme.dark ? "#121923" : "#f6f9fd"}
+          color={theme.surface}
           size={24}
           opacity={detailScrollY.interpolate({
             inputRange: [0, 16],
@@ -3301,7 +3345,7 @@ export function WalletDetailScreen({
         />
         <EdgeFade
           position="bottom"
-          color={theme.dark ? "#090d12" : "#dce6f5"}
+          color={theme.page}
           size={48}
         />
       </View>
@@ -3476,13 +3520,19 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.16)",
+    borderBottomWidth: 0,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.24,
     shadowRadius: 20,
     elevation: 8,
   },
+  lightHeroLift: Platform.OS === "android" && Platform.Version < 28
+    ? { shadowColor: "#182036" }
+    : {
+        elevation: 0,
+        shadowOpacity: 0,
+        boxShadow: "0px 7px 16px rgba(24, 32, 54, 0.17)",
+      },
   heroSingleRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -3521,9 +3571,9 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: "rgba(255, 255, 255, 0.14)",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.22)",
+    borderColor: "rgba(255, 255, 255, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -3543,9 +3593,9 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255, 255, 255, 0.14)",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.22)",
+    borderColor: "rgba(255, 255, 255, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -3591,7 +3641,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.16)",
+    borderTopColor: "rgba(255, 255, 255, 0.09)",
   },
   walletsHeroFlowHalf: {
     flex: 1,
@@ -3975,7 +4025,7 @@ const styles = StyleSheet.create({
     width: 35,
     height: 35,
     borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.38)",
+    backgroundColor: "rgba(128, 128, 128, 0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -4046,16 +4096,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   profileCardInitials: {
+    color: "#fff6f0",
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "900",
     fontSize: 16,
   },
   profileCardName: {
+    color: "#fff6f0",
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 16,
   },
   profileCardSub: {
+    color: "#fff6f0",
     fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 11,

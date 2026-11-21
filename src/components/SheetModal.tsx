@@ -46,6 +46,9 @@ import {
   TxRow,
 } from "./SharedUI";
 import { WalletFolder, WalletLogoBadge } from "./WalletFolder";
+import { ScheduleManager } from "./Schedules";
+import { displayDueDate } from "../types/schedule";
+import type { DueSchedule, Schedule } from "../types/schedule";
 import {
   resolveWalletCardDesign,
   WalletPreset,
@@ -69,6 +72,14 @@ export function SheetModal({
   activities = [],
   selected,
   activity,
+  schedules,
+  scheduleSeed,
+  scheduledEntry,
+  onScheduleFromActivity,
+  onSaveSchedule,
+  onDeleteSchedule,
+  onOpenScheduledEntry,
+  onRecordScheduledEntry,
   hidden = false,
   onSaveWallets,
   onDeleteWallet,
@@ -95,6 +106,14 @@ export function SheetModal({
   activities?: ActivityItem[];
   selected: Wallet | null;
   activity?: ActivityItem | null;
+  schedules: DueSchedule[];
+  scheduleSeed: Schedule | null;
+  scheduledEntry: DueSchedule | null;
+  onScheduleFromActivity: (item: ActivityItem) => void;
+  onSaveSchedule: (schedule: Schedule) => Promise<void>;
+  onDeleteSchedule: (id: string) => Promise<void>;
+  onOpenScheduledEntry: (schedule: DueSchedule) => void;
+  onRecordScheduledEntry: (item: Omit<ActivityItem, "id" | "date">) => Promise<void>;
   hidden?: boolean;
   onSaveWallets: (next: Wallet[]) => void;
   onDeleteWallet?: (wallet: Wallet) => void;
@@ -121,6 +140,7 @@ export function SheetModal({
   const sheetStartY = Math.min(Math.max(windowHeight, 560), 760);
   const openAnim = useRef(new Animated.Value(0)).current;
   const closingRef = useRef(false);
+  const scheduledSavingRef = useRef(false);
 
   const closeWith = useCallback(
     (cb: () => void) => {
@@ -140,7 +160,7 @@ export function SheetModal({
   );
 
   const onClose = useCallback(
-    () => closeWith(onCloseProp),
+    () => { if (!scheduledSavingRef.current) closeWith(onCloseProp); },
     [closeWith, onCloseProp]
   );
   const onDone = useCallback(
@@ -210,15 +230,17 @@ export function SheetModal({
       setTone(editTarget.tone);
     }
   }, [type, editTarget?.id]);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(scheduledEntry ? String(scheduledEntry.amount) : "");
   const [source, setSource] = useState(fallback);
   const [destination, setDestination] = useState(
     wallets.find((w) => w.id !== fallback)?.id || fallback
   );
   const [walletId, setWalletId] = useState(fallback);
-  const [entryType, setEntryType] = useState<"expense" | "income">("expense");
-  const [entryCategory, setEntryCategory] = useState("Food");
-  const [note, setNote] = useState("");
+  const [entryType, setEntryType] = useState<"expense" | "income">(scheduledEntry?.direction ?? "expense");
+  const [entryCategory, setEntryCategory] = useState(scheduledEntry?.category ?? "Food");
+  const [note, setNote] = useState(scheduledEntry?.title ?? "");
+  const [scheduledSaving, setScheduledSaving] = useState(false);
+  const [scheduledError, setScheduledError] = useState("");
   const [transferFee, setTransferFee] = useState<number>(0);
   const [pickingTransferSide, setPickingTransferSide] = useState<
     "from" | "to" | null
@@ -522,10 +544,37 @@ export function SheetModal({
     source === destination ||
     transferTotalDebit > (sourceWallet?.balance || 0);
 
-  const save = () => {
+  const save = async () => {
     const now = new Date().toISOString();
     if (type === "entry" && entryWallet && !entryInvalid) {
       const signedValue = entryType === "expense" ? -entryValue : entryValue;
+      const item = {
+        localId: `tx-${Date.now()}`,
+        walletLocalId: getWalletLocalId(entryWallet),
+        title: note.trim() || entryCategory,
+        wallet: entryWallet.name,
+        amount: signedValue,
+        icon: entryIcon,
+        kind: entryCategory,
+        occurredAt: now,
+        updatedAt: now,
+        synced: false,
+      };
+      if (scheduledEntry) {
+        if (scheduledSavingRef.current || closingRef.current) return;
+        scheduledSavingRef.current = true;
+        setScheduledSaving(true);
+        setScheduledError("");
+        try {
+          await onRecordScheduledEntry(item);
+          onDone(`${scheduledEntry.direction === "expense" ? "Bill" : "Income"} recorded`);
+        } catch {
+          setScheduledError("Could not record this transaction. Check the wallet balance and try again.");
+          scheduledSavingRef.current = false;
+          setScheduledSaving(false);
+        }
+        return;
+      }
       const nextWallets = wallets.map((w) =>
         w.id === entryWallet.id
           ? {
@@ -537,18 +586,7 @@ export function SheetModal({
           : w
       );
       onSaveWallets(nextWallets);
-      onRecordActivity({
-        localId: `tx-${Date.now()}`,
-        walletLocalId: entryWallet.localId || `wallet-${entryWallet.id}`,
-        title: note.trim() || entryCategory,
-        wallet: entryWallet.name,
-        amount: signedValue,
-        icon: entryIcon,
-        kind: entryCategory,
-        occurredAt: now,
-        updatedAt: now,
-        synced: false,
-      });
+      onRecordActivity(item);
       onDone(
         `${entryType === "expense" ? "Expense" : "Money"} ${money(entryValue)} saved`
       );
@@ -744,10 +782,11 @@ export function SheetModal({
                   ? "Monthly Budget"
                   : type === "search"
                     ? "Search"
-                    : "Account & Cloud Sync";
+                    : type === "schedule" ? "Bills & paydays" : "Account & Cloud Sync";
 
-  const heroTone: Tone = entryType === "expense" ? "blue" : "yellow";
-  const heroPal = tonePalette[heroTone];
+  const heroPal = entryType === "income"
+    ? { from: theme.incomeGradient[0], to: theme.incomeGradient[1], ink: theme.incomeInk }
+    : { from: theme.heroGlow, to: theme.heroGradient[2], ink: theme.heroInk };
 
   const renderCategoryGrid = (
     items: [string, string][],
@@ -863,6 +902,10 @@ export function SheetModal({
               )}
               scrollEventThrottle={16}
             >
+            {type === "schedule" && (
+              <ScheduleManager schedules={schedules} wallets={wallets} hidden={hidden} theme={theme}
+                seed={scheduleSeed} onSave={onSaveSchedule} onDelete={onDeleteSchedule} onRecord={onOpenScheduledEntry} />
+            )}
             {/* ==================== ADD / EDIT WALLET SHEET ==================== */}
             {(type === "add" || type === "edit") && (
               <View>
@@ -919,7 +962,7 @@ export function SheetModal({
                         <Text
                           style={[
                             styles.miniPillText,
-                            { color: active ? "#ffffff" : theme.ink },
+                            { color: active ? theme.accentInk : theme.ink },
                           ]}
                         >
                           {grp}
@@ -1116,7 +1159,7 @@ export function SheetModal({
                               style={[
                                 styles.miniPillText,
                                 {
-                                  color: active ? "#ffffff" : theme.ink,
+                                  color: active ? theme.accentInk : theme.ink,
                                 },
                               ]}
                             >
@@ -1329,6 +1372,11 @@ export function SheetModal({
             {/* ==================== ENTRY (ADD TRANSACTION) SHEET ==================== */}
             {type === "entry" && entryWallet && (
               <View>
+                {scheduledEntry && (
+                  <Text style={[styles.formTitle, { color: theme.accentText, marginBottom: 12 }]}>
+                    {scheduledEntry.title} · Due {displayDueDate(scheduledEntry.dueDate)}
+                  </Text>
+                )}
                 {/* Expense / Money in Toggle */}
                 <View
                   style={[
@@ -1341,6 +1389,7 @@ export function SheetModal({
                     return (
                       <Pressable
                         key={kind}
+                        disabled={Boolean(scheduledEntry)}
                         onPress={() => {
                           setEntryType(kind);
                           setEntryCategory(
@@ -1356,7 +1405,7 @@ export function SheetModal({
                           colors={
                             active
                               ? kind === "income"
-                                ? ["#fff58a", "#f2c715"]
+                                ? theme.incomeGradient
                                 : theme.accentGradient
                               : [theme.soft2, theme.soft2]
                           }
@@ -1370,8 +1419,8 @@ export function SheetModal({
                             color={
                               active
                                 ? kind === "income"
-                                  ? "#241c03"
-                                  : "#ffffff"
+                                  ? theme.incomeInk
+                                  : theme.accentInk
                                 : theme.muted
                             }
                           />
@@ -1462,7 +1511,7 @@ export function SheetModal({
                               styles.entryBigInput,
                               {
                                 color: heroPal.ink,
-                                opacity: amount ? 1 : 0.42,
+                                opacity: amount ? 1 : 0.84,
                               },
                             ]}
                             numberOfLines={1}
@@ -1657,6 +1706,9 @@ export function SheetModal({
                   )}
 
                 {/* Entry Footer */}
+                {scheduledError ? (
+                  <Text accessibilityRole="alert" style={[styles.formTitle, { color: theme.ink }]}>{scheduledError}</Text>
+                ) : null}
                 <View
                   style={[
                     styles.entryFooter,
@@ -1681,9 +1733,9 @@ export function SheetModal({
                   <View style={{ flex: 1 }}>
                     <PrimaryButton
                       label={
-                        entryType === "expense" ? "Save expense" : "Add money"
+                        scheduledSaving ? "Saving…" : entryType === "expense" ? "Save expense" : "Add money"
                       }
-                      disabled={entryInvalid}
+                      disabled={entryInvalid || scheduledSaving}
                       onPress={save}
                       incomeStyle={entryType === "income"}
                       theme={theme}
@@ -1774,13 +1826,13 @@ export function SheetModal({
                             mark={w.mark}
                             size={18}
                             radius={6}
-                            ink={active ? "#ffffff" : theme.ink}
+                            ink={active ? theme.accentInk : theme.ink}
                             fontSize={7}
                           />
                           <Text
                             style={[
                               styles.walletSelectChipText,
-                              { color: active ? "#ffffff" : theme.ink },
+                              { color: active ? theme.accentInk : theme.ink },
                             ]}
                           >
                             {w.name}
@@ -2160,13 +2212,13 @@ export function SheetModal({
                               mark={w.mark}
                               size={18}
                               radius={6}
-                              ink={active ? "#ffffff" : theme.ink}
+                              ink={active ? theme.accentInk : theme.ink}
                               fontSize={7}
                             />
                             <Text
                               style={[
                                 styles.walletSelectChipText,
-                                { color: active ? "#ffffff" : theme.ink },
+                                { color: active ? theme.accentInk : theme.ink },
                               ]}
                             >
                               {w.name}
@@ -2592,7 +2644,7 @@ export function SheetModal({
                               <Text
                                 style={[
                                   styles.walletSelectChipText,
-                                  { color: active ? "#ffffff" : theme.ink },
+                                  { color: active ? theme.accentInk : theme.ink },
                                 ]}
                               >
                                 {w.name}
@@ -2636,7 +2688,7 @@ export function SheetModal({
                                 <Text
                                   style={[
                                     styles.walletSelectChipText,
-                                    { color: active ? "#ffffff" : theme.ink },
+                                    { color: active ? theme.accentInk : theme.ink },
                                   ]}
                                 >
                                   {w.name}
@@ -2961,6 +3013,14 @@ export function SheetModal({
                     </Pressable>
                   ) : null}
 
+                  {matchedWallet && !isTransfer && !isAdjustment && activity.amount !== 0 ? (
+                    <Pressable
+                      onPress={() => onScheduleFromActivity(activity)}
+                      style={[styles.secondaryButton, { backgroundColor: theme.accentSoft, marginTop: 10 }]}
+                    >
+                      <Text style={[styles.secondaryButtonText, { color: theme.accentText }]}>Make recurring</Text>
+                    </Pressable>
+                  ) : null}
                   <PrimaryButton label="Done" onPress={onClose} theme={theme} />
                 </View>
               );
@@ -3017,19 +3077,19 @@ export function SheetModal({
                 {userEmail ? (
                   <View>
                     <LinearGradient
-                      colors={["#22385f", "#101827"]}
+                      colors={theme.heroGradient}
                       style={styles.confirmPanel}
                     >
-                      <Text style={styles.confirmSub}>Signed in as</Text>
+                      <Text style={[styles.confirmSub, { color: theme.heroMuted }]}>Signed in as</Text>
                       <Text
                         style={[
                           styles.confirmAmount,
-                          { fontSize: 18, marginVertical: 4 },
+                          { fontSize: 18, marginVertical: 4, color: theme.heroInk },
                         ]}
                       >
                         {userEmail}
                       </Text>
-                      <Text style={styles.confirmSub}>
+                      <Text style={[styles.confirmSub, { color: theme.heroMuted }]}>
                         PostgreSQL RLS + Local SQLite dual-storage active
                       </Text>
                     </LinearGradient>
@@ -3516,13 +3576,13 @@ function PrimaryButton({
   const colors: [string, string] = disabled
     ? [theme.soft2, theme.soft2]
     : incomeStyle
-      ? ["#fff58a", "#f2c715"]
+      ? theme.incomeGradient
       : theme.accentGradient;
 
   const textColor = disabled
     ? theme.muted
     : incomeStyle
-      ? "#241c03"
+      ? theme.incomeInk
       : theme.accentInk;
 
   return (
@@ -3634,7 +3694,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(10, 15, 26, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.64)",
   },
   bottomSheet: {
     width: "100%",

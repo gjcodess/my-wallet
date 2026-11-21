@@ -132,6 +132,7 @@ export const WalletFolder = React.memo(function WalletFolder({
   onMenu,
   compact = false,
   topShadow = false,
+  raised = false,
   menuIcon = "more",
   notchProgress,
   style,
@@ -142,6 +143,7 @@ export const WalletFolder = React.memo(function WalletFolder({
   onMenu?: () => void;
   compact?: boolean;
   topShadow?: boolean;
+  raised?: boolean;
   menuIcon?: string;
   notchProgress?: Animated.AnimatedInterpolation<number>;
   style?: StyleProp<ViewStyle>;
@@ -170,6 +172,12 @@ export const WalletFolder = React.memo(function WalletFolder({
         style,
       ]}
     >
+      {raised && (
+        <View
+          pointerEvents="none"
+          style={[styles.bodyShadow, { top: tabHeight + radius, borderRadius: radius }]}
+        />
+      )}
       <FolderSurface
         tab={0.6}
         tabHeight={tabHeight}
@@ -393,6 +401,13 @@ export const WalletFolder = React.memo(function WalletFolder({
 const styles = StyleSheet.create({
   wrapper: {
     width: "100%",
+  },
+  bodyShadow: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    boxShadow: "0px 8px 18px rgba(24, 32, 54, 0.24)",
   },
   amountText: {
     fontFamily: "Poppins_800ExtraBold",

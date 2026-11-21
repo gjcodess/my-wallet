@@ -1,4 +1,6 @@
 import * as SQLite from "expo-sqlite";
+import { Platform } from "react-native";
+import type { Schedule } from "../types/schedule";
 import { supabase } from "./supabase";
 import { AccentPaletteId, isAccentPaletteId } from "../components/SharedUI";
 import {
@@ -20,6 +22,10 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
     CREATE TABLE IF NOT EXISTS kv_settings (
       key TEXT PRIMARY KEY NOT NULL,
       value TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS schedules (
+      id TEXT PRIMARY KEY NOT NULL,
+      details TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS wallets (
       id INTEGER PRIMARY KEY NOT NULL,
@@ -216,12 +222,12 @@ export async function loadLocalState(): Promise<{
   const rawAccent = settingsMap.get("accent_color");
   const accentColor: AccentPaletteId = isAccentPaletteId(rawAccent)
     ? rawAccent
-    : "blue";
+    : "coral";
 
   return {
     wallets: wallets.length || isSeeded ? wallets : initialWallets,
     activities: activities.length || isSeeded ? activities : initialActivities,
-    dark: settingsMap.get("dark_mode") === "true",
+    dark: settingsMap.get("dark_mode") !== "false",
     hidden: settingsMap.get("hide_balances") === "true",
     accentColor,
     profile: {
@@ -233,6 +239,50 @@ export async function loadLocalState(): Promise<{
     biometricsEnabled: settingsMap.get("app_lock_biometrics") === "true",
     monthlyBudget,
   };
+}
+
+export async function loadSchedules(): Promise<Schedule[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{ details: string }>("SELECT details FROM schedules");
+  return rows.map(({ details }) => JSON.parse(details) as Schedule);
+}
+
+export async function saveSchedule(schedule: Schedule): Promise<void> {
+  const db = await getDb();
+  await db.runAsync("INSERT OR REPLACE INTO schedules (id, details) VALUES (?, ?)", [
+    schedule.id, JSON.stringify(schedule),
+  ]);
+}
+
+export async function deleteSchedule(id: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync("DELETE FROM schedules WHERE id = ?", [id]);
+}
+
+export async function recordScheduledActivity(item: ActivityItem): Promise<number> {
+  const db = await getDb();
+  let balance = 0;
+  const write = async (tx: SQLite.SQLiteDatabase) => {
+    const walletId = item.walletLocalId ?? "";
+    const result = await tx.runAsync(
+      `UPDATE wallets SET balance = ROUND(balance + ?, 2), updated_at = ?, synced = 0
+       WHERE local_id = ? AND (? > 0 OR balance >= -?)`,
+      [item.amount, item.updatedAt ?? "", walletId, item.amount, item.amount],
+    );
+    if (!result.changes) throw new Error("Wallet is missing or has insufficient funds");
+    await tx.runAsync(
+      `INSERT INTO activities (id, local_id, wallet_local_id, title, wallet, date, amount, icon, kind, occurred_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [item.id, item.localId ?? "", walletId, item.title, item.wallet, item.date,
+       item.amount, item.icon, item.kind, item.occurredAt ?? "", item.updatedAt ?? ""],
+    );
+    const row = await tx.getFirstAsync<{ balance: number }>("SELECT balance FROM wallets WHERE local_id = ?", [walletId]);
+    if (!row) throw new Error("Wallet is missing");
+    balance = row.balance;
+  };
+  if (Platform.OS === "web") await db.withTransactionAsync(() => write(db));
+  else await db.withExclusiveTransactionAsync(write);
+  return balance;
 }
 
 export async function saveSettingToSQLite(key: string, value: string): Promise<void> {
