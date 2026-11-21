@@ -13,7 +13,7 @@
     "android": {
       "package": "com.justinsantos.mywallet",
       "adaptiveIcon": {
-        "backgroundColor": "#2563EB",
+        "backgroundColor": "#111827",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
