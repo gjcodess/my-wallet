@@ -44,6 +44,8 @@ import {
 } from "./src/types/wallet";
 import { firstFutureMonthlyDate, getDueSchedules, localDateKey, occurrenceId } from "./src/types/schedule";
 import type { DueSchedule, Schedule } from "./src/types/schedule";
+import { categoryLimitKey, getMonthlySpending } from "./src/types/budget";
+import type { CategoryLimits } from "./src/types/budget";
 import { refreshReminders } from "./src/lib/scheduleReminders";
 import {
   loadLocalState,
@@ -120,6 +122,8 @@ export default function App() {
   const [biometricsSupported, setBiometricsSupported] = useState(false);
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
   const [monthlyBudget, setMonthlyBudget] = useState<number | null>(null);
+  const [categoryLimits, setCategoryLimits] = useState<CategoryLimits>({});
+  const [budgetCategory, setBudgetCategory] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(false);
   const [lockModalMode, setLockModalMode] = useState<AppLockMode | null>(null);
   const appLockPinRef = useRef<string | null>(null);
@@ -152,6 +156,7 @@ export default function App() {
     [dark, accentColor]
   );
   const dueSchedules = useMemo(() => getDueSchedules(schedules, activityItems, today), [schedules, activityItems, today]);
+  const monthlySpending = useMemo(() => getMonthlySpending(activityItems, new Date(`${today}T12:00:00`)), [activityItems, today]);
 
   // Scroll-reactive bottom navbar & screen/toast animations
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
@@ -312,6 +317,7 @@ export default function App() {
         setAppLockPin(state.appLockPin);
         setBiometricsEnabled(state.biometricsEnabled);
         setMonthlyBudget(state.monthlyBudget);
+        setCategoryLimits(state.categoryLimits);
         if (state.appLockPin) {
           setIsLocked(true);
         }
@@ -716,6 +722,21 @@ export default function App() {
   const handleAddWalletSheet = useCallback(() => openSheet("add"), [openSheet]);
   const handleAddEntrySheet = useCallback(() => openSheet("entry"), [openSheet]);
   const handleOpenBudgetSheet = useCallback(() => openSheet("budget"), [openSheet]);
+  const handleOpenCategoryBudget = useCallback((category: string | null) => {
+    setBudgetCategory(category);
+    openSheet("category-budget");
+  }, [openSheet]);
+
+  const handleSaveCategoryLimit = async (category: string, limit: number | null) => {
+    await saveSettingToSQLite(categoryLimitKey(category), limit === null ? "" : String(limit));
+    setCategoryLimits((current) => {
+      const next = { ...current };
+      if (limit === null) delete next[category];
+      else next[category] = limit;
+      return next;
+    });
+    setToast(limit === null ? `${category} limit removed` : `${category} limit saved`);
+  };
   const handleOpenAuthSheet = useCallback(() => openSheet("auth"), [openSheet]);
   const handleToggleActivityFilter = useCallback(
     () => setShowActivityFilters((prev) => !prev),
@@ -944,6 +965,9 @@ export default function App() {
                       hidden={hidden}
                       onToggleHidden={handleToggleHidden}
                       monthlyBudget={monthlyBudget}
+                      monthlySpending={monthlySpending}
+                      categoryLimits={categoryLimits}
+                      onOpenCategoryBudget={handleOpenCategoryBudget}
                       onEditBudget={handleOpenBudgetSheet}
                       onTransaction={openTransactionSheet}
                       onShowToast={setToast}
@@ -1085,7 +1109,8 @@ export default function App() {
 
       {!isLocked && sheet && (
         <SheetModal
-          key={scheduledEntry ? occurrenceId(scheduledEntry.id, scheduledEntry.dueDate) : sheet === "schedule" ? "schedules" : "sheet"}
+          key={scheduledEntry ? occurrenceId(scheduledEntry.id, scheduledEntry.dueDate)
+            : sheet === "schedule" || sheet === "category-budget" ? sheet : "sheet"}
           type={sheet}
           wallets={wallets}
           activities={activityItems}
@@ -1121,6 +1146,10 @@ export default function App() {
           profile={profile}
           onUpdateProfile={handleUpdateProfile}
           monthlyBudget={monthlyBudget}
+          monthlySpending={monthlySpending}
+          categoryLimits={categoryLimits}
+          budgetCategory={budgetCategory}
+          onSaveCategoryLimit={handleSaveCategoryLimit}
           onSaveMonthlyBudget={(next) => {
             setMonthlyBudget(next);
             saveSettingToSQLite(

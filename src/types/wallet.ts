@@ -41,6 +41,7 @@ export type Sheet =
   | "tx"
   | "auth"
   | "budget"
+  | "category-budget"
   | "search"
   | "schedule"
   | null;

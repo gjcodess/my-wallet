@@ -1,6 +1,8 @@
 import * as SQLite from "expo-sqlite";
 import { Platform } from "react-native";
 import type { Schedule } from "../types/schedule";
+import { readCategoryLimits } from "../types/budget";
+import type { CategoryLimits } from "../types/budget";
 import { supabase } from "./supabase";
 import { AccentPaletteId, isAccentPaletteId } from "../components/SharedUI";
 import {
@@ -146,6 +148,7 @@ export async function loadLocalState(): Promise<{
   appLockPin: string | null;
   biometricsEnabled: boolean;
   monthlyBudget: number | null;
+  categoryLimits: CategoryLimits;
 }> {
   const db = await getDb();
   const walletRows = await db.getAllAsync<{
@@ -238,6 +241,7 @@ export async function loadLocalState(): Promise<{
     appLockPin: settingsMap.get("app_lock_pin") || null,
     biometricsEnabled: settingsMap.get("app_lock_biometrics") === "true",
     monthlyBudget,
+    categoryLimits: readCategoryLimits(settingsMap),
   };
 }
 

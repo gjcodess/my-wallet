@@ -440,11 +440,13 @@ export function bevelStyle(dark: boolean) {
 
 export function TxRow({
   item,
+  dateLabel,
   hidden,
   onPress,
   theme,
 }: {
   item: ActivityItem;
+  dateLabel?: string;
   hidden: boolean;
   onPress?: () => void;
   theme: ThemeColors;
@@ -496,7 +498,7 @@ export function TxRow({
             : `${isPositive ? "+" : "-"} ${money(Math.abs(item.amount))}`}
         </Text>
         <Text style={[styles.txDate, { color: theme.muted }]}>
-          {item.date.split(",")[0]}
+          {dateLabel ?? item.date.split(",")[0]}
         </Text>
       </View>
     </Pressable>

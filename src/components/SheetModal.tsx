@@ -47,6 +47,8 @@ import {
 } from "./SharedUI";
 import { WalletFolder, WalletLogoBadge } from "./WalletFolder";
 import { ScheduleManager } from "./Schedules";
+import { CategoryBudgetSheet } from "./CategoryBudgets";
+import type { CategoryLimits, MonthlySpending } from "../types/budget";
 import { displayDueDate } from "../types/schedule";
 import type { DueSchedule, Schedule } from "../types/schedule";
 import {
@@ -96,6 +98,10 @@ export function SheetModal({
   profile,
   onUpdateProfile,
   monthlyBudget = null,
+  monthlySpending,
+  categoryLimits,
+  budgetCategory,
+  onSaveCategoryLimit,
   onSaveMonthlyBudget,
   userEmail,
   onSyncNow,
@@ -130,6 +136,10 @@ export function SheetModal({
   profile: UserProfile;
   onUpdateProfile: (p: UserProfile) => void;
   monthlyBudget?: number | null;
+  monthlySpending: MonthlySpending;
+  categoryLimits: CategoryLimits;
+  budgetCategory: string | null;
+  onSaveCategoryLimit: (category: string, limit: number | null) => Promise<void>;
   onSaveMonthlyBudget?: (next: number | null) => void;
   userEmail: string | null;
   onSyncNow: () => Promise<void>;
@@ -203,6 +213,7 @@ export function SheetModal({
   const [walletConfirmDelete, setWalletConfirmDelete] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
   const sheetScrollY = useRef(new Animated.Value(0)).current;
+  const sheetScrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
 
   useEffect(() => {
     sheetScrollY.setValue(0);
@@ -766,7 +777,9 @@ export function SheetModal({
   };
 
   const sheetTitle =
-    type === "add"
+    type === "category-budget"
+      ? (budgetCategory ? `${budgetCategory} budget` : "Category budgets")
+      : type === "add"
       ? "New Wallet"
       : type === "edit"
         ? "Edit Wallet"
@@ -893,6 +906,7 @@ export function SheetModal({
 
           <View style={{ flexShrink: 1, position: "relative" }}>
             <Animated.ScrollView
+              ref={sheetScrollRef}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{ paddingTop: 6, paddingBottom: 32 }}
@@ -905,6 +919,11 @@ export function SheetModal({
             {type === "schedule" && (
               <ScheduleManager schedules={schedules} wallets={wallets} hidden={hidden} theme={theme}
                 seed={scheduleSeed} onSave={onSaveSchedule} onDelete={onDeleteSchedule} onRecord={onOpenScheduledEntry} />
+            )}
+            {type === "category-budget" && (
+              <CategoryBudgetSheet limits={categoryLimits} spending={monthlySpending} hidden={hidden}
+                theme={theme} selectedCategory={budgetCategory} onSave={onSaveCategoryLimit} onTransaction={onOpenTransaction}
+                onScrollToTop={() => sheetScrollRef.current?.scrollTo({ y: 0, animated: false })} />
             )}
             {/* ==================== ADD / EDIT WALLET SHEET ==================== */}
             {(type === "add" || type === "edit") && (

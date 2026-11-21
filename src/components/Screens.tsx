@@ -54,6 +54,8 @@ import {
 import { Amount, WalletFolder, WalletLogoBadge } from "./WalletFolder";
 import { Upcoming } from "./Schedules";
 import type { DueSchedule } from "../types/schedule";
+import type { CategoryLimits, MonthlySpending } from "../types/budget";
+import { CategoryBudgetOverview } from "./CategoryBudgets";
 
 const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
   theme,
@@ -1626,6 +1628,9 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   hidden,
   onToggleHidden,
   monthlyBudget = null,
+  monthlySpending: monthSpending,
+  categoryLimits,
+  onOpenCategoryBudget,
   onEditBudget,
   onTransaction,
   onShowToast,
@@ -1640,6 +1645,9 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   hidden: boolean;
   onToggleHidden?: () => void;
   monthlyBudget?: number | null;
+  monthlySpending: MonthlySpending;
+  categoryLimits: CategoryLimits;
+  onOpenCategoryBudget: (category: string | null) => void;
   onEditBudget?: () => void;
   onTransaction?: (item: ActivityItem) => void;
   onShowToast?: (msg: string) => void;
@@ -1755,21 +1763,6 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         .reduce((sum, a) => sum + a.amount, 0),
     [activities]
   );
-
-  const monthSpending = useMemo(() => {
-    const now = new Date();
-    const curYear = now.getFullYear();
-    const curMonth = now.getMonth();
-    const monthLabel = now.toLocaleDateString("en-US", { month: "short" });
-    const spent = activities
-      .filter(isExpenseActivity)
-      .filter((a) => {
-        const d = getActivityDate(a, now);
-        return d.getFullYear() === curYear && d.getMonth() === curMonth;
-      })
-      .reduce((sum, a) => sum + Math.abs(a.amount), 0);
-    return { spent, monthLabel };
-  }, [activities]);
 
   const chartData = useMemo(() => {
     const now = new Date();
@@ -2431,6 +2424,9 @@ export const ActivityScreen = React.memo(function ActivityScreen({
           )}
         </Pressable>
       ) : null}
+
+      <CategoryBudgetOverview limits={categoryLimits} spending={monthSpending} hidden={hidden}
+        theme={theme} onOpen={onOpenCategoryBudget} />
 
       {/* Categories Horizontal Folder Cards */}
       <SectionTitle
