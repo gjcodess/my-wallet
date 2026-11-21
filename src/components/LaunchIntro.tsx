@@ -16,15 +16,14 @@ import Svg, {
 import { hexToRgba, ThemeColors } from "./SharedUI";
 
 const PITAKA_MARK_WHITE = require("../../assets/brand/pitaka-mark-white.png");
+const PITAKA_MARK_DARK = require("../../assets/brand/pitaka-mark-dark.png");
 const PITAKA_TITLE_WHITE = require("../../assets/brand/pitaka-title-white.png");
 const PITAKA_TITLE_DARK = require("../../assets/brand/pitaka-title-dark.png");
 
 export const LaunchIntro = React.memo(function LaunchIntro({
-  ready,
   theme,
   onFinish,
 }: {
-  ready: boolean;
   theme: ThemeColors;
   onFinish: () => void;
 }) {
@@ -42,9 +41,6 @@ export const LaunchIntro = React.memo(function LaunchIntro({
     ringOpacity: new Animated.Value(0),
   }));
 
-  const readyRef = useRef(ready);
-  const introEnteredRef = useRef(false);
-  const skipRequestedRef = useRef(false);
   const dismissingRef = useRef(false);
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -67,7 +63,7 @@ export const LaunchIntro = React.memo(function LaunchIntro({
       anims.ringScale.stopAnimation();
       anims.ringOpacity.stopAnimation();
 
-      const duration = fast ? 120 : 240;
+      const duration = fast ? 120 : 230;
       Animated.parallel([
         Animated.timing(anims.overlayOpacity, {
           toValue: 0,
@@ -88,7 +84,6 @@ export const LaunchIntro = React.memo(function LaunchIntro({
     [anims, onFinish]
   );
 
-  // Entrance sequence (~520ms total) + brief hold (~360ms) -> auto exit (~240ms)
   useEffect(() => {
     Animated.parallel([
       // 1. Icon badge spring in
@@ -133,17 +128,17 @@ export const LaunchIntro = React.memo(function LaunchIntro({
       }),
       // 3. Wordmark glide up slightly staggered
       Animated.sequence([
-        Animated.delay(140),
+        Animated.delay(130),
         Animated.parallel([
           Animated.timing(anims.titleOpacity, {
             toValue: 1,
-            duration: 260,
+            duration: 250,
             easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
           }),
           Animated.timing(anims.titleTranslateY, {
             toValue: 0,
-            duration: 280,
+            duration: 270,
             easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
           }),
@@ -151,17 +146,10 @@ export const LaunchIntro = React.memo(function LaunchIntro({
       ]),
     ]).start(({ finished }) => {
       if (!finished || dismissingRef.current) return;
-      introEnteredRef.current = true;
-      if (skipRequestedRef.current && readyRef.current) {
-        runDismiss(true);
-        return;
-      }
       holdTimerRef.current = setTimeout(() => {
         holdTimerRef.current = null;
-        if (readyRef.current) {
-          runDismiss(false);
-        }
-      }, 340);
+        runDismiss(false);
+      }, 320);
     });
 
     return () => {
@@ -171,26 +159,17 @@ export const LaunchIntro = React.memo(function LaunchIntro({
     };
   }, [anims, runDismiss]);
 
-  // Trigger dismiss as soon as `ready` becomes true if hold/skip already elapsed
-  useEffect(() => {
-    readyRef.current = ready;
-    if (!ready || dismissingRef.current) return;
-    if (skipRequestedRef.current) {
-      runDismiss(true);
-    } else if (introEnteredRef.current && !holdTimerRef.current) {
-      runDismiss(false);
-    }
-  }, [ready, runDismiss]);
-
   const handleSkip = useCallback(() => {
-    skipRequestedRef.current = true;
-    if (readyRef.current) {
-      runDismiss(true);
-    }
+    runDismiss(true);
   }, [runDismiss]);
 
   const bgColor = theme.dark ? "#08090b" : theme.page;
   const glowColor = theme.dark ? theme.heroGlow : theme.accent;
+  const badgeBg = theme.dark ? "#111827" : "#ffffff";
+  const badgeBorder = theme.dark
+    ? "rgba(255, 255, 255, 0.14)"
+    : "rgba(17, 24, 39, 0.10)";
+  const markSource = theme.dark ? PITAKA_MARK_WHITE : PITAKA_MARK_DARK;
   const titleSource = theme.dark ? PITAKA_TITLE_WHITE : PITAKA_TITLE_DARK;
 
   return (
@@ -255,9 +234,10 @@ export const LaunchIntro = React.memo(function LaunchIntro({
               style={[
                 styles.iconBadge,
                 {
-                  borderColor: theme.dark
-                    ? "rgba(255, 255, 255, 0.14)"
-                    : "rgba(17, 24, 39, 0.10)",
+                  backgroundColor: badgeBg,
+                  borderColor: badgeBorder,
+                  shadowColor: theme.dark ? "#000000" : "#111827",
+                  shadowOpacity: theme.dark ? 0.34 : 0.12,
                   opacity: anims.badgeOpacity,
                   transform: [
                     { translateY: anims.badgeTranslateY },
@@ -267,7 +247,7 @@ export const LaunchIntro = React.memo(function LaunchIntro({
               ]}
             >
               <Image
-                source={PITAKA_MARK_WHITE}
+                source={markSource}
                 style={styles.iconMark}
                 resizeMode="contain"
               />
@@ -323,13 +303,10 @@ const styles = StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 22,
-    backgroundColor: "#111827",
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.32,
     shadowRadius: 18,
     elevation: 10,
   },

@@ -848,7 +848,9 @@ export default function App() {
     saveSettingToSQLite("initials", nextProfile.initials).catch(() => {});
   };
 
-  const appReady = fontsLoaded && dbReady;
+  if (!fontsLoaded || !dbReady) {
+    return null;
+  }
 
   return (
     <SafeAreaProvider>
@@ -880,9 +882,7 @@ export default function App() {
 
         <StatusBar style={dark ? "light" : "dark"} />
 
-        {!appReady ? (
-          <View style={{ flex: 1 }} />
-        ) : isLocked ? (
+        {isLocked ? (
           <AppLockModal
             visible
             inline
@@ -1191,7 +1191,6 @@ export default function App() {
       )}
       {showIntro && (
         <LaunchIntro
-          ready={appReady}
           theme={theme}
           onFinish={handleFinishIntro}
         />
