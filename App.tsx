@@ -78,6 +78,7 @@ import {
 } from "./src/components/Screens";
 import { SheetModal } from "./src/components/SheetModal";
 import { AppLockModal, AppLockMode } from "./src/components/AppLockModal";
+import { LaunchIntro } from "./src/components/LaunchIntro";
 import { Icon } from "./src/components/Icon";
 
 export default function App() {
@@ -117,6 +118,8 @@ export default function App() {
   const [showActivityFilters, setShowActivityFilters] = useState(false);
   const [toast, setToast] = useState("");
   const [dbReady, setDbReady] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
+  const handleFinishIntro = useCallback(() => setShowIntro(false), []);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
@@ -845,16 +848,7 @@ export default function App() {
     saveSettingToSQLite("initials", nextProfile.initials).catch(() => {});
   };
 
-  if (!fontsLoaded || !dbReady) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.page,
-        }}
-      />
-    );
-  }
+  const appReady = fontsLoaded && dbReady;
 
   return (
     <SafeAreaProvider>
@@ -886,13 +880,17 @@ export default function App() {
 
         <StatusBar style={dark ? "light" : "dark"} />
 
-        {isLocked ? (
+        {!appReady ? (
+          <View style={{ flex: 1 }} />
+        ) : isLocked ? (
           <AppLockModal
             visible
             inline
             mode="unlock"
             expectedPin={appLockPin}
-            biometricsEnabled={biometricsSupported && biometricsEnabled}
+            biometricsEnabled={
+              !showIntro && biometricsSupported && biometricsEnabled
+            }
             onUnlock={() => setIsLocked(false)}
             theme={theme}
           />
@@ -1189,6 +1187,13 @@ export default function App() {
           userEmail={userEmail}
           onSyncNow={handleSyncNow}
           theme={theme}
+        />
+      )}
+      {showIntro && (
+        <LaunchIntro
+          ready={appReady}
+          theme={theme}
+          onFinish={handleFinishIntro}
         />
       )}
     </SafeAreaProvider>
