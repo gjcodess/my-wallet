@@ -3,6 +3,8 @@ import { Platform } from "react-native";
 import type { Schedule } from "../types/schedule";
 import { readCategoryLimits } from "../types/budget";
 import type { CategoryLimits } from "../types/budget";
+import { readFavorites } from "../types/favorite";
+import type { Favorite } from "../types/favorite";
 import { supabase } from "./supabase";
 import { AccentPaletteId, isAccentPaletteId } from "../components/SharedUI";
 import {
@@ -149,6 +151,7 @@ export async function loadLocalState(): Promise<{
   biometricsEnabled: boolean;
   monthlyBudget: number | null;
   categoryLimits: CategoryLimits;
+  favorites: Favorite[];
 }> {
   const db = await getDb();
   const walletRows = await db.getAllAsync<{
@@ -242,6 +245,7 @@ export async function loadLocalState(): Promise<{
     biometricsEnabled: settingsMap.get("app_lock_biometrics") === "true",
     monthlyBudget,
     categoryLimits: readCategoryLimits(settingsMap),
+    favorites: readFavorites(settingsMap),
   };
 }
 
@@ -263,7 +267,7 @@ export async function deleteSchedule(id: string): Promise<void> {
   await db.runAsync("DELETE FROM schedules WHERE id = ?", [id]);
 }
 
-export async function recordScheduledActivity(item: ActivityItem): Promise<number> {
+export async function recordWalletActivity(item: ActivityItem): Promise<number> {
   const db = await getDb();
   let balance = 0;
   const write = async (tx: SQLite.SQLiteDatabase) => {

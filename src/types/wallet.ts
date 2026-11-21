@@ -42,6 +42,7 @@ export type Sheet =
   | "auth"
   | "budget"
   | "category-budget"
+  | "favorite"
   | "search"
   | "schedule"
   | null;

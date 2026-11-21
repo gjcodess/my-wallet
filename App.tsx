@@ -46,12 +46,14 @@ import { firstFutureMonthlyDate, getDueSchedules, localDateKey, occurrenceId } f
 import type { DueSchedule, Schedule } from "./src/types/schedule";
 import { categoryLimitKey, getMonthlySpending } from "./src/types/budget";
 import type { CategoryLimits } from "./src/types/budget";
+import { favoriteKey } from "./src/types/favorite";
+import type { Favorite, FavoriteDraft } from "./src/types/favorite";
 import { refreshReminders } from "./src/lib/scheduleReminders";
 import {
   loadLocalState,
   loadSchedules,
   deleteSchedule,
-  recordScheduledActivity,
+  recordWalletActivity,
   saveSchedule,
   queueDeletedActivityIds,
   queueDeletedWalletIds,
@@ -124,6 +126,8 @@ export default function App() {
   const [monthlyBudget, setMonthlyBudget] = useState<number | null>(null);
   const [categoryLimits, setCategoryLimits] = useState<CategoryLimits>({});
   const [budgetCategory, setBudgetCategory] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const [favoriteSeed, setFavoriteSeed] = useState<FavoriteDraft | null>(null);
   const [isLocked, setIsLocked] = useState(false);
   const [lockModalMode, setLockModalMode] = useState<AppLockMode | null>(null);
   const appLockPinRef = useRef<string | null>(null);
@@ -318,6 +322,7 @@ export default function App() {
         setBiometricsEnabled(state.biometricsEnabled);
         setMonthlyBudget(state.monthlyBudget);
         setCategoryLimits(state.categoryLimits);
+        setFavorites(state.favorites);
         if (state.appLockPin) {
           setIsLocked(true);
         }
@@ -596,12 +601,13 @@ export default function App() {
     setSheet("entry");
   }, []);
 
-  const handleRecordScheduledEntry = async (item: Omit<ActivityItem, "id" | "date">) => {
-    if (!scheduledEntry) throw new Error("Schedule is missing");
-    const localId = occurrenceId(scheduledEntry.id, scheduledEntry.dueDate);
+  const handleRecordWalletEntry = async (item: Omit<ActivityItem, "id" | "date">) => {
+    const localId = scheduledEntry
+      ? occurrenceId(scheduledEntry.id, scheduledEntry.dueDate)
+      : item.localId;
     if (activitiesRef.current.some((entry) => entry.localId === localId)) throw new Error("Already recorded");
     const activity = buildActivity({ ...item, localId });
-    const balance = await recordScheduledActivity(activity);
+    const balance = await recordWalletActivity(activity);
     const nextWallets = walletsRef.current.map((wallet) => getWalletLocalId(wallet) === activity.walletLocalId
       ? { ...wallet, balance, updatedAt: activity.updatedAt, synced: false }
       : wallet);
@@ -736,6 +742,25 @@ export default function App() {
       return next;
     });
     setToast(limit === null ? `${category} limit removed` : `${category} limit saved`);
+  };
+
+  const handleFavoriteFromActivity = (draft: FavoriteDraft) => {
+    setFavoriteSeed(draft);
+    setSheet("favorite");
+  };
+
+  const handleSaveFavorite = async (favorite: Favorite) => {
+    await saveSettingToSQLite(favoriteKey(favorite.id), JSON.stringify(favorite));
+    setFavorites((current) => current.some(({ id }) => id === favorite.id)
+      ? current.map((item) => item.id === favorite.id ? favorite : item)
+      : [favorite, ...current]);
+    setToast("Favorite saved");
+  };
+
+  const handleRemoveFavorite = async (id: string) => {
+    await saveSettingToSQLite(favoriteKey(id), "");
+    setFavorites((current) => current.filter((item) => item.id !== id));
+    setToast("Favorite removed");
   };
   const handleOpenAuthSheet = useCallback(() => openSheet("auth"), [openSheet]);
   const handleToggleActivityFilter = useCallback(
@@ -1110,7 +1135,7 @@ export default function App() {
       {!isLocked && sheet && (
         <SheetModal
           key={scheduledEntry ? occurrenceId(scheduledEntry.id, scheduledEntry.dueDate)
-            : sheet === "schedule" || sheet === "category-budget" ? sheet : "sheet"}
+            : sheet === "schedule" || sheet === "category-budget" || sheet === "favorite" ? sheet : "sheet"}
           type={sheet}
           wallets={wallets}
           activities={activityItems}
@@ -1123,7 +1148,12 @@ export default function App() {
           onSaveSchedule={handleSaveSchedule}
           onDeleteSchedule={handleDeleteSchedule}
           onOpenScheduledEntry={handleOpenScheduledEntry}
-          onRecordScheduledEntry={handleRecordScheduledEntry}
+          onRecordWalletEntry={handleRecordWalletEntry}
+          favorites={favorites}
+          favoriteSeed={favoriteSeed}
+          onFavoriteFromActivity={handleFavoriteFromActivity}
+          onSaveFavorite={handleSaveFavorite}
+          onRemoveFavorite={handleRemoveFavorite}
           hidden={hidden}
           onSaveWallets={(nextWallets) => {
             walletsRef.current = nextWallets;

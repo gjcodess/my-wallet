@@ -47,6 +47,9 @@ import {
 } from "./SharedUI";
 import { WalletFolder, WalletLogoBadge } from "./WalletFolder";
 import { ScheduleManager } from "./Schedules";
+import { FavoriteEditor, FavoriteList, FavoriteStrip } from "./Favorites";
+import { createFavoriteDraft, favoriteFromActivity } from "../types/favorite";
+import type { Favorite, FavoriteDraft } from "../types/favorite";
 import { CategoryBudgetSheet } from "./CategoryBudgets";
 import type { CategoryLimits, MonthlySpending } from "../types/budget";
 import { displayDueDate } from "../types/schedule";
@@ -81,7 +84,12 @@ export function SheetModal({
   onSaveSchedule,
   onDeleteSchedule,
   onOpenScheduledEntry,
-  onRecordScheduledEntry,
+  onRecordWalletEntry,
+  favorites,
+  favoriteSeed,
+  onFavoriteFromActivity,
+  onSaveFavorite,
+  onRemoveFavorite,
   hidden = false,
   onSaveWallets,
   onDeleteWallet,
@@ -119,7 +127,12 @@ export function SheetModal({
   onSaveSchedule: (schedule: Schedule) => Promise<void>;
   onDeleteSchedule: (id: string) => Promise<void>;
   onOpenScheduledEntry: (schedule: DueSchedule) => void;
-  onRecordScheduledEntry: (item: Omit<ActivityItem, "id" | "date">) => Promise<void>;
+  onRecordWalletEntry: (item: Omit<ActivityItem, "id" | "date">) => Promise<void>;
+  favorites: Favorite[];
+  favoriteSeed: FavoriteDraft | null;
+  onFavoriteFromActivity: (draft: FavoriteDraft) => void;
+  onSaveFavorite: (item: Favorite) => Promise<void>;
+  onRemoveFavorite: (id: string) => Promise<void>;
   hidden?: boolean;
   onSaveWallets: (next: Wallet[]) => void;
   onDeleteWallet?: (wallet: Wallet) => void;
@@ -150,7 +163,17 @@ export function SheetModal({
   const sheetStartY = Math.min(Math.max(windowHeight, 560), 760);
   const openAnim = useRef(new Animated.Value(0)).current;
   const closingRef = useRef(false);
-  const scheduledSavingRef = useRef(false);
+  const entrySavingRef = useRef(false);
+  const sheetScrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const [managingFavorites, setManagingFavorites] = useState(false);
+  const [favoriteDraft, setFavoriteDraft] = useState<FavoriteDraft | null>(null);
+
+  const scrollToTop = useCallback(() => sheetScrollRef.current?.scrollTo({ y: 0, animated: false }), []);
+  const closeFavoriteEditor = useCallback(() => {
+    Keyboard.dismiss();
+    scrollToTop();
+    setFavoriteDraft(null);
+  }, [scrollToTop]);
 
   const closeWith = useCallback(
     (cb: () => void) => {
@@ -170,8 +193,17 @@ export function SheetModal({
   );
 
   const onClose = useCallback(
-    () => { if (!scheduledSavingRef.current) closeWith(onCloseProp); },
-    [closeWith, onCloseProp]
+    () => {
+      if (entrySavingRef.current) return;
+      if (type === "entry" && favoriteDraft) { closeFavoriteEditor(); return; }
+      if (type === "entry" && managingFavorites) {
+        scrollToTop();
+        setManagingFavorites(false);
+        return;
+      }
+      closeWith(onCloseProp);
+    },
+    [closeWith, onCloseProp, type, favoriteDraft, managingFavorites, closeFavoriteEditor, scrollToTop]
   );
   const onDone = useCallback(
     (message: string) => closeWith(() => onDoneProp(message)),
@@ -213,7 +245,6 @@ export function SheetModal({
   const [walletConfirmDelete, setWalletConfirmDelete] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
   const sheetScrollY = useRef(new Animated.Value(0)).current;
-  const sheetScrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
 
   useEffect(() => {
     sheetScrollY.setValue(0);
@@ -250,8 +281,8 @@ export function SheetModal({
   const [entryType, setEntryType] = useState<"expense" | "income">(scheduledEntry?.direction ?? "expense");
   const [entryCategory, setEntryCategory] = useState(scheduledEntry?.category ?? "Food");
   const [note, setNote] = useState(scheduledEntry?.title ?? "");
-  const [scheduledSaving, setScheduledSaving] = useState(false);
-  const [scheduledError, setScheduledError] = useState("");
+  const [entrySaving, setEntrySaving] = useState(false);
+  const [entryError, setEntryError] = useState("");
   const [transferFee, setTransferFee] = useState<number>(0);
   const [pickingTransferSide, setPickingTransferSide] = useState<
     "from" | "to" | null
@@ -558,6 +589,10 @@ export function SheetModal({
   const save = async () => {
     const now = new Date().toISOString();
     if (type === "entry" && entryWallet && !entryInvalid) {
+      if (entrySavingRef.current || closingRef.current) return;
+      entrySavingRef.current = true;
+      setEntrySaving(true);
+      setEntryError("");
       const signedValue = entryType === "expense" ? -entryValue : entryValue;
       const item = {
         localId: `tx-${Date.now()}`,
@@ -571,36 +606,18 @@ export function SheetModal({
         updatedAt: now,
         synced: false,
       };
-      if (scheduledEntry) {
-        if (scheduledSavingRef.current || closingRef.current) return;
-        scheduledSavingRef.current = true;
-        setScheduledSaving(true);
-        setScheduledError("");
-        try {
-          await onRecordScheduledEntry(item);
-          onDone(`${scheduledEntry.direction === "expense" ? "Bill" : "Income"} recorded`);
-        } catch {
-          setScheduledError("Could not record this transaction. Check the wallet balance and try again.");
-          scheduledSavingRef.current = false;
-          setScheduledSaving(false);
-        }
-        return;
+      try {
+        await onRecordWalletEntry(item);
+        const message = scheduledEntry
+          ? `${scheduledEntry.direction === "expense" ? "Bill" : "Income"} recorded`
+          : `${entryType === "expense" ? "Expense" : "Money"} ${money(entryValue)} saved`;
+        onDone(message);
+      } catch {
+        setEntryError("Could not record this transaction. Check the wallet balance and try again.");
+        entrySavingRef.current = false;
+        setEntrySaving(false);
       }
-      const nextWallets = wallets.map((w) =>
-        w.id === entryWallet.id
-          ? {
-              ...w,
-              balance: Number((w.balance + signedValue).toFixed(2)),
-              updatedAt: now,
-              synced: false,
-            }
-          : w
-      );
-      onSaveWallets(nextWallets);
-      onRecordActivity(item);
-      onDone(
-        `${entryType === "expense" ? "Expense" : "Money"} ${money(entryValue)} saved`
-      );
+      return;
     }
 
     if (type === "add" && name.trim()) {
@@ -777,7 +794,11 @@ export function SheetModal({
   };
 
   const sheetTitle =
-    type === "category-budget"
+    type === "favorite" || (type === "entry" && favoriteDraft)
+      ? (managingFavorites ? "Edit favorite" : "New favorite")
+      : type === "entry" && managingFavorites
+        ? "Favorites"
+        : type === "category-budget"
       ? (budgetCategory ? `${budgetCategory} budget` : "Category budgets")
       : type === "add"
       ? "New Wallet"
@@ -916,6 +937,10 @@ export function SheetModal({
               )}
               scrollEventThrottle={16}
             >
+            {type === "favorite" && favoriteSeed && (
+              <FavoriteEditor draft={favoriteSeed} wallets={wallets} hidden={hidden} theme={theme}
+                onSave={onSaveFavorite} onDone={onClose} />
+            )}
             {type === "schedule" && (
               <ScheduleManager schedules={schedules} wallets={wallets} hidden={hidden} theme={theme}
                 seed={scheduleSeed} onSave={onSaveSchedule} onDelete={onDeleteSchedule} onRecord={onOpenScheduledEntry} />
@@ -923,7 +948,7 @@ export function SheetModal({
             {type === "category-budget" && (
               <CategoryBudgetSheet limits={categoryLimits} spending={monthlySpending} hidden={hidden}
                 theme={theme} selectedCategory={budgetCategory} onSave={onSaveCategoryLimit} onTransaction={onOpenTransaction}
-                onScrollToTop={() => sheetScrollRef.current?.scrollTo({ y: 0, animated: false })} />
+                onScrollToTop={scrollToTop} />
             )}
             {/* ==================== ADD / EDIT WALLET SHEET ==================== */}
             {(type === "add" || type === "edit") && (
@@ -1389,8 +1414,31 @@ export function SheetModal({
             )}
 
             {/* ==================== ENTRY (ADD TRANSACTION) SHEET ==================== */}
-            {type === "entry" && entryWallet && (
+            {type === "entry" && favoriteDraft && (
+              <FavoriteEditor key={favoriteDraft.favorite.id} draft={favoriteDraft} wallets={wallets} hidden={hidden} theme={theme}
+                onSave={onSaveFavorite} onRemove={managingFavorites ? onRemoveFavorite : undefined} onDone={closeFavoriteEditor} />
+            )}
+            {type === "entry" && managingFavorites && !favoriteDraft && (
+              <FavoriteList favorites={favorites} wallets={wallets} hidden={hidden} theme={theme} onEdit={(item) => {
+                scrollToTop();
+                setFavoriteDraft({ favorite: item, suggestedAmount: item.defaultAmount });
+              }} />
+            )}
+            {type === "entry" && entryWallet && !managingFavorites && !favoriteDraft && (
               <View>
+                {!scheduledEntry && (
+                  <FavoriteStrip favorites={favorites} wallets={wallets} hidden={hidden} theme={theme}
+                    onManage={() => { scrollToTop(); setManagingFavorites(true); }}
+                    onApply={(item) => {
+                      const wallet = wallets.find((wallet) => getWalletLocalId(wallet) === item.walletLocalId);
+                      if (!wallet) return;
+                      setWalletId(wallet.id);
+                      setEntryType(item.direction);
+                      setEntryCategory(item.category);
+                      setNote(item.name);
+                      setAmount(item.defaultAmount === null ? "" : String(item.defaultAmount));
+                    }} />
+                )}
                 {scheduledEntry && (
                   <Text style={[styles.formTitle, { color: theme.accentText, marginBottom: 12 }]}>
                     {scheduledEntry.title} · Due {displayDueDate(scheduledEntry.dueDate)}
@@ -1724,9 +1772,27 @@ export function SheetModal({
                     </Text>
                   )}
 
+                {!scheduledEntry && (
+                  <Pressable accessibilityRole="button"
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      scrollToTop();
+                      setFavoriteDraft(createFavoriteDraft({
+                        name: (note.trim() || entryCategory).slice(0, 70),
+                        direction: entryType,
+                        category: entryCategory,
+                        walletLocalId: getWalletLocalId(entryWallet),
+                      }, entryValue > 0 ? entryValue : null));
+                    }}
+                    style={[styles.secondaryButton, { backgroundColor: theme.soft, marginTop: 10 }]}>
+                    <Icon name="star" size={16} color={theme.accentText} />
+                    <Text style={[styles.secondaryButtonText, { color: theme.accentText }]}>Save as favorite</Text>
+                  </Pressable>
+                )}
+
                 {/* Entry Footer */}
-                {scheduledError ? (
-                  <Text accessibilityRole="alert" style={[styles.formTitle, { color: theme.ink }]}>{scheduledError}</Text>
+                {entryError ? (
+                  <Text accessibilityRole="alert" style={[styles.formTitle, { color: theme.ink }]}>{entryError}</Text>
                 ) : null}
                 <View
                   style={[
@@ -1752,9 +1818,9 @@ export function SheetModal({
                   <View style={{ flex: 1 }}>
                     <PrimaryButton
                       label={
-                        scheduledSaving ? "Saving…" : entryType === "expense" ? "Save expense" : "Add money"
+                        entrySaving ? "Saving…" : entryType === "expense" ? "Save expense" : "Add money"
                       }
-                      disabled={entryInvalid || scheduledSaving}
+                      disabled={entryInvalid || entrySaving}
                       onPress={save}
                       incomeStyle={entryType === "income"}
                       theme={theme}
@@ -3033,12 +3099,23 @@ export function SheetModal({
                   ) : null}
 
                   {matchedWallet && !isTransfer && !isAdjustment && activity.amount !== 0 ? (
-                    <Pressable
-                      onPress={() => onScheduleFromActivity(activity)}
-                      style={[styles.secondaryButton, { backgroundColor: theme.accentSoft, marginTop: 10 }]}
-                    >
-                      <Text style={[styles.secondaryButtonText, { color: theme.accentText }]}>Make recurring</Text>
-                    </Pressable>
+                    <>
+                      <Pressable accessibilityRole="button"
+                        onPress={() => {
+                          const draft = favoriteFromActivity(activity, wallets);
+                          if (draft) onFavoriteFromActivity(draft);
+                        }}
+                        style={[styles.secondaryButton, { backgroundColor: theme.accentSoft, marginTop: 10 }]}>
+                        <Icon name="star" size={16} color={theme.accentText} />
+                        <Text style={[styles.secondaryButtonText, { color: theme.accentText }]}>Save as favorite</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => onScheduleFromActivity(activity)}
+                        style={[styles.secondaryButton, { backgroundColor: theme.accentSoft, marginTop: 10 }]}
+                      >
+                        <Text style={[styles.secondaryButtonText, { color: theme.accentText }]}>Make recurring</Text>
+                      </Pressable>
+                    </>
                   ) : null}
                   <PrimaryButton label="Done" onPress={onClose} theme={theme} />
                 </View>
