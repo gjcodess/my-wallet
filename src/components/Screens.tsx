@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import {
   Animated,
   Easing,
+  Image,
   PanResponder,
   Platform,
   Pressable,
@@ -56,6 +57,11 @@ import { Upcoming } from "./Schedules";
 import type { DueSchedule } from "../types/schedule";
 import type { CategoryLimits, MonthlySpending } from "../types/budget";
 import { CategoryBudgetOverview } from "./CategoryBudgets";
+
+const PITAKA_TITLE_ASSETS = {
+  dark: require("../../assets/brand/pitaka-title-white.png"),
+  light: require("../../assets/brand/pitaka-title-dark.png"),
+};
 
 const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
   theme,
@@ -841,7 +847,6 @@ export const HomeScreen = React.memo(function HomeScreen({
   total,
   hidden,
   setHidden,
-  profile,
   onWallet,
   onTransaction,
   onSheet,
@@ -857,7 +862,6 @@ export const HomeScreen = React.memo(function HomeScreen({
   total: number;
   hidden: boolean;
   setHidden: (v: boolean) => void;
-  profile?: UserProfile;
   onWallet: (w: Wallet) => void;
   onTransaction?: (item: ActivityItem) => void;
   onSheet: (s: Sheet, w?: Wallet) => void;
@@ -916,16 +920,9 @@ export const HomeScreen = React.memo(function HomeScreen({
     return { monthLabel, earned, spent };
   }, [activities]);
 
-  const greetingText = useMemo(() => {
-    const hour = new Date().getHours();
-    return hour < 12
-      ? "Good Morning"
-      : hour < 18
-        ? "Good Afternoon"
-        : "Good Evening";
-  }, []);
-
-  const fullName = profile?.fullName?.trim() || "Justin Santos";
+  const titleAsset = theme.dark
+    ? PITAKA_TITLE_ASSETS.dark
+    : PITAKA_TITLE_ASSETS.light;
 
   return (
     <View style={[styles.page, { paddingTop: 0 }]}>
@@ -936,13 +933,17 @@ export const HomeScreen = React.memo(function HomeScreen({
         style={{ marginBottom: 18 }}
       >
         <View style={styles.heroTopRow}>
-          <View style={styles.heroGreetingCol}>
-            <Text style={[styles.heroGreetingTitle, { color: theme.heroInk }]} numberOfLines={1}>
-              {greetingText}
-            </Text>
-            <Text style={[styles.heroGreetingName, { color: theme.heroMuted, opacity: 1 }]} numberOfLines={1}>
-              {fullName}
-            </Text>
+          <View
+            style={styles.heroBrandRow}
+            accessible
+            accessibilityRole="header"
+            accessibilityLabel="Pitaka"
+          >
+            <Image
+              source={titleAsset}
+              style={styles.heroBrandTitle}
+              resizeMode="contain"
+            />
           </View>
           <View style={styles.heroHeaderActions}>
             <Pressable
@@ -3541,22 +3542,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 10,
   },
-  heroGreetingCol: {
-    flex: 1,
-    gap: 1,
+  heroBrandRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  heroGreetingTitle: {
-    fontFamily: "Poppins_700Bold",
-    fontWeight: "700",
-    fontSize: 17,
-    letterSpacing: -0.3,
-    color: "#ffffff",
-  },
-  heroGreetingName: {
-    fontFamily: "Poppins_600SemiBold",
-    fontWeight: "600",
-    fontSize: 13,
-    color: "rgba(255, 255, 255, 0.78)",
+  heroBrandTitle: {
+    width: 103,
+    height: 36,
   },
   heroBalanceValueRow: {
     flexDirection: "row",

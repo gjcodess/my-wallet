@@ -950,7 +950,6 @@ export default function App() {
                       total={total}
                       hidden={hidden}
                       setHidden={setHidden}
-                      profile={profile}
                       onWallet={handleSelectWallet}
                       onTransaction={openTransactionSheet}
                       onSheet={openSheet}
