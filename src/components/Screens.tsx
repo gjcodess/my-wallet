@@ -3022,7 +3022,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
         <SettingRow
           icon="info"
           title="About My Wallet"
-          subtitle="Version 2.0 · Expo + SQLite + Supabase"
+          subtitle="Version 1.0 · Expo + SQLite + Supabase"
           onPress={() => showToast("You have the latest version")}
           isLast
           theme={theme}
