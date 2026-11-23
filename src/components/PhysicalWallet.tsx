@@ -357,15 +357,27 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
     (value: Animated.Value, toValue: number, duration: number) => {
       if (reduceMotion.current) {
         value.setValue(toValue);
+        if (value === flap) compact.setValue(1 - toValue);
         return Promise.resolve(true);
       }
       return new Promise<boolean>((resolve) => {
-        const animation = Animated.timing(value, {
+        const motion = Animated.timing(value, {
           toValue,
           duration,
           easing: Easing.inOut(Easing.cubic),
           useNativeDriver: Platform.OS !== "web",
         });
+        const animation = value === flap
+          ? Animated.parallel([
+              motion,
+              Animated.timing(compact, {
+                toValue: 1 - toValue,
+                duration,
+                easing: Easing.inOut(Easing.cubic),
+                useNativeDriver: false,
+              }),
+            ])
+          : motion;
         running.current = animation;
         animation.start(({ finished }) => {
           running.current = null;
@@ -373,7 +385,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
         });
       });
     },
-    [],
+    [compact, flap],
   );
 
   const move = useCallback(async (action: () => Promise<void>) => {
@@ -423,16 +435,6 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
   useEffect(() => {
     if (!busy && open !== shouldOpen) toggle();
   }, [busy, open, shouldOpen, toggle]);
-
-  useEffect(() => {
-    const animation = Animated.timing(compact, {
-      toValue: open ? 0 : 1,
-      duration: reduceMotion.current ? 0 : 280,
-      useNativeDriver: false,
-    });
-    animation.start();
-    return () => animation.stop();
-  }, [compact, open]);
 
   const cycle = useCallback(
     (direction: number) => {
