@@ -96,7 +96,7 @@ export default function App() {
     home: true,
     wallets: false,
     activity: false,
-    statistics: false,
+    overview: false,
     settings: false,
   });
   const [transactionCategory, setTransactionCategory] = useState<{ category: string } | null>(null);
@@ -191,7 +191,7 @@ export default function App() {
     home: 290,
     wallets: 220,
     activity: 170,
-    statistics: 170,
+    overview: 170,
     settings: 170,
   });
   const activeHeroHeight = heroHeights[tab];
@@ -300,8 +300,8 @@ export default function App() {
     (h: number) => updateHeroHeight("activity", h),
     [updateHeroHeight]
   );
-  const handleStatisticsHeroHeight = useCallback(
-    (h: number) => updateHeroHeight("statistics", h),
+  const handleOverviewHeroHeight = useCallback(
+    (h: number) => updateHeroHeight("overview", h),
     [updateHeroHeight]
   );
   const handleSettingsHeroHeight = useCallback(
@@ -1017,16 +1017,17 @@ export default function App() {
                       onToggleFilters={handleToggleActivityFilter}
                       isActive={tab === "activity"}
                       categoryFilter={transactionCategory}
+                      onClearCategory={() => setTransactionCategory(null)}
                       onHeroHeight={handleActivityHeroHeight}
                       theme={theme}
                     />
                   </View>
                 ) : null}
 
-                {visitedTabs.statistics ? (
-                  <View style={{ display: tab === "statistics" ? "flex" : "none" }}>
+                {visitedTabs.overview ? (
+                  <View style={{ display: tab === "overview" ? "flex" : "none" }}>
                     <ActivityScreen
-                      mode="statistics"
+                      mode="overview"
                       activities={activityItems}
                       wallets={wallets}
                       hidden={hidden}
@@ -1040,8 +1041,8 @@ export default function App() {
                         setTransactionCategory({ category });
                         handleTabChange("activity");
                       }}
-                      isActive={tab === "statistics"}
-                      onHeroHeight={handleStatisticsHeroHeight}
+                      isActive={tab === "overview"}
+                      onHeroHeight={handleOverviewHeroHeight}
                       theme={theme}
                     />
                   </View>

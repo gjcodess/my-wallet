@@ -33,8 +33,10 @@ export function Icon({
       case "transactions":
         return (
           <>
-            <Path d="M6 3.5h12v17l-2.5-1.5-3.5 1.5-3.5-1.5L6 20.5Z" />
-            <Path d="M9 8h6M9 12h6M9 16h4" />
+            <Circle cx="5" cy="6" r="1" fill={color} stroke="none" />
+            <Circle cx="5" cy="12" r="1" fill={color} stroke="none" />
+            <Circle cx="5" cy="18" r="1" fill={color} stroke="none" />
+            <Path d="M9 6h10M9 12h10M9 18h10" />
           </>
         );
       case "settings":

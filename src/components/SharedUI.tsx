@@ -737,9 +737,9 @@ export function BottomNav({
 }) {
   const items: { id: Tab; icon: string; label: string }[] = [
     { id: "home", icon: "home", label: "Home" },
-    { id: "wallets", icon: "wallet", label: "Wallets" },
-    { id: "activity", icon: "transactions", label: "Transactions" },
-    { id: "statistics", icon: "activity", label: "Statistics" },
+    { id: "wallets", icon: "wallet", label: "Wallet" },
+    { id: "activity", icon: "transactions", label: "Activity" },
+    { id: "overview", icon: "activity", label: "Overview" },
   ];
 
   const translateY = navAnim
@@ -766,18 +766,11 @@ export function BottomNav({
       >
         <Icon
           name={item.icon}
-          size={22}
+          size={20}
           strokeWidth={active ? 2.65 : 2.25}
           color={active ? "#ffffff" : theme.leather.thread}
         />
-        {active ? (
-          <View
-            style={[
-              styles.navIndicator,
-              { backgroundColor: "#ffffff" },
-            ]}
-          />
-        ) : null}
+        <Text style={[styles.navItemLabel, { color: active ? "#ffffff" : theme.leather.thread }]} numberOfLines={1}>{item.label}</Text>
       </Pressable>
     );
   };
@@ -979,14 +972,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    gap: 2,
     height: "100%",
+    paddingTop: 6,
   },
-  navIndicator: {
-    position: "absolute",
-    bottom: 8,
-    width: 14,
-    height: 3.5,
-    borderRadius: 2,
+  navItemLabel: {
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 10,
+    textAlign: "center",
   },
   navAddWrapper: {
     width: 62,

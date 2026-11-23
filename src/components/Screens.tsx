@@ -993,12 +993,13 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   showFilters = false,
   onToggleFilters,
   categoryFilter,
+  onClearCategory,
   onCategorySelect,
   isActive = true,
   onHeroHeight,
   theme,
 }: {
-  mode: "transactions" | "statistics";
+  mode: "transactions" | "overview";
   activities: ActivityItem[];
   wallets?: Wallet[];
   hidden: boolean;
@@ -1013,6 +1014,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   showFilters?: boolean;
   onToggleFilters?: () => void;
   categoryFilter?: { category: string } | null;
+  onClearCategory?: () => void;
   onCategorySelect?: (category: string) => void;
   isActive?: boolean;
   onHeroHeight?: (height: number) => void;
@@ -1027,10 +1029,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   const [selectedBucketIdx, setSelectedBucketIdx] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const barProgress = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (mode === "transactions") setSelectedCategory(categoryFilter?.category ?? null);
-  }, [categoryFilter, mode]);
+  const activeCategory = categoryFilter?.category ?? selectedCategory;
 
   const filteredActivities = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -1040,10 +1039,10 @@ export const ActivityScreen = React.memo(function ActivityScreen({
       if (typeFilter === "Transfers" && !isTransferActivity(item)) return false;
       if (typeFilter === "Adjusted" && !isAdjustmentActivity(item)) return false;
 
-      if (selectedCategory) {
-        if (selectedCategory === "Transfers") {
+      if (activeCategory) {
+        if (activeCategory === "Transfers") {
           if (!isTransferActivity(item)) return false;
-        } else if (item.kind !== selectedCategory) {
+        } else if (item.kind !== activeCategory) {
           return false;
         }
       }
@@ -1070,7 +1069,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
     activities,
     wallets,
     typeFilter,
-    selectedCategory,
+    activeCategory,
     selectedWalletFilter,
     searchQuery,
   ]);
@@ -1243,7 +1242,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
     selectedBucketIdx !== null ? chartData.bars[selectedBucketIdx] : undefined;
   const hasFilter =
     typeFilter !== "All" ||
-    selectedCategory !== null ||
+    activeCategory !== null ||
     selectedWalletFilter !== null ||
     searchQuery.trim().length > 0;
 
@@ -1308,7 +1307,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         style={{ marginBottom: 14 }}
       >
         <View style={styles.heroTopRow}>
-          <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>{mode === "statistics" ? "Statistics" : "Transactions"}</Text>
+          <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>{mode === "overview" ? "Overview" : "Activity"}</Text>
           <View style={styles.heroHeaderActions}>
             {onToggleHidden ? (
               <Pressable
@@ -1343,8 +1342,8 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         </View>
 
         <View style={styles.heroBalanceBlock}>
-          <Text style={[styles.heroHeaderLabel, { color: theme.heroMuted, opacity: 1 }]}>{mode === "statistics" ? "Total spending" : "Your activity"}</Text>
-          {mode === "statistics" ? <Amount value={totalOut} hidden={hidden} size="lg" color={theme.heroInk} /> : <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>{activities.length} transactions</Text>}
+          <Text style={[styles.heroHeaderLabel, { color: theme.heroMuted, opacity: 1 }]}>{mode === "overview" ? "Total spending" : "Your activity"}</Text>
+          {mode === "overview" ? <Amount value={totalOut} hidden={hidden} size="lg" color={theme.heroInk} /> : <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>{activities.length} transactions</Text>}
         </View>
       </HeroHeaderSurface>
 
@@ -1487,7 +1486,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         </View>
       ) : null}
 
-      {mode === "statistics" ? <>
+      {mode === "overview" ? <>
       {/* Navy Folder Chart */}
       <View style={{ marginTop: 14 }}>
         <FolderSurface
@@ -1903,8 +1902,8 @@ export const ActivityScreen = React.memo(function ActivityScreen({
       <View style={styles.section}>
         <SectionTitle
           title={
-            selectedCategory
-              ? `${selectedCategory} transactions`
+            activeCategory
+              ? `${activeCategory} transactions`
               : typeFilter !== "All"
                 ? `${typeFilter}`
                 : "All transactions"
@@ -1922,6 +1921,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
             hasFilter
               ? () => {
                 setSelectedCategory(null);
+                onClearCategory?.();
                 setSelectedWalletFilter(null);
                 setSearchQuery("");
                 setTypeFilter("All");
