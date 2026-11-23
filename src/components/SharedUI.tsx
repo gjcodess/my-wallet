@@ -4,9 +4,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import Svg, {
   Circle as SvgCircle,
   Defs,
-  LinearGradient as SvgLinearGradient,
+  Pattern,
   Path as SvgPath,
-  Stop,
+  Rect,
 } from "react-native-svg";
 import { ActivityItem, money, Tab, Tone } from "../types/wallet";
 import { Icon } from "./Icon";
@@ -690,6 +690,36 @@ export function SwitchControl({
   );
 }
 
+function NavLeatherSurface({ theme, round = false }: { theme: ThemeColors; round?: boolean }) {
+  const grainId = round ? "navAddGrain" : "navBarGrain";
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <LinearGradient colors={theme.leather.colors} style={StyleSheet.absoluteFill} />
+      <Svg width="100%" height="100%" viewBox={round ? "0 0 62 62" : "0 0 300 62"} preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
+        <Defs>
+          <Pattern id={grainId} width={6} height={6} patternUnits="userSpaceOnUse">
+            <SvgPath d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth=".7" opacity=".45" />
+            <SvgPath d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke={theme.leather.thread} strokeWidth=".65" opacity=".26" />
+          </Pattern>
+        </Defs>
+        {round ? (
+          <>
+            <SvgCircle cx="31" cy="31" r="31" fill={`url(#${grainId})`} />
+            <SvgCircle cx="31" cy="31" r="26" fill="none" stroke={theme.leather.thread} strokeWidth="1" strokeDasharray="3.5 3" opacity=".85" />
+            <SvgCircle cx="31" cy="31" r="22" fill="none" stroke={theme.leather.thread} strokeWidth=".7" strokeDasharray="2 3" opacity=".48" />
+          </>
+        ) : (
+          <>
+            <Rect width="300" height="62" fill={`url(#${grainId})`} />
+            <Rect x="4" y="4" width="292" height="54" rx="27" fill="none" stroke={theme.leather.thread} strokeWidth="1" strokeDasharray="3.5 3" opacity=".85" />
+            <Rect x="8" y="8" width="284" height="46" rx="23" fill="none" stroke={theme.leather.thread} strokeWidth=".7" strokeDasharray="2 3" opacity=".48" />
+          </>
+        )}
+      </Svg>
+    </View>
+  );
+}
+
 export function BottomNav({
   tab,
   setTab,
@@ -738,13 +768,13 @@ export function BottomNav({
           name={item.icon}
           size={22}
           strokeWidth={active ? 2.65 : 2.25}
-          color={active ? theme.accentText : theme.muted}
+          color={active ? "#ffffff" : theme.leather.thread}
         />
         {active ? (
           <View
             style={[
               styles.navIndicator,
-              { backgroundColor: theme.accentText },
+              { backgroundColor: "#ffffff" },
             ]}
           />
         ) : null}
@@ -758,16 +788,15 @@ export function BottomNav({
       style={[
         styles.bottomNav,
         {
-          backgroundColor: theme.surface,
-          overflow: "hidden",
           opacity,
           transform: [{ translateY }],
         },
-        bevelStyle(theme.dark),
       ]}
     >
-      {items.slice(0, 2).map(renderNavItem)}
-
+      <View style={[styles.navLeatherBar, { backgroundColor: theme.leather.edge, borderColor: theme.leather.edge }]}>
+        <NavLeatherSurface theme={theme} />
+        {items.map(renderNavItem)}
+      </View>
       <Pressable
         onPress={onAdd}
         accessibilityRole="button"
@@ -775,57 +804,15 @@ export function BottomNav({
         style={({ pressed }) => [
           styles.navAddWrapper,
           {
+            backgroundColor: theme.leather.edge,
+            borderColor: theme.leather.edge,
             transform: [{ scale: pressed ? 0.92 : 1 }],
           },
         ]}
       >
-        <View style={styles.navAdd}>
-          <Svg width={48} height={48} viewBox="0 0 48 48">
-            <Defs>
-              <SvgLinearGradient
-                id="navAddRing"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="100%"
-              >
-                <Stop offset="0%" stopColor={theme.accentGradient[1]} />
-                <Stop offset="28%" stopColor={theme.accentGradient[0]} />
-                <Stop
-                  offset="50%"
-                  stopColor={theme.dark ? "#ffffff" : theme.accentSoft}
-                />
-                <Stop offset="72%" stopColor={theme.accentGradient[0]} />
-                <Stop offset="100%" stopColor={theme.accentGradient[1]} />
-              </SvgLinearGradient>
-              <SvgLinearGradient
-                id="navAddStar"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="100%"
-              >
-                <Stop offset="0%" stopColor={theme.accentGradient[0]} />
-                <Stop offset="100%" stopColor={theme.accentGradient[1]} />
-              </SvgLinearGradient>
-            </Defs>
-            <SvgCircle
-              cx="24"
-              cy="24"
-              r="20.5"
-              stroke={theme.dark ? "url(#navAddRing)" : theme.accentText}
-              strokeWidth="3.4"
-              fill="none"
-            />
-            <SvgPath
-              d="M 23.3 14.8 Q 24 14.3 24.7 14.8 Q 25.6 22.4 33.2 23.3 Q 33.7 24 33.2 24.7 Q 25.6 25.6 24.7 33.2 Q 24 33.7 23.3 33.2 Q 22.4 25.6 14.8 24.7 Q 14.3 24 14.8 23.3 Q 22.4 22.4 23.3 14.8 Z"
-              fill={theme.dark ? "url(#navAddStar)" : theme.accentText}
-            />
-          </Svg>
-        </View>
+        <NavLeatherSurface theme={theme} round />
+        <Icon name="plus" size={25} strokeWidth={2.5} color="#ffffff" />
       </Pressable>
-
-      {items.slice(2).map(renderNavItem)}
     </Animated.View>
   );
 }
@@ -966,16 +953,22 @@ const styles = StyleSheet.create({
   bottomNav: {
     position: "absolute",
     zIndex: 30,
-    left: 20,
-    right: 20,
+    left: 18,
+    right: 18,
     bottom: 14,
     height: 62,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 10,
+    gap: 8,
+  },
+  navLeatherBar: {
+    flex: 1,
+    height: 62,
+    flexDirection: "row",
+    alignItems: "center",
     borderRadius: 31,
     borderWidth: 1,
+    overflow: "hidden",
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.14,
@@ -996,15 +989,17 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   navAddWrapper: {
-    width: 56,
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-  },
-  navAdd: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
+    overflow: "hidden",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.14,
+    shadowRadius: 22,
+    elevation: 12,
   },
 });
