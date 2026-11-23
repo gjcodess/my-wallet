@@ -145,6 +145,7 @@ export async function loadLocalState(): Promise<{
   dark: boolean;
   hidden: boolean;
   accentColor: AccentPaletteId;
+  leatherFinish: string | null;
   profile: UserProfile;
   lastSyncedAt: string | null;
   appLockPin: string | null;
@@ -236,6 +237,7 @@ export async function loadLocalState(): Promise<{
     dark: settingsMap.get("dark_mode") !== "false",
     hidden: settingsMap.get("hide_balances") === "true",
     accentColor,
+    leatherFinish: settingsMap.get("leather_finish") ?? null,
     profile: {
       fullName: settingsMap.get("full_name") || "Justin Santos",
       initials: settingsMap.get("initials") || "JS",

@@ -64,7 +64,8 @@ import {
 } from "./src/lib/sqlite";
 import { supabase } from "./src/lib/supabase";
 import {
-  AccentPaletteId,
+  LeatherFinishId,
+  resolveLeatherFinish,
   BottomNav,
   EdgeFade,
   getThemeColors,
@@ -101,8 +102,8 @@ export default function App() {
   const [activityItems, setActivityItems] =
     useState<ActivityItem[]>(initialActivities);
   const [hidden, setHidden] = useState(false);
-  const [dark, setDark] = useState(true);
-  const [accentColor, setAccentColor] = useState<AccentPaletteId>("coral");
+  const dark = false;
+  const [leatherFinish, setLeatherFinish] = useState<LeatherFinishId>("navy");
   const [profile, setProfile] = useState<UserProfile>({
     fullName: "Justin Santos",
     initials: "JS",
@@ -140,7 +141,6 @@ export default function App() {
     activities: false,
     dark: false,
     hidden: false,
-    accent: false,
   });
 
   const selected = useMemo(
@@ -159,8 +159,21 @@ export default function App() {
   );
 
   const theme = useMemo(
-    () => getThemeColors(dark, accentColor),
-    [dark, accentColor]
+    () => {
+      const finish = resolveLeatherFinish(leatherFinish);
+      return {
+        ...getThemeColors(false, "indigo"),
+        leather: finish,
+        accent: finish.accent,
+        accentText: finish.accent,
+        accentInk: "#ffffff",
+        accentSoft: finish.soft,
+        accentGradient: [finish.colors[0], finish.colors[1]] as [string, string],
+        heroGradient: [...finish.colors] as [string, string, string],
+        heroGlow: finish.soft,
+      };
+    },
+    [leatherFinish]
   );
   const dueSchedules = useMemo(() => getDueSchedules(schedules, activityItems, today), [schedules, activityItems, today]);
   const monthlySpending = useMemo(() => getMonthlySpending(activityItems, new Date(`${today}T12:00:00`)), [activityItems, today]);
@@ -320,9 +333,8 @@ export default function App() {
         setSchedules(localSchedules);
         setWallets(state.wallets);
         setActivityItems(state.activities);
-        setDark(state.dark);
+        setLeatherFinish(resolveLeatherFinish(state.leatherFinish).id);
         setHidden(state.hidden);
-        setAccentColor(state.accentColor);
         setProfile(state.profile);
         setLastSyncedAt(state.lastSyncedAt);
         setAppLockPin(state.appLockPin);
@@ -338,7 +350,6 @@ export default function App() {
           activities: true,
           dark: true,
           hidden: true,
-          accent: true,
         };
         setDbReady(true);
       })
@@ -453,13 +464,8 @@ export default function App() {
   }, [hidden, dbReady]);
 
   useEffect(() => {
-    if (!dbReady) return;
-    if (skipInitialPersistRef.current.accent) {
-      skipInitialPersistRef.current.accent = false;
-      return;
-    }
-    saveSettingToSQLite("accent_color", accentColor).catch(() => {});
-  }, [accentColor, dbReady]);
+    if (dbReady) saveSettingToSQLite("leather_finish", leatherFinish).catch(() => {});
+  }, [leatherFinish, dbReady]);
 
   // 4. Cloud Sync helper with Supabase PostgreSQL
   const handleSyncNow = useCallback(async () => {
@@ -1010,10 +1016,8 @@ export default function App() {
                 {visitedTabs.settings ? (
                   <View style={{ display: tab === "settings" ? "flex" : "none" }}>
                     <SettingsScreen
-                      dark={dark}
-                      setDark={setDark}
-                      accentColor={accentColor}
-                      setAccentColor={setAccentColor}
+                      leatherFinish={leatherFinish}
+                      setLeatherFinish={setLeatherFinish}
                       hidden={hidden}
                       setHidden={setHidden}
                       showToast={setToast}

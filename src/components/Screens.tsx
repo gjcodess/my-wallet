@@ -39,14 +39,13 @@ import { FolderSurface } from "./FolderSurface";
 import { Icon } from "./Icon";
 import { PhysicalWallet } from "./PhysicalWallet";
 import {
-  ACCENT_PALETTES,
-  AccentPaletteId,
+  LEATHER_FINISHES,
+  LeatherFinishId,
   AccentSurfaceGlow,
   ActionButton,
   bevelStyle,
   cardShadow,
   EdgeFade,
-  getAccentPalette,
   heroControlStyle,
   SectionTitle,
   SwitchControl,
@@ -102,7 +101,7 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
         style,
       ]}
     >
-      <LinearGradient pointerEvents="none" colors={["#486077", "#243b50", "#142638"]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient pointerEvents="none" colors={theme.leather.colors} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>
         <Svg width="100%" height="100%">
           <Defs>
@@ -114,9 +113,9 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
           <Rect width="100%" height="100%" fill={`url(#${gradientId})`} />
           {headerSize.width > 30 && headerSize.height > 30 && (
             <>
-              <Path d={`M2 0 V${headerSize.height - 32} Q2 ${headerSize.height - 2} 32 ${headerSize.height - 2} H${headerSize.width - 32} Q${headerSize.width - 2} ${headerSize.height - 2} ${headerSize.width - 2} ${headerSize.height - 32} V0`} fill="none" stroke="#132536" strokeWidth="3" />
-              <Path d={`M8 0 V${headerSize.height - 32} Q8 ${headerSize.height - 8} 32 ${headerSize.height - 8} H${headerSize.width - 32} Q${headerSize.width - 8} ${headerSize.height - 8} ${headerSize.width - 8} ${headerSize.height - 32} V0`} fill="none" stroke="#a2b0bd" strokeWidth="1.05" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".82" />
-              <Path d={`M13 0 V${headerSize.height - 32} Q13 ${headerSize.height - 13} 32 ${headerSize.height - 13} H${headerSize.width - 32} Q${headerSize.width - 13} ${headerSize.height - 13} ${headerSize.width - 13} ${headerSize.height - 32} V0`} fill="none" stroke="#a2b0bd" strokeWidth=".8" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".43" />
+              <Path d={`M2 0 V${headerSize.height - 32} Q2 ${headerSize.height - 2} 32 ${headerSize.height - 2} H${headerSize.width - 32} Q${headerSize.width - 2} ${headerSize.height - 2} ${headerSize.width - 2} ${headerSize.height - 32} V0`} fill="none" stroke={theme.leather.edge} strokeWidth="3" />
+              <Path d={`M8 0 V${headerSize.height - 32} Q8 ${headerSize.height - 8} 32 ${headerSize.height - 8} H${headerSize.width - 32} Q${headerSize.width - 8} ${headerSize.height - 8} ${headerSize.width - 8} ${headerSize.height - 32} V0`} fill="none" stroke={theme.leather.thread} strokeWidth="1.05" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".82" />
+              <Path d={`M13 0 V${headerSize.height - 32} Q13 ${headerSize.height - 13} 32 ${headerSize.height - 13} H${headerSize.width - 32} Q${headerSize.width - 13} ${headerSize.height - 13} ${headerSize.width - 13} ${headerSize.height - 32} V0`} fill="none" stroke={theme.leather.thread} strokeWidth=".8" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".43" />
             </>
           )}
         </Svg>
@@ -2073,10 +2072,8 @@ export const ActivityScreen = React.memo(function ActivityScreen({
 });
 
 export const SettingsScreen = React.memo(function SettingsScreen({
-  dark,
-  setDark,
-  accentColor,
-  setAccentColor,
+  leatherFinish,
+  setLeatherFinish,
   hidden,
   setHidden,
   showToast,
@@ -2094,10 +2091,8 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   onHeroHeight,
   theme,
 }: {
-  dark: boolean;
-  setDark: (v: boolean) => void;
-  accentColor: AccentPaletteId;
-  setAccentColor: (v: AccentPaletteId) => void;
+  leatherFinish: LeatherFinishId;
+  setLeatherFinish: (v: LeatherFinishId) => void;
   hidden: boolean;
   setHidden: (v: boolean) => void;
   showToast: (s: string) => void;
@@ -2115,8 +2110,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
 }) {
-  const activeAccentSpec = getAccentPalette(accentColor);
-  const accentRows = [ACCENT_PALETTES.slice(0, 4), ACCENT_PALETTES.slice(4, 8)];
+
 
   return (
     <View style={[styles.page, { paddingTop: 0 }]}>
@@ -2155,117 +2149,34 @@ export const SettingsScreen = React.memo(function SettingsScreen({
 
       {/* Appearance Group */}
       <SettingsGroup title="Appearance" theme={theme}>
-        <SettingRow
-          icon={dark ? "moon" : "sun"}
-          title="Dark theme"
-          subtitle={dark ? "Enabled" : "Light mode"}
-          onPress={() => setDark(!dark)}
-          control={
-            <SwitchControl
-              on={dark}
-              onPress={() => setDark(!dark)}
-              theme={theme}
-            />
-          }
-          theme={theme}
-        />
-
-        <View
-          style={[
-            styles.accentPickerBlock,
-            {
-              borderBottomWidth: 1,
-              borderBottomColor: theme.line,
-            },
-          ]}
-        >
+        <View style={[styles.accentPickerBlock, { borderBottomWidth: 1, borderBottomColor: theme.line }]}>
           <View style={styles.accentPickerHeader}>
-            <LinearGradient
-              colors={theme.accentGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.settingIconBox}
-            >
-              <Icon name="palette" size={18} color={theme.accentInk} />
-            </LinearGradient>
+            <LinearGradient colors={theme.accentGradient} style={styles.settingIconBox}><Icon name="palette" size={18} color={theme.accentInk} /></LinearGradient>
             <View style={styles.rowMain}>
-              <Text style={[styles.rowTitle, { color: theme.ink }]}>
-                Accent color
-              </Text>
-              <Text style={[styles.rowSub, { color: theme.muted }]}>
-                Theme highlights, buttons & tabs
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.accentBadge,
-                { backgroundColor: theme.accentSoft },
-              ]}
-            >
-              <Text
-                style={[styles.accentBadgeText, { color: theme.accentText }]}
-              >
-                {activeAccentSpec.label}
-              </Text>
+              <Text style={[styles.rowTitle, { color: theme.ink }]}>Leather finish</Text>
+              <Text style={[styles.rowSub, { color: theme.muted }]}>Wallet, header, and app accents</Text>
             </View>
           </View>
-
           <View style={styles.accentGrid}>
-            {accentRows.map((row, rowIdx) => (
-              <View key={rowIdx} style={styles.accentGridRow}>
-                {row.map((item) => {
-                  const selected = item.id === accentColor;
-                  const modePalette = dark ? item.dark : item.light;
-                  return (
-                    <Pressable
-                      key={item.id}
-                      onPress={() => {
-                        if (item.id !== accentColor) {
-                          setAccentColor(item.id);
-                          showToast(`Accent color set to ${item.label}`);
-                        }
-                      }}
-                      style={({ pressed }) => [
-                        styles.accentTile,
-                        {
-                          backgroundColor: selected
-                            ? theme.accentSoft
-                            : theme.soft,
-                          borderColor: selected
-                            ? modePalette.accent
-                            : theme.line,
-                          transform: [{ scale: pressed ? 0.96 : 1 }],
-                        },
-                      ]}
-                    >
-                      <LinearGradient
-                        colors={modePalette.accentGradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.accentSwatch}
-                      >
-                        {selected ? (
-                          <Icon
-                            name="check"
-                            size={13}
-                            color={modePalette.accentInk}
-                          />
-                        ) : null}
-                      </LinearGradient>
-                      <Text
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.85}
-                        style={[
-                          styles.accentTileLabel,
-                          { color: selected ? theme.accentText : theme.ink },
-                        ]}
-                      >
-                        {item.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+            {[LEATHER_FINISHES.slice(0, 3), LEATHER_FINISHES.slice(3, 6)].map((row, index) => (
+              <View key={index} style={styles.accentGridRow}>
+                {row.map((item) => (
+                  <Pressable key={item.id} accessibilityRole="radio" accessibilityState={{ checked: item.id === leatherFinish }} accessibilityLabel={item.label} onPress={() => { setLeatherFinish(item.id); showToast(`Leather finish set to ${item.label}`); }} style={[styles.accentTile, { borderColor: item.id === leatherFinish ? item.accent : item.edge }]}>
+                    <LinearGradient colors={item.colors} style={StyleSheet.absoluteFill} />
+                    <Svg pointerEvents="none" width="100%" height="100%" style={StyleSheet.absoluteFill}>
+                      <Defs>
+                        <Pattern id={`finishGrain${item.id}`} width={6} height={6} patternUnits="userSpaceOnUse">
+                          <Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth=".7" opacity=".45" />
+                          <Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke={item.thread} strokeWidth=".65" opacity=".26" />
+                        </Pattern>
+                      </Defs>
+                      <Rect width="100%" height="100%" fill={`url(#finishGrain${item.id})`} />
+                      <Rect x="6" y="6" width="88%" height="84%" rx="10" fill="none" stroke={item.thread} strokeWidth="1" strokeDasharray="3.5 3" opacity=".85" />
+                    </Svg>
+                    {item.id === leatherFinish && <Icon name="check" size={16} color="#ffffff" />}
+                    <Text style={styles.accentTileLabel} numberOfLines={1}>{item.label}</Text>
+                  </Pressable>
+                ))}
               </View>
             ))}
           </View>
@@ -3416,23 +3327,20 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
-    paddingVertical: 9,
+    gap: 3,
+    height: 72,
     paddingHorizontal: 4,
     borderRadius: 14,
-    borderWidth: 1.5,
-  },
-  accentSwatch: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
+    borderWidth: 1,
+    overflow: "hidden",
   },
   accentTileLabel: {
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 10.5,
+    color: "#ffffff",
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowRadius: 4,
   },
   detailScreen: {
     paddingHorizontal: 18,
