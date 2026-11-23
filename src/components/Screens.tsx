@@ -2163,17 +2163,18 @@ export const SettingsScreen = React.memo(function SettingsScreen({
                 {row.map((item) => (
                   <Pressable key={item.id} accessibilityRole="radio" accessibilityState={{ checked: item.id === leatherFinish }} accessibilityLabel={item.label} onPress={() => { setLeatherFinish(item.id); showToast(`Leather finish set to ${item.label}`); }} style={[styles.accentTile, { borderColor: item.id === leatherFinish ? item.accent : item.edge }]}>
                     <LinearGradient colors={item.colors} style={StyleSheet.absoluteFill} />
-                    <Svg pointerEvents="none" width="100%" height="100%" style={StyleSheet.absoluteFill}>
+                    <Svg pointerEvents="none" width="100%" height="100%" viewBox="0 0 100 72" preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
                       <Defs>
                         <Pattern id={`finishGrain${item.id}`} width={6} height={6} patternUnits="userSpaceOnUse">
                           <Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth=".7" opacity=".45" />
                           <Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke={item.thread} strokeWidth=".65" opacity=".26" />
                         </Pattern>
                       </Defs>
-                      <Rect width="100%" height="100%" fill={`url(#finishGrain${item.id})`} />
-                      <Rect x="6" y="6" width="88%" height="84%" rx="10" fill="none" stroke={item.thread} strokeWidth="1" strokeDasharray="3.5 3" opacity=".85" />
+                      <Rect width="100" height="72" fill={`url(#finishGrain${item.id})`} />
+                      <Rect x="5" y="5" width="90" height="62" rx="10" fill="none" stroke={item.thread} strokeWidth="1" strokeDasharray="3.5 3" opacity=".85" />
+                      <Rect x="9" y="9" width="82" height="54" rx="7" fill="none" stroke={item.thread} strokeWidth=".7" strokeDasharray="2 3" opacity=".48" />
                     </Svg>
-                    {item.id === leatherFinish && <Icon name="check" size={16} color="#ffffff" />}
+                    {item.id === leatherFinish && <View style={styles.accentTileCheck}><Icon name="check" size={14} color="#ffffff" /></View>}
                     <Text style={styles.accentTileLabel} numberOfLines={1}>{item.label}</Text>
                   </Pressable>
                 ))}
@@ -3329,7 +3330,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 3,
     height: 72,
-    paddingHorizontal: 4,
     borderRadius: 14,
     borderWidth: 1,
     overflow: "hidden",
@@ -3339,8 +3339,14 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 10.5,
     color: "#ffffff",
+    textAlign: "center",
     textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowRadius: 4,
+  },
+  accentTileCheck: {
+    position: "absolute",
+    top: 11,
+    right: 11,
   },
   detailScreen: {
     paddingHorizontal: 18,

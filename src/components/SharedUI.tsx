@@ -205,12 +205,12 @@ export function getAccentPalette(id: AccentPaletteId): AccentPaletteSpec {
 }
 
 export const LEATHER_FINISHES = [
-  { id: "navy", label: "Navy Blue", colors: ["#486077", "#243b50", "#142638"], edge: "#132536", thread: "#a2b0bd", accent: "#243b50", soft: "#e7edf2" },
-  { id: "brown", label: "Brown", colors: ["#ab7c55", "#835638", "#45291b"], edge: "#45291b", thread: "#e0c3a6", accent: "#75462c", soft: "#f4eae1" },
-  { id: "black", label: "Black", colors: ["#55595c", "#292b2c", "#121414"], edge: "#121414", thread: "#b7b9b6", accent: "#292b2c", soft: "#ebeded" },
-  { id: "green", label: "Green", colors: ["#5d725c", "#354b3d", "#1d2d23"], edge: "#1d2d23", thread: "#bdc9b6", accent: "#354b3d", soft: "#e8efe8" },
-  { id: "red", label: "Red", colors: ["#a64f4f", "#702729", "#3c1518"], edge: "#3c1518", thread: "#e1babc", accent: "#842f34", soft: "#f5e8e8" },
-  { id: "tan", label: "Tan", colors: ["#c9a273", "#a67443", "#694227"], edge: "#694227", thread: "#f0d7b6", accent: "#80532f", soft: "#f6eddf" },
+  { id: "navy", label: "Midnight", colors: ["#486077", "#243b50", "#142638"], edge: "#132536", thread: "#a2b0bd", accent: "#243b50", soft: "#e7edf2" },
+  { id: "brown", label: "Saddle", colors: ["#ab7c55", "#835638", "#45291b"], edge: "#45291b", thread: "#e0c3a6", accent: "#75462c", soft: "#f4eae1" },
+  { id: "black", label: "Onyx", colors: ["#55595c", "#292b2c", "#121414"], edge: "#121414", thread: "#b7b9b6", accent: "#292b2c", soft: "#ebeded" },
+  { id: "green", label: "Evergreen", colors: ["#5d725c", "#354b3d", "#1d2d23"], edge: "#1d2d23", thread: "#bdc9b6", accent: "#354b3d", soft: "#e8efe8" },
+  { id: "red", label: "Oxblood", colors: ["#a64f4f", "#702729", "#3c1518"], edge: "#3c1518", thread: "#e1babc", accent: "#842f34", soft: "#f5e8e8" },
+  { id: "tan", label: "Cognac", colors: ["#c9a273", "#a67443", "#694227"], edge: "#694227", thread: "#f0d7b6", accent: "#80532f", soft: "#f6eddf" },
 ] as const;
 export type LeatherFinishId = (typeof LEATHER_FINISHES)[number]["id"];
 export function resolveLeatherFinish(value?: string | null) {
