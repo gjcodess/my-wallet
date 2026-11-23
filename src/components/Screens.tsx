@@ -312,6 +312,9 @@ export const HomeScreen = React.memo(function HomeScreen({
             />
           </View>
           <View style={styles.heroHeaderActions}>
+            <Pressable onPress={handleToggleHidden} accessibilityRole="button" accessibilityLabel={hidden ? "Show balances" : "Hide balances"} style={[styles.heroIconBtn, heroControlStyle(theme)]}>
+              <Icon name={hidden ? "eye-off" : "eye"} size={17} color={theme.heroInk} />
+            </Pressable>
             <Pressable
               onPress={handleOpenSearch}
               accessibilityLabel="Search"
@@ -325,39 +328,6 @@ export const HomeScreen = React.memo(function HomeScreen({
             </Pressable>
           </View>
         </View>
-
-        <View style={styles.heroBalanceBlock}>
-          <Text style={[styles.heroHeaderLabel, { color: theme.heroMuted, opacity: 1 }]}>Total Available Balance</Text>
-          <View style={styles.heroBalanceValueRow}>
-            <View style={{ flex: 1, paddingRight: 10 }}>
-              <Amount value={total} hidden={hidden} size="lg" color={theme.heroInk} />
-            </View>
-            <Pressable
-              onPress={handleToggleHidden}
-              accessibilityLabel={hidden ? "Show balances" : "Hide balances"}
-              style={({ pressed }) => [
-                styles.heroEyeBtnSmall,
-                heroControlStyle(theme),
-                { transform: [{ scale: pressed ? 0.92 : 1 }] },
-              ]}
-            >
-              <Icon
-                name={hidden ? "eye-off" : "eye"}
-                size={14}
-                color={theme.heroInk}
-              />
-            </Pressable>
-          </View>
-        </View>
-
-        <HeroMonthlyFlowRow
-          theme={theme}
-          monthLabel={monthlySummary.monthLabel}
-          earned={monthlySummary.earned}
-          spent={monthlySummary.spent}
-          hidden={hidden}
-          onPress={handleGoActivity}
-        />
 
         {/* 4-Column Glass Quick Action Pills */}
         <View style={styles.actionGrid}>
@@ -392,6 +362,7 @@ export const HomeScreen = React.memo(function HomeScreen({
         wallets={wallets}
         total={total}
         hidden={hidden}
+        monthlySummary={monthlySummary}
         onWallet={onWallet}
         onOpenAdd={handleOpenAdd}
         onOpenMenu={handleOpenMenu}
