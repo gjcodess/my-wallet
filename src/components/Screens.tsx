@@ -81,16 +81,14 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
 }) {
   const insets = useSafeAreaInsets();
   const gradientId = React.useId().replace(/:/g, "");
+  const [headerSize, setHeaderSize] = useState({ width: 0, height: 0 });
   return (
     <View
-      onLayout={
-        onHeight
-          ? (e) => {
-              const h = Math.round(e.nativeEvent.layout.height);
-              if (h > 0) onHeight(h);
-            }
-          : undefined
-      }
+      onLayout={(event) => {
+        const { width, height } = event.nativeEvent.layout;
+        setHeaderSize((previous) => previous.width === width && previous.height === height ? previous : { width, height });
+        onHeight?.(Math.round(height));
+      }}
       style={[
         styles.heroHeaderCard,
         {
@@ -114,7 +112,13 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
             </Pattern>
           </Defs>
           <Rect width="100%" height="100%" fill={`url(#${gradientId})`} />
-          <Rect x="8" y="-24" width="96%" height="100%" rx="25" fill="none" stroke="#a2b0bd" strokeWidth="1.05" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".82" />
+          {headerSize.width > 30 && headerSize.height > 30 && (
+            <>
+              <Path d={`M2 0 V${headerSize.height - 28} Q2 ${headerSize.height - 2} 28 ${headerSize.height - 2} H${headerSize.width - 28} Q${headerSize.width - 2} ${headerSize.height - 2} ${headerSize.width - 2} ${headerSize.height - 28} V0`} fill="none" stroke="#132536" strokeWidth="3" />
+              <Path d={`M8 0 V${headerSize.height - 28} Q8 ${headerSize.height - 8} 28 ${headerSize.height - 8} H${headerSize.width - 28} Q${headerSize.width - 8} ${headerSize.height - 8} ${headerSize.width - 8} ${headerSize.height - 28} V0`} fill="none" stroke="#a2b0bd" strokeWidth="1.05" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".82" />
+              <Path d={`M13 0 V${headerSize.height - 29} Q13 ${headerSize.height - 13} 29 ${headerSize.height - 13} H${headerSize.width - 29} Q${headerSize.width - 13} ${headerSize.height - 13} ${headerSize.width - 13} ${headerSize.height - 29} V0`} fill="none" stroke="#a2b0bd" strokeWidth=".8" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".43" />
+            </>
+          )}
         </Svg>
       </View>
       {children}
