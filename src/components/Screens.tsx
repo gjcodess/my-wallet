@@ -16,7 +16,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
+import Svg, { Defs, Pattern, Path, Rect } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityItem,
@@ -104,41 +104,19 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
         style,
       ]}
     >
-      <LinearGradient
-        pointerEvents="none"
-        colors={theme.heroGradient}
-        locations={[0, 0.52, 1]}
-        start={{ x: 0.7, y: 0 }}
-        end={{ x: 0.3, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
+      <LinearGradient pointerEvents="none" colors={["#486077", "#243b50", "#142638"]} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>
         <Svg width="100%" height="100%">
           <Defs>
-            <RadialGradient id={`${gradientId}Accent`} cx="31%" cy="83%" rx="68%" ry="80%">
-              <Stop offset="0%" stopColor={theme.heroGlow} stopOpacity="0.78" />
-              <Stop offset="42%" stopColor={theme.heroGlow} stopOpacity="0.32" />
-              <Stop offset="100%" stopColor={theme.heroGlow} stopOpacity="0" />
-            </RadialGradient>
-            <RadialGradient id={`${gradientId}Silk`} cx="106%" cy="93%" rx="45%" ry="72%">
-              <Stop offset="0%" stopColor="#ffffff" stopOpacity={theme.dark ? 0.14 : 0.22} />
-              <Stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-            </RadialGradient>
+            <Pattern id={gradientId} width={6} height={6} patternUnits="userSpaceOnUse">
+              <Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth=".7" opacity=".45" />
+              <Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke="#a2b0bd" strokeWidth=".65" opacity=".26" />
+            </Pattern>
           </Defs>
-          <Rect width="100%" height="100%" fill={`url(#${gradientId}Accent)`} />
-          <Rect width="100%" height="100%" fill={`url(#${gradientId}Silk)`} />
+          <Rect width="100%" height="100%" fill={`url(#${gradientId})`} />
+          <Rect x="8" y="-24" width="96%" height="100%" rx="25" fill="none" stroke="#a2b0bd" strokeWidth="1.05" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".82" />
         </Svg>
       </View>
-      <LinearGradient
-        pointerEvents="none"
-        colors={[
-          "rgba(255, 255, 255, 0.035)",
-          "rgba(255, 255, 255, 0)",
-        ]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.75, y: 0.85 }}
-        style={StyleSheet.absoluteFill}
-      />
       {children}
     </View>
   );
@@ -166,7 +144,7 @@ const HeroMonthlyFlowRow = React.memo(function HeroMonthlyFlowRow({
           name="arrow-down"
           size={18}
           strokeWidth={2.4}
-          color={theme.positive}
+          color="#45cd92"
         />
         <View style={styles.walletsHeroFlowMeta}>
           <Text style={[styles.walletsHeroFlowLabel, { color: theme.heroMuted, opacity: 1 }]} numberOfLines={1}>
@@ -190,7 +168,7 @@ const HeroMonthlyFlowRow = React.memo(function HeroMonthlyFlowRow({
           name="arrow-up"
           size={18}
           strokeWidth={2.4}
-          color={theme.dark ? "#fda4af" : "#871f35"}
+          color="#fda4af"
         />
         <View style={styles.walletsHeroFlowMeta}>
           <Text style={[styles.walletsHeroFlowLabel, { color: theme.heroMuted, opacity: 1 }]} numberOfLines={1}>
@@ -306,9 +284,7 @@ export const HomeScreen = React.memo(function HomeScreen({
     return { monthLabel, earned, spent };
   }, [activities]);
 
-  const titleAsset = theme.dark
-    ? PITAKA_TITLE_ASSETS.dark
-    : PITAKA_TITLE_ASSETS.light;
+  const titleAsset = PITAKA_TITLE_ASSETS.dark;
 
   return (
     <View style={[styles.page, { paddingTop: 0 }]}>

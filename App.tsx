@@ -171,6 +171,7 @@ export default function App() {
   const lastScrollY = useRef(0);
   const navVisibleRef = useRef(true);
   const [navVisible, setNavVisible] = useState(true);
+  const [headerAtTop, setHeaderAtTop] = useState(true);
   const [heroHeights, setHeroHeights] = useState<Record<Tab, number>>({
     home: 290,
     wallets: 220,
@@ -224,6 +225,7 @@ export default function App() {
         prev[nextTab] ? prev : { ...prev, [nextTab]: true }
       );
       lastScrollY.current = 0;
+      setHeaderAtTop(true);
       scrollY.setValue(0);
       scrollRef.current?.scrollTo({ y: 0, animated: false });
       setNavbarVisible(true);
@@ -237,6 +239,7 @@ export default function App() {
     if (!showingTabs) {
       tabAnim.setValue(1);
       lastScrollY.current = 0;
+      setHeaderAtTop(true);
       scrollY.setValue(0);
       setNavbarVisible(true);
       return;
@@ -289,6 +292,7 @@ export default function App() {
   const handleScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       const y = e.nativeEvent.contentOffset.y;
+      setHeaderAtTop(y < 30);
       if (y <= 12) {
         lastScrollY.current = y;
         setNavbarVisible(true);
@@ -880,7 +884,7 @@ export default function App() {
           )}
         </View>
 
-        <StatusBar style={dark ? "light" : "dark"} />
+        <StatusBar style={dark || (!isLocked && !selected && headerAtTop) ? "light" : "dark"} />
 
         {isLocked ? (
           <AppLockModal
