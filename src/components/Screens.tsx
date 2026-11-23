@@ -114,9 +114,9 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
           <Rect width="100%" height="100%" fill={`url(#${gradientId})`} />
           {headerSize.width > 30 && headerSize.height > 30 && (
             <>
-              <Path d={`M2 0 V${headerSize.height - 28} Q2 ${headerSize.height - 2} 28 ${headerSize.height - 2} H${headerSize.width - 28} Q${headerSize.width - 2} ${headerSize.height - 2} ${headerSize.width - 2} ${headerSize.height - 28} V0`} fill="none" stroke="#132536" strokeWidth="3" />
-              <Path d={`M8 0 V${headerSize.height - 28} Q8 ${headerSize.height - 8} 28 ${headerSize.height - 8} H${headerSize.width - 28} Q${headerSize.width - 8} ${headerSize.height - 8} ${headerSize.width - 8} ${headerSize.height - 28} V0`} fill="none" stroke="#a2b0bd" strokeWidth="1.05" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".82" />
-              <Path d={`M13 0 V${headerSize.height - 29} Q13 ${headerSize.height - 13} 29 ${headerSize.height - 13} H${headerSize.width - 29} Q${headerSize.width - 13} ${headerSize.height - 13} ${headerSize.width - 13} ${headerSize.height - 29} V0`} fill="none" stroke="#a2b0bd" strokeWidth=".8" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".43" />
+              <Path d={`M2 0 V${headerSize.height - 32} Q2 ${headerSize.height - 2} 32 ${headerSize.height - 2} H${headerSize.width - 32} Q${headerSize.width - 2} ${headerSize.height - 2} ${headerSize.width - 2} ${headerSize.height - 32} V0`} fill="none" stroke="#132536" strokeWidth="3" />
+              <Path d={`M8 0 V${headerSize.height - 32} Q8 ${headerSize.height - 8} 32 ${headerSize.height - 8} H${headerSize.width - 32} Q${headerSize.width - 8} ${headerSize.height - 8} ${headerSize.width - 8} ${headerSize.height - 32} V0`} fill="none" stroke="#a2b0bd" strokeWidth="1.05" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".82" />
+              <Path d={`M13 0 V${headerSize.height - 32} Q13 ${headerSize.height - 13} 32 ${headerSize.height - 13} H${headerSize.width - 32} Q${headerSize.width - 13} ${headerSize.height - 13} ${headerSize.width - 13} ${headerSize.height - 32} V0`} fill="none" stroke="#a2b0bd" strokeWidth=".8" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".43" />
             </>
           )}
         </Svg>
