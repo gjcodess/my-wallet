@@ -686,27 +686,8 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
       </Animated.View>
       </Animated.View>
 
+      {!wallets.length && (
       <View style={styles.controls}>
-        {wallets.length > 1 && open && (
-          <Pressable
-            accessibilityRole="button"
-            disabled={busy || !open}
-            onPress={() => cycle(1)}
-            style={[
-              styles.control,
-              {
-                borderColor: theme.line,
-                borderWidth: 1,
-                opacity: open ? 1 : 0.55,
-              },
-            ]}
-          >
-            <Text style={[styles.controlText, { color: theme.ink }]}>
-              Next card →
-            </Text>
-          </Pressable>
-        )}
-        {!wallets.length && (
           <Pressable
             accessibilityRole="button"
             onPress={onOpenAdd}
@@ -719,8 +700,8 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
               Add wallet
             </Text>
           </Pressable>
-        )}
       </View>
+      )}
 
       {liftedWallet && (
         <View
