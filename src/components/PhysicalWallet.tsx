@@ -10,6 +10,7 @@ import {
   AccessibilityInfo,
   Animated,
   Easing,
+  Modal,
   PanResponder,
   Platform,
   Pressable,
@@ -22,10 +23,13 @@ import Svg, {
   Circle,
   Defs,
   LinearGradient,
+  Image as SvgImage,
   Path,
   Pattern,
+  Rect,
   Stop,
 } from "react-native-svg";
+import { resolveWalletCardDesign } from "../data/walletPresets";
 import { money, tonePalette, type Wallet } from "../types/wallet";
 import { Icon } from "./Icon";
 import type { ThemeColors } from "./SharedUI";
@@ -173,6 +177,7 @@ const AccountCard = React.memo(function AccountCard({
   disabled,
   tabHeight,
   cardHeight,
+  focused = false,
   onPress,
 }: {
   wallet: Wallet;
@@ -181,9 +186,12 @@ const AccountCard = React.memo(function AccountCard({
   disabled: boolean;
   tabHeight: number;
   cardHeight: number;
+  focused?: boolean;
   onPress: () => void;
 }) {
   const palette = tonePalette[wallet.tone] || tonePalette.blue;
+  const design = resolveWalletCardDesign(wallet.logoKey, wallet.name);
+  const ink = design?.ink ?? palette.ink;
   const balance = hidden ? "Balance hidden" : money(wallet.balance);
 
   return (
@@ -192,13 +200,21 @@ const AccountCard = React.memo(function AccountCard({
         pointerEvents="none"
         style={[styles.cardFace, { backgroundColor: palette.to }]}
       >
-        <CardGradient
-          style={StyleSheet.absoluteFill}
-          colors={["#ffffff25", "#ffffff00", "#00000015"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        />
-        <View style={styles.cardWatermark} />
+        {design ? (
+          <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
+            <SvgImage href={design.source} width="100%" height="100%" preserveAspectRatio="xMaxYMid slice" />
+          </Svg>
+        ) : (
+          <>
+            <CardGradient
+              style={StyleSheet.absoluteFill}
+              colors={["#ffffff25", "#ffffff00", "#00000015"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+            <View style={styles.cardWatermark} />
+          </>
+        )}
         <View style={[styles.cardRow, { height: tabHeight }]}>
           <WalletLogoBadge
             logoKey={wallet.logoKey}
@@ -206,16 +222,16 @@ const AccountCard = React.memo(function AccountCard({
             mark={wallet.mark}
             size={19}
             radius={5}
-            ink={palette.ink}
+            ink={ink}
           />
           <Text
-            style={[styles.cardName, { color: palette.ink }]}
+            style={[styles.cardName, { color: ink }]}
             numberOfLines={1}
           >
             {wallet.name}
           </Text>
           <Text
-            style={[styles.cardBalance, { color: palette.ink }]}
+            style={[styles.cardBalance, { color: ink }]}
             numberOfLines={1}
             adjustsFontSizeToFit
           >
@@ -226,7 +242,7 @@ const AccountCard = React.memo(function AccountCard({
           <>
             <View style={styles.cardBody}>
               <Text
-                style={[styles.cardType, { color: palette.ink }]}
+                style={[styles.cardType, { color: ink }]}
                 numberOfLines={1}
               >
                 {wallet.type}
@@ -235,7 +251,7 @@ const AccountCard = React.memo(function AccountCard({
                 value={wallet.balance}
                 hidden={hidden}
                 size="md"
-                color={palette.ink}
+                color={ink}
               />
             </View>
             <View style={styles.cardFooter}>
@@ -243,13 +259,13 @@ const AccountCard = React.memo(function AccountCard({
                 style={[
                   styles.cardType,
                   styles.cardLabel,
-                  { color: palette.ink },
+                  { color: ink },
                 ]}
                 numberOfLines={1}
               >
                 {wallet.account || "Personal wallet"}
               </Text>
-              <Text style={[styles.cardType, { color: palette.ink }]}>PHP</Text>
+              {!focused && <Text style={[styles.cardType, { color: ink }]}>PHP</Text>}
             </View>
           </>
         )}
@@ -265,7 +281,7 @@ const AccountCard = React.memo(function AccountCard({
         accessibilityState={{ selected: lifted, disabled }}
         disabled={disabled}
         onPress={onPress}
-        style={[styles.cardTouch, { height: lifted ? cardHeight : tabHeight }]}
+        style={[styles.cardTouch, focused ? { bottom: 0 } : { height: lifted ? cardHeight : tabHeight }]}
       />
     </>
   );
@@ -364,7 +380,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
         const motion = Animated.timing(value, {
           toValue,
           duration,
-          easing: Easing.inOut(Easing.cubic),
+          easing: value === lift ? (toValue === 1 ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic)) : Easing.inOut(Easing.cubic),
           useNativeDriver: Platform.OS !== "web",
         });
         const animation = value === flap
@@ -385,7 +401,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
         });
       });
     },
-    [compact, flap],
+    [compact, flap, lift],
   );
 
   const move = useCallback(async (action: () => Promise<void>) => {
@@ -404,14 +420,14 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
     (wallet: Wallet) => {
       if (!open) return;
       void move(async () => {
-        if (liftedId !== null && !(await play(lift, 0, 250))) return;
+        if (liftedId !== null && !(await play(lift, 0, 260))) return;
         if (liftedId === wallet.id) {
           setLiftedId(null);
           return;
         }
         setActiveId(wallet.id);
         setLiftedId(wallet.id);
-        await play(lift, 1, 330);
+        await play(lift, 1, 400);
       });
     },
     [lift, liftedId, move, open, play],
@@ -420,7 +436,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
   const toggle = useCallback(() => {
     void move(async () => {
       if (open) {
-        if (liftedId !== null && !(await play(lift, 0, 250))) return;
+        if (liftedId !== null && !(await play(lift, 0, 260))) return;
         setLiftedId(null);
         if (!(await play(stow, 1, 500))) return;
         if (!(await play(flap, 0, 440))) return;
@@ -569,12 +585,13 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
                 });
             return (
               <Animated.View
-                key={wallet.id}
+                key={`${wallet.id}-${scale}`}
                 pointerEvents="box-none"
                 style={[
                   styles.card,
                   {
                     height: CARD_HEIGHT * scale,
+                    opacity: lifted ? 0 : 1,
                     transform: [{ translateY }],
                     zIndex: lifted ? VISIBLE_CARDS + 1 : slot + 1,
                   },
@@ -703,55 +720,30 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
       </View>
       )}
 
-      {liftedWallet && (
-        <View
-          style={[
-            styles.details,
-            { backgroundColor: theme.card, borderColor: theme.line },
-          ]}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={"View " + liftedWallet.name}
-            disabled={busy}
-            onPress={() => onWallet(liftedWallet)}
-            style={styles.detailLink}
-          >
-            <WalletLogoBadge
-              logoKey={liftedWallet.logoKey}
-              name={liftedWallet.name}
-              mark={liftedWallet.mark}
-              size={30}
-              radius={8}
-            />
-            <View style={styles.detailCopy}>
-              <Text
-                style={[styles.detailName, { color: theme.ink }]}
-                numberOfLines={1}
-              >
-                {liftedWallet.name}
-              </Text>
-              <Text
-                style={[styles.detailType, { color: theme.muted }]}
-                numberOfLines={1}
-              >
-                {liftedWallet.type}
-                {liftedWallet.account ? " · " + liftedWallet.account : ""}
-              </Text>
-            </View>
-            <Icon name="chevron" size={15} color={theme.muted} />
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={"Manage " + liftedWallet.name}
-            disabled={busy}
-            onPress={() => onOpenMenu(liftedWallet)}
-            style={styles.detailMenu}
-          >
-            <Icon name="more" size={20} color={theme.ink} />
-          </Pressable>
-        </View>
-      )}
+      <Modal transparent visible={!!liftedWallet} animationType="none" statusBarTranslucent onRequestClose={() => liftedWallet && pull(liftedWallet)}>
+        {liftedWallet && (
+          <View style={styles.focusOverlay} accessibilityViewIsModal>
+            <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: "#000000", opacity: lift.interpolate({ inputRange: [0, 1], outputRange: [0, 0.7] }) }]} />
+            <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel="Close selected card" onPress={() => pull(liftedWallet)} />
+            <Animated.View style={[styles.focusCard, { opacity: lift, transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [65, 0] }) }, { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}>
+              <AccountCard wallet={liftedWallet} hidden={hidden} lifted focused disabled={busy} tabHeight={38} cardHeight={190} onPress={() => { const wallet = liftedWallet; void move(async () => { if (await play(lift, 0, 260)) { setLiftedId(null); onWallet(wallet); } }); }} />
+              <Pressable accessibilityRole="button" accessibilityLabel={"Update " + liftedWallet.name} disabled={busy} style={styles.focusMenu} onPress={() => { const wallet = liftedWallet; void move(async () => { if (await play(lift, 0, 260)) { setLiftedId(null); onOpenMenu(wallet); } }); }}>
+                <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
+                  <Defs>
+                    <LinearGradient id="updateLeather" x1="0%" y1="0%" x2="100%" y2="100%"><Stop offset="0" stopColor="#486077" /><Stop offset=".42" stopColor="#243b50" /><Stop offset="1" stopColor="#142638" /></LinearGradient>
+                    <Pattern id="updateGrain" width={6} height={6} patternUnits="userSpaceOnUse"><Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth=".7" opacity=".45" /><Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke="#a2b0bd" strokeWidth=".65" opacity=".26" /></Pattern>
+                  </Defs>
+                  <Rect x="1" y="1" width="98%" height="96%" rx="16" fill="url(#updateLeather)" stroke="#132536" strokeWidth="1.5" />
+                  <Rect x="1" y="1" width="98%" height="96%" rx="16" fill="url(#updateGrain)" />
+                  <Rect x="5" y="5" width="90%" height="76%" rx="12" fill="none" stroke="#a2b0bd" strokeWidth="1" strokeDasharray="3.5 3" opacity=".82" />
+                </Svg>
+                <Icon name="edit" size={14} color="#ffffff" />
+                <Text style={styles.focusMenuText}>Update</Text>
+              </Pressable>
+            </Animated.View>
+          </View>
+        )}
+      </Modal>
     </View>
   );
 });
@@ -761,7 +753,7 @@ const styles = StyleSheet.create({
   stage: {
     position: "relative",
     width: "100%",
-    maxWidth: WIDTH,
+    maxWidth: 440,
     alignSelf: "center",
   },
   shell: {
@@ -893,6 +885,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   controlText: { fontFamily: "Poppins_600SemiBold", fontSize: 12 },
+  focusOverlay: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 24 },
+  focusCard: { width: "100%", maxWidth: 400, aspectRatio: 85.6 / 53.98, borderRadius: 14, elevation: 12 },
+  focusMenu: { position: "absolute", right: 10, bottom: 8, width: 102, height: 44, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", elevation: 3 },
+  focusMenuText: { color: "#ffffff", fontFamily: "Poppins_700Bold", fontSize: 12 },
   details: {
     flexDirection: "row",
     alignItems: "center",
@@ -918,3 +914,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
+
+
+
