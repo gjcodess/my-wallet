@@ -26,6 +26,7 @@ import Svg, {
   Image as SvgImage,
   Path,
   Pattern,
+  RadialGradient,
   Rect,
   Stop,
 } from "react-native-svg";
@@ -189,6 +190,7 @@ const AccountCard = React.memo(function AccountCard({
   focused?: boolean;
   onPress: () => void;
 }) {
+  const fadeId = "balanceFade" + useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const palette = tonePalette[wallet.tone] || tonePalette.blue;
   const design = resolveWalletCardDesign(wallet.logoKey, wallet.name);
   const ink = design?.ink ?? palette.ink;
@@ -215,6 +217,15 @@ const AccountCard = React.memo(function AccountCard({
             <View style={styles.cardWatermark} />
           </>
         )}
+        <Svg pointerEvents="none" width="100%" height={tabHeight * 2} style={styles.cardAmountFade}>
+          <Defs>
+            <RadialGradient id={fadeId} cx="100%" cy="0%" rx="58%" ry="100%">
+              <Stop offset="0" stopColor={ink === "#ffffff" ? "#000000" : "#ffffff"} stopOpacity="0.62" />
+              <Stop offset="1" stopColor={ink === "#ffffff" ? "#000000" : "#ffffff"} stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Rect width="100%" height="100%" fill={`url(#${fadeId})`} />
+        </Svg>
         <View style={[styles.cardRow, { height: tabHeight }]}>
           <WalletLogoBadge
             logoKey={wallet.logoKey}
@@ -230,11 +241,7 @@ const AccountCard = React.memo(function AccountCard({
           >
             {wallet.name}
           </Text>
-          <Text
-            style={[styles.cardBalance, { color: ink }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-          >
+          <Text style={[styles.cardBalance, { color: ink }]} numberOfLines={1} adjustsFontSizeToFit>
             {hidden ? "₱ ••••••" : balance}
           </Text>
         </View>
@@ -774,6 +781,7 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   cardName: { flex: 1, fontFamily: "Poppins_700Bold", fontSize: 12 },
+  cardAmountFade: { position: "absolute", top: 0, left: 0 },
   cardBalance: {
     maxWidth: "42%",
     fontFamily: "Poppins_600SemiBold",
