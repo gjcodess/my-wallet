@@ -43,7 +43,7 @@ const POCKET_Y = 245;
 const BOTTOM_Y = 403;
 const CARD_HEIGHT = 166;
 const CARD_STEP = 32;
-const STOWED_Y = 262;
+const STOWED_Y = 210;
 const TARGET_Y = 7;
 const VISIBLE_CARDS = 6;
 
@@ -891,6 +891,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
+
 
 
 
