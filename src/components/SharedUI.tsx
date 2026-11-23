@@ -738,8 +738,8 @@ export function BottomNav({
   const items: { id: Tab; icon: string; label: string }[] = [
     { id: "home", icon: "home", label: "Home" },
     { id: "wallets", icon: "wallet", label: "Wallets" },
-    { id: "activity", icon: "activity", label: "Activity" },
-    { id: "settings", icon: "settings", label: "Settings" },
+    { id: "activity", icon: "transactions", label: "Transactions" },
+    { id: "statistics", icon: "activity", label: "Statistics" },
   ];
 
   const translateY = navAnim

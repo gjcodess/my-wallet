@@ -1,4 +1,4 @@
-export type Tab = "home" | "wallets" | "activity" | "settings";
+export type Tab = "home" | "wallets" | "activity" | "statistics" | "settings";
 
 export const EXPENSE_CATEGORIES: [string, string][] = [
   ["Food", "cup"],

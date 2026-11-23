@@ -30,6 +30,13 @@ export function Icon({
         );
       case "activity":
         return <Path d="M5 19V11M10 19V5M15 19v-6M20 19V8" />;
+      case "transactions":
+        return (
+          <>
+            <Path d="M6 3.5h12v17l-2.5-1.5-3.5 1.5-3.5-1.5L6 20.5Z" />
+            <Path d="M9 8h6M9 12h6M9 16h4" />
+          </>
+        );
       case "settings":
         return (
           <>

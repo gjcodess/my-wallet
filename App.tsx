@@ -96,8 +96,10 @@ export default function App() {
     home: true,
     wallets: false,
     activity: false,
+    statistics: false,
     settings: false,
   });
+  const [transactionCategory, setTransactionCategory] = useState<{ category: string } | null>(null);
   const [wallets, setWallets] = useState<Wallet[]>(initialWallets);
   const [activityItems, setActivityItems] =
     useState<ActivityItem[]>(initialActivities);
@@ -189,6 +191,7 @@ export default function App() {
     home: 290,
     wallets: 220,
     activity: 170,
+    statistics: 170,
     settings: 170,
   });
   const activeHeroHeight = heroHeights[tab];
@@ -295,6 +298,10 @@ export default function App() {
   );
   const handleActivityHeroHeight = useCallback(
     (h: number) => updateHeroHeight("activity", h),
+    [updateHeroHeight]
+  );
+  const handleStatisticsHeroHeight = useCallback(
+    (h: number) => updateHeroHeight("statistics", h),
     [updateHeroHeight]
   );
   const handleSettingsHeroHeight = useCallback(
@@ -964,6 +971,7 @@ export default function App() {
                       schedules={dueSchedules}
                       onRecordScheduled={handleOpenScheduledEntry}
                       setTab={handleTabChange}
+                      onSettings={() => handleTabChange("settings")}
                       onStackDragChange={handleStackDragChange}
                       walletOpen={headerAtTop}
                       onHeroHeight={handleHomeHeroHeight}
@@ -993,6 +1001,7 @@ export default function App() {
                 {visitedTabs.activity ? (
                   <View style={{ display: tab === "activity" ? "flex" : "none" }}>
                     <ActivityScreen
+                      mode="transactions"
                       activities={activityItems}
                       wallets={wallets}
                       hidden={hidden}
@@ -1007,7 +1016,32 @@ export default function App() {
                       showFilters={showActivityFilters}
                       onToggleFilters={handleToggleActivityFilter}
                       isActive={tab === "activity"}
+                      categoryFilter={transactionCategory}
                       onHeroHeight={handleActivityHeroHeight}
+                      theme={theme}
+                    />
+                  </View>
+                ) : null}
+
+                {visitedTabs.statistics ? (
+                  <View style={{ display: tab === "statistics" ? "flex" : "none" }}>
+                    <ActivityScreen
+                      mode="statistics"
+                      activities={activityItems}
+                      wallets={wallets}
+                      hidden={hidden}
+                      onToggleHidden={handleToggleHidden}
+                      monthlyBudget={monthlyBudget}
+                      monthlySpending={monthlySpending}
+                      categoryLimits={categoryLimits}
+                      onOpenCategoryBudget={handleOpenCategoryBudget}
+                      onEditBudget={handleOpenBudgetSheet}
+                      onCategorySelect={(category) => {
+                        setTransactionCategory({ category });
+                        handleTabChange("activity");
+                      }}
+                      isActive={tab === "statistics"}
+                      onHeroHeight={handleStatisticsHeroHeight}
                       theme={theme}
                     />
                   </View>

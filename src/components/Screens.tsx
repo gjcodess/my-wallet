@@ -217,6 +217,7 @@ export const HomeScreen = React.memo(function HomeScreen({
   onWallet,
   onTransaction,
   onSheet,
+  onSettings,
   schedules,
   onRecordScheduled,
   setTab,
@@ -233,6 +234,7 @@ export const HomeScreen = React.memo(function HomeScreen({
   onWallet: (w: Wallet) => void;
   onTransaction?: (item: ActivityItem) => void;
   onSheet: (s: Sheet, w?: Wallet) => void;
+  onSettings: () => void;
   schedules: DueSchedule[];
   onRecordScheduled: (schedule: DueSchedule) => void;
   setTab: (t: Tab) => void;
@@ -326,6 +328,18 @@ export const HomeScreen = React.memo(function HomeScreen({
               ]}
             >
               <Icon name="search" size={17} color={theme.heroInk} />
+            </Pressable>
+            <Pressable
+              onPress={onSettings}
+              accessibilityRole="button"
+              accessibilityLabel="Settings"
+              style={({ pressed }) => [
+                styles.heroIconBtn,
+                heroControlStyle(theme),
+                { transform: [{ scale: pressed ? 0.92 : 1 }] },
+              ]}
+            >
+              <Icon name="settings" size={17} color={theme.heroInk} />
             </Pressable>
           </View>
         </View>
@@ -964,6 +978,7 @@ const DEFAULT_INCOME_CATEGORIES: { label: string; icon: string }[] =
   INCOME_CATEGORIES.map(([label, icon]) => ({ label, icon }));
 
 export const ActivityScreen = React.memo(function ActivityScreen({
+  mode,
   activities,
   wallets = [],
   hidden,
@@ -977,10 +992,13 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   onShowToast,
   showFilters = false,
   onToggleFilters,
+  categoryFilter,
+  onCategorySelect,
   isActive = true,
   onHeroHeight,
   theme,
 }: {
+  mode: "transactions" | "statistics";
   activities: ActivityItem[];
   wallets?: Wallet[];
   hidden: boolean;
@@ -994,6 +1012,8 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   onShowToast?: (msg: string) => void;
   showFilters?: boolean;
   onToggleFilters?: () => void;
+  categoryFilter?: { category: string } | null;
+  onCategorySelect?: (category: string) => void;
   isActive?: boolean;
   onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
@@ -1007,6 +1027,10 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   const [selectedBucketIdx, setSelectedBucketIdx] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const barProgress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (mode === "transactions") setSelectedCategory(categoryFilter?.category ?? null);
+  }, [categoryFilter, mode]);
 
   const filteredActivities = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -1284,7 +1308,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         style={{ marginBottom: 14 }}
       >
         <View style={styles.heroTopRow}>
-          <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>Activity</Text>
+          <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>{mode === "statistics" ? "Statistics" : "Transactions"}</Text>
           <View style={styles.heroHeaderActions}>
             {onToggleHidden ? (
               <Pressable
@@ -1302,7 +1326,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                 />
               </Pressable>
             ) : null}
-            {onToggleFilters ? (
+            {mode === "transactions" && onToggleFilters ? (
               <Pressable
                 onPress={onToggleFilters}
                 style={({ pressed }) => [
@@ -1319,12 +1343,12 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         </View>
 
         <View style={styles.heroBalanceBlock}>
-          <Text style={[styles.heroHeaderLabel, { color: theme.heroMuted, opacity: 1 }]}>Total spending</Text>
-          <Amount value={totalOut} hidden={hidden} size="lg" color={theme.heroInk} />
+          <Text style={[styles.heroHeaderLabel, { color: theme.heroMuted, opacity: 1 }]}>{mode === "statistics" ? "Total spending" : "Your activity"}</Text>
+          {mode === "statistics" ? <Amount value={totalOut} hidden={hidden} size="lg" color={theme.heroInk} /> : <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>{activities.length} transactions</Text>}
         </View>
       </HeroHeaderSurface>
 
-      {showFilters ? (
+      {mode === "transactions" && showFilters ? (
         <View
           style={[
             styles.activityFilterPanel,
@@ -1463,6 +1487,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         </View>
       ) : null}
 
+      {mode === "statistics" ? <>
       {/* Navy Folder Chart */}
       <View style={{ marginTop: 14 }}>
         <FolderSurface
@@ -1796,8 +1821,11 @@ export const ActivityScreen = React.memo(function ActivityScreen({
               <Pressable
                 key={label}
                 onPress={() => {
-                  setSelectedCategory(active ? null : label);
-                  setPage(1);
+                  if (onCategorySelect) onCategorySelect(label);
+                  else {
+                    setSelectedCategory(active ? null : label);
+                    setPage(1);
+                  }
                 }}
                 style={({ pressed }) => [
                   styles.categoryCardWrapper,
@@ -1868,6 +1896,9 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         />
       </View>
 
+      </> : null}
+
+      {mode === "transactions" ? <>
       {/* All Transactions List (10 per page) */}
       <View style={styles.section}>
         <SectionTitle
@@ -2067,6 +2098,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
           </View>
         ) : null}
       </View>
+      </> : null}
     </View>
   );
 });
