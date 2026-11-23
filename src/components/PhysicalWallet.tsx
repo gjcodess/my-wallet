@@ -619,50 +619,19 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
           ]}
         >
           <LeatherPanel part="pocket" />
-          <Animated.View
-            style={[
-              styles.pocketCopy,
-              {
-                opacity: flap.interpolate({
-                  inputRange: [0, 0.5, 1],
-                  outputRange: [0, 0, 1],
-                }),
-              },
-            ]}
-          >
-            <Text style={styles.pocketLabel}>Available funds</Text>
-            <Amount value={total} hidden={hidden} size="md" color="#f0f1eb" />
-            <Text style={styles.pocketCount}>
-              {wallets.length} {wallets.length === 1 ? "card" : "cards"} in your
-              wallet
-            </Text>
-            <View style={styles.monthlyFlow}>
-              <View style={styles.monthlyItem}>
-                <Text style={styles.monthlyLabel}>{monthlySummary.monthLabel} in</Text>
-                <Text style={styles.monthlyValue} numberOfLines={1} adjustsFontSizeToFit>{hidden ? "••••" : money(monthlySummary.earned)}</Text>
-              </View>
-              <View style={styles.monthlyDivider} />
-              <View style={styles.monthlyItem}>
-                <Text style={styles.monthlyLabel}>{monthlySummary.monthLabel} out</Text>
-                <Text style={styles.monthlyValue} numberOfLines={1} adjustsFontSizeToFit>{hidden ? "••••" : money(monthlySummary.spent)}</Text>
-              </View>
-            </View>
-          </Animated.View>
         </View>
 
         <Animated.View
           pointerEvents="none"
           renderToHardwareTextureAndroid
-          accessibilityElementsHidden={open}
-          importantForAccessibility={open ? "no-hide-descendants" : "auto"}
           style={[styles.closedSummary, {
             top: (HINGE_Y + leather.flap.height) * scale,
             height: (BOTTOM_Y - HINGE_Y - leather.flap.height) * scale,
-            opacity: flap.interpolate({ inputRange: [0, 0.25, 0.5], outputRange: [1, 0, 0], extrapolate: "clamp" }),
           }]}
         >
           <Text style={styles.pocketLabel}>Available funds</Text>
           <Amount value={total} hidden={hidden} size="md" color="#f0f1eb" />
+          <Text style={styles.pocketCount}>{wallets.length} {wallets.length === 1 ? "card" : "cards"} in your wallet</Text>
           <View style={styles.monthlyFlow}>
             <View style={styles.monthlyItem}>
               <Text style={styles.monthlyLabel}>{monthlySummary.monthLabel} in</Text>
@@ -849,12 +818,12 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_500Medium",
     fontSize: 11,
   },
-  closedSummary: { position: "absolute", left: 20, right: 20, zIndex: 8, alignItems: "center", justifyContent: "center", paddingBottom: 8 },
+  closedSummary: { position: "absolute", left: 20, right: 20, zIndex: 8, alignItems: "center", justifyContent: "center", paddingBottom: 16 },
   monthlyFlow: { flexDirection: "row", alignItems: "center", width: "100%", marginTop: 2 },
   monthlyItem: { flex: 1, alignItems: "center" },
   monthlyDivider: { width: 1, height: 28, backgroundColor: "#a2b0bd55" },
   monthlyLabel: { color: "#bac9d5", fontFamily: "Poppins_500Medium", fontSize: 9 },
-  monthlyValue: { color: "#f0f1eb", fontFamily: "Poppins_700Bold", fontSize: 11, maxWidth: "100%" },
+  monthlyValue: { color: "#f0f1eb", fontFamily: "Poppins_700Bold", fontSize: 13, maxWidth: "100%" },
   flapText: {
     position: "absolute",
     top: "29%",
@@ -914,6 +883,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
+
 
 
 
