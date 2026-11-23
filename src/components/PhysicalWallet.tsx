@@ -272,6 +272,7 @@ const AccountCard = React.memo(function AccountCard({
 });
 
 export const PhysicalWallet = React.memo(function PhysicalWallet({
+  shouldOpen,
   wallets,
   total,
   hidden,
@@ -283,6 +284,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
   onFrontChange,
   onStackDragChange,
 }: {
+  shouldOpen: boolean;
   wallets: Wallet[];
   total: number;
   hidden: boolean;
@@ -302,6 +304,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
   const stow = useRef(new Animated.Value(0)).current;
   const flap = useRef(new Animated.Value(1)).current;
   const lift = useRef(new Animated.Value(0)).current;
+  const compact = useRef(new Animated.Value(0)).current;
   const running = useRef<Animated.CompositeAnimation | null>(null);
   const moving = useRef(false);
   const mounted = useRef(false);
@@ -417,6 +420,20 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
     });
   }, [flap, lift, liftedId, move, open, play, stow]);
 
+  useEffect(() => {
+    if (!busy && open !== shouldOpen) toggle();
+  }, [busy, open, shouldOpen, toggle]);
+
+  useEffect(() => {
+    const animation = Animated.timing(compact, {
+      toValue: open ? 0 : 1,
+      duration: reduceMotion.current ? 0 : 280,
+      useNativeDriver: false,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [compact, open]);
+
   const cycle = useCallback(
     (direction: number) => {
       if (!wallets.length) return;
@@ -481,17 +498,16 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
       },
     ],
   };
-  const actionBackground = theme.dark ? theme.card : "#233c51";
-  const actionInk = theme.dark ? theme.ink : "#ffffff";
 
   return (
     <View style={styles.wallet}>
-      <View
+      <Animated.View style={{ height: compact.interpolate({ inputRange: [0, 1], outputRange: [HEIGHT * scale, (HEIGHT - HINGE_Y) * scale] }) }}>
+      <Animated.View
         onLayout={(event) => {
           const width = event.nativeEvent.layout.width;
           if (width > 0) setScale(width / WIDTH);
         }}
-        style={[styles.stage, { height: HEIGHT * scale }]}
+        style={[styles.stage, { height: HEIGHT * scale, marginTop: compact.interpolate({ inputRange: [0, 1], outputRange: [0, -HINGE_Y * scale] }) }]}
         {...pan.panHandlers}
       >
         <View
@@ -642,9 +658,9 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
         </Animated.View>
 
         <Animated.View
-          pointerEvents={!open && !busy ? "box-none" : "none"}
-          accessibilityElementsHidden={open}
-          importantForAccessibility={open ? "no-hide-descendants" : "auto"}
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
           style={[
             styles.flap,
             flapMotion,
@@ -657,35 +673,19 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
             },
           ]}
         >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open leather flap"
-            disabled={busy || open}
-            onPress={toggle}
-            style={styles.flapFace}
-          >
+          <View style={styles.flapFace}>
             <LeatherPanel part="flap" />
             <View pointerEvents="none" style={styles.flapText}>
               <Icon name="lock" size={14} color="#e3e9e9" />
-              <Text style={styles.flapLabel}>Tap to open</Text>
+              <Text style={styles.flapLabel}>Scroll up to open</Text>
             </View>
-          </Pressable>
+          </View>
         </Animated.View>
-      </View>
+      </Animated.View>
+      </Animated.View>
 
       <View style={styles.controls}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ expanded: open, disabled: busy }}
-          disabled={busy}
-          onPress={toggle}
-          style={[styles.control, { backgroundColor: actionBackground }]}
-        >
-          <Text style={[styles.controlText, { color: actionInk }]}>
-            {open ? "Close wallet" : "Open wallet"}
-          </Text>
-        </Pressable>
-        {wallets.length > 1 && (
+        {wallets.length > 1 && open && (
           <Pressable
             accessibilityRole="button"
             disabled={busy || !open}

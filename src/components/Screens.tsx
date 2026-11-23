@@ -222,6 +222,7 @@ export const HomeScreen = React.memo(function HomeScreen({
   onRecordScheduled,
   setTab,
   onStackDragChange,
+  walletOpen,
   onHeroHeight,
   theme,
 }: {
@@ -237,6 +238,7 @@ export const HomeScreen = React.memo(function HomeScreen({
   onRecordScheduled: (schedule: DueSchedule) => void;
   setTab: (t: Tab) => void;
   onStackDragChange?: (dragging: boolean) => void;
+  walletOpen: boolean;
   onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
 }) {
@@ -359,6 +361,7 @@ export const HomeScreen = React.memo(function HomeScreen({
       </HeroHeaderSurface>
 
       <PhysicalWallet
+        shouldOpen={walletOpen}
         wallets={wallets}
         total={total}
         hidden={hidden}

@@ -959,6 +959,7 @@ export default function App() {
                       onRecordScheduled={handleOpenScheduledEntry}
                       setTab={handleTabChange}
                       onStackDragChange={handleStackDragChange}
+                      walletOpen={headerAtTop}
                       onHeroHeight={handleHomeHeroHeight}
                       theme={theme}
                     />
