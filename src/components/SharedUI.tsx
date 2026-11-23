@@ -692,21 +692,22 @@ export function SwitchControl({
 
 function NavLeatherSurface({ theme, round = false }: { theme: ThemeColors; round?: boolean }) {
   const grainId = round ? "navAddGrain" : "navBarGrain";
+  const thread = round ? theme.leather.accent : theme.leather.thread;
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <LinearGradient colors={theme.leather.colors} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={round ? ["#fffefa", "#f3eee5", "#e6ddcf"] : theme.leather.colors} style={StyleSheet.absoluteFill} />
       <Svg width="100%" height="100%" viewBox={round ? "0 0 62 62" : "0 0 300 62"} preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
         <Defs>
           <Pattern id={grainId} width={6} height={6} patternUnits="userSpaceOnUse">
-            <SvgPath d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth=".7" opacity=".45" />
-            <SvgPath d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke={theme.leather.thread} strokeWidth=".65" opacity=".26" />
+            <SvgPath d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke={round ? theme.leather.colors[1] : "#071522"} strokeWidth=".7" opacity={round ? ".22" : ".45"} />
+            <SvgPath d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke={round ? "#ffffff" : theme.leather.thread} strokeWidth=".65" opacity=".26" />
           </Pattern>
         </Defs>
         {round ? (
           <>
             <SvgCircle cx="31" cy="31" r="31" fill={`url(#${grainId})`} />
-            <SvgCircle cx="31" cy="31" r="26" fill="none" stroke={theme.leather.thread} strokeWidth="1" strokeDasharray="3.5 3" opacity=".85" />
-            <SvgCircle cx="31" cy="31" r="22" fill="none" stroke={theme.leather.thread} strokeWidth=".7" strokeDasharray="2 3" opacity=".48" />
+            <SvgCircle cx="31" cy="31" r="26" fill="none" stroke={thread} strokeWidth="1" strokeDasharray="3.5 3" opacity=".75" />
+            <SvgCircle cx="31" cy="31" r="22" fill="none" stroke={thread} strokeWidth=".7" strokeDasharray="2 3" opacity=".42" />
           </>
         ) : (
           <>
@@ -804,7 +805,7 @@ export function BottomNav({
         ]}
       >
         <NavLeatherSurface theme={theme} round />
-        <Icon name="plus" size={25} strokeWidth={2.5} color="#ffffff" />
+        <Icon name="plus" size={27} strokeWidth={2.8} color={theme.leather.accent} />
       </Pressable>
     </Animated.View>
   );
