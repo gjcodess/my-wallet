@@ -1,0 +1,4362 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-accent="red">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Ang Pitaka Gazette — Personal Finance Broadsheet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ========================================================================
+       1. DESIGN TOKENS — ANG PITAKA GAZETTE
+       Newsprint editorial system. Radius 0 everywhere (except avatar circle).
+       ======================================================================== */
+    :root {
+      /* Surface & Ink — Newsprint Daylight Edition */
+      --paper: #F2EDE3;
+      --paper-2: #EAE3D6;
+      --paper-elevated: #F6F2EA;
+      --ink: #1A1714;
+      --ink-2: #5C544B;
+      --ink-muted: #766D62;
+      --rule: #1A1714;
+      --rule-soft: #CFC6B6;
+
+      /* Editorial Spot & Semantic Colours */
+      --accent: #C8361D;         /* Editor's Red */
+      --accent-soft: rgba(200, 54, 29, 0.10);
+      --ink-blue: #203A5C;       /* Money-In */
+      --ink-blue-soft: rgba(32, 58, 92, 0.10);
+      --salmon: #F0C9A9;         /* FT-Salmon chart & pace fill */
+      --forest: #2E5E3E;
+      --ochre: #B7791F;
+      --danger: #C8361D;
+      --warn: #9E6312;
+
+      /* Typography */
+      --font-serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+      --font-sans: "Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+      /* Type Scale */
+      --t-hero: 64px;
+      --t-h1: 36px;
+      --t-h2: 26px;
+      --t-h3: 20px;
+      --t-body: 15px;
+      --t-small: 13px;
+      --t-kicker: 11px;
+      --t-folio: 10px;
+
+      /* Grid & Spacing (4/8 base, 20px page margins, 16px gutters) */
+      --margin: 20px;
+      --gutter: 16px;
+      --sp-1: 4px;
+      --sp-2: 8px;
+      --sp-3: 12px;
+      --sp-4: 16px;
+      --sp-5: 20px;
+      --sp-6: 24px;
+      --sp-8: 32px;
+
+      /* Shape & Elevation */
+      --radius: 0px;
+      --sheet-shadow: 0 -8px 28px rgba(26, 23, 20, 0.16);
+      --desktop-bg: #DFD8CA;
+
+      /* Motion */
+      --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+      --t-fast: 160ms;
+      --t-med: 250ms;
+      --t-slow: 320ms;
+    }
+
+    /* Night Edition (Dark Theme) */
+    [data-theme="dark"] {
+      --paper: #15130F;
+      --paper-2: #1E1B16;
+      --paper-elevated: #231F19;
+      --ink: #EEE6D6;
+      --ink-2: #B3A998;
+      --ink-muted: #8E8577;
+      --rule: #E4DBC9;
+      --rule-soft: #383229;
+
+      --accent: #E2553B;
+      --accent-soft: rgba(226, 85, 59, 0.16);
+      --ink-blue: #7CA2D0;
+      --ink-blue-soft: rgba(124, 162, 208, 0.15);
+      --salmon: #8A5B40;
+      --forest: #5EA476;
+      --ochre: #DCA03D;
+      --danger: #E2553B;
+      --warn: #DCA03D;
+
+      --sheet-shadow: 0 -10px 32px rgba(0, 0, 0, 0.55);
+      --desktop-bg: #0D0C09;
+    }
+
+    /* Accent Picker Palettes */
+    [data-theme="light"][data-accent="red"]    { --accent: #C8361D; --accent-soft: rgba(200, 54, 29, 0.10); }
+    [data-theme="light"][data-accent="blue"]   { --accent: #203A5C; --accent-soft: rgba(32, 58, 92, 0.10); }
+    [data-theme="light"][data-accent="forest"] { --accent: #2E5E3E; --accent-soft: rgba(46, 94, 62, 0.10); }
+    [data-theme="light"][data-accent="ochre"]  { --accent: #B7791F; --accent-soft: rgba(183, 121, 31, 0.11); }
+
+    [data-theme="dark"][data-accent="red"]    { --accent: #E2553B; --accent-soft: rgba(226, 85, 59, 0.16); }
+    [data-theme="dark"][data-accent="blue"]   { --accent: #7CA2D0; --accent-soft: rgba(124, 162, 208, 0.16); }
+    [data-theme="dark"][data-accent="forest"] { --accent: #5EA476; --accent-soft: rgba(94, 164, 118, 0.16); }
+    [data-theme="dark"][data-accent="ochre"]  { --accent: #DCA03D; --accent-soft: rgba(220, 160, 61, 0.16); }
+
+    /* ========================================================================
+       2. RESET & BASE TYPOGRAPHY
+       ======================================================================== */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: var(--t-body);
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    button, input, select, textarea {
+      font-family: inherit;
+      color: inherit;
+      border-radius: 0;
+      margin: 0;
+    }
+
+    button {
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:active, .pressable:active {
+      transform: scale(0.975);
+      transition: transform 80ms var(--ease);
+    }
+
+    button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .mono, .amt {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .serif { font-family: var(--font-serif); }
+    .italic { font-style: italic; }
+
+    .kicker {
+      font-family: var(--font-sans);
+      font-size: var(--t-kicker);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      line-height: 1.2;
+    }
+
+    .small-caps {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .folio {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      letter-spacing: 0.055em;
+      text-transform: uppercase;
+      color: var(--ink-2);
+      white-space: nowrap;
+    }
+
+    .money-in { color: var(--ink-blue); }
+    .money-out { color: var(--ink); }
+    .money-warn { color: var(--accent); }
+
+    /* Drop cap for editorial standfirsts */
+    .drop-cap::first-letter {
+      font-family: var(--font-serif);
+      float: left;
+      font-size: 44px;
+      line-height: 0.78;
+      padding-top: 3px;
+      padding-right: 0px;
+      margin-right: -2px;
+      color: var(--ink);
+      font-weight: 400;
+    }
+
+    /* Harmonized superscript Peso glyph for Instrument Serif display figures */
+    .peso-mark {
+      font-family: var(--font-sans);
+      font-style: normal;
+      font-weight: 400;
+      font-size: 0.56em;
+      vertical-align: 0.30em;
+      margin-right: 2px;
+      color: var(--ink-2);
+      letter-spacing: 0;
+    }
+
+    /* ========================================================================
+       3. VIEWPORT & DESKTOP PHONE FRAME
+       ======================================================================== */
+    .stage {
+      min-height: 100dvh;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--paper);
+    }
+
+    .desktop-caption { display: none; }
+
+    .phone-frame {
+      position: relative;
+      width: 100%;
+      height: 100dvh;
+      max-width: 100%;
+      background: var(--paper);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    @media (min-width: 501px) {
+      .stage {
+        background: var(--desktop-bg);
+        padding: 20px 16px;
+        gap: 12px;
+      }
+      .phone-frame {
+        width: 390px;
+        height: 844px;
+        max-height: calc(100dvh - 64px);
+        border: 2px solid var(--rule);
+        box-shadow: 0 24px 60px rgba(26, 23, 20, 0.22);
+      }
+      .desktop-caption {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 390px;
+        padding-top: 2px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        color: var(--ink-2);
+        text-transform: uppercase;
+      }
+      .desktop-caption a {
+        border-bottom: 1px solid var(--rule-soft);
+        padding-bottom: 1px;
+      }
+      .desktop-caption a:hover {
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+    }
+
+    /* ========================================================================
+       4. APP SHELL, SCROLL AREA, BOTTOM INDEX BAR & ENTRY BUTTON
+       ======================================================================== */
+    #screen-host {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+    }
+    #screen-host::-webkit-scrollbar { display: none; }
+
+    .screen {
+      padding: 0 var(--margin) 104px;
+      min-height: 100%;
+      animation: fadeUp var(--t-med) var(--ease) both;
+    }
+
+    .screen.no-nav-pad {
+      padding-bottom: 32px;
+    }
+
+    /* Bottom Section-Index Navigation */
+    .gazette-nav {
+      position: relative;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background: var(--paper);
+      border-top: 2px solid var(--rule);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      flex-shrink: 0;
+    }
+    .gazette-nav.hidden { display: none; }
+
+    .nav-item {
+      position: relative;
+      min-height: 52px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: 8px 4px;
+      border-right: 1px solid var(--rule-soft);
+      color: var(--ink-2);
+      transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+    }
+    .nav-item:last-child { border-right: none; }
+    .nav-item:hover { background: var(--paper-2); }
+
+    .nav-num {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      color: var(--ink-muted);
+    }
+    .nav-label {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .nav-item.active {
+      color: var(--ink);
+      background: var(--paper);
+    }
+    .nav-item.active .nav-num { color: var(--accent); font-weight: 600; }
+    .nav-item.active .nav-label { font-weight: 700; }
+    .nav-item.active::after {
+      content: "";
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 5px;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    /* Square Ink-Black Entry Button above bottom bar */
+    .entry-fab {
+      position: absolute;
+      right: 16px;
+      bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+      z-index: 25;
+      width: 58px;
+      height: 58px;
+      background: var(--ink);
+      color: var(--paper);
+      border: 1px solid var(--ink);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      box-shadow: 3px 3px 0 var(--accent);
+      transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+    }
+    .entry-fab:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 var(--accent);
+    }
+    .entry-fab:active {
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0 var(--accent);
+    }
+    .entry-fab.hidden { display: none; }
+    .entry-fab-plus {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      line-height: 0.85;
+      font-weight: 400;
+    }
+    .entry-fab-txt {
+      font-family: var(--font-sans);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    /* ========================================================================
+       5. EDITORIAL COMPONENTS (MASTHEAD, RULES, TABLES, LEADERS, CLASSIFIEDS)
+       ======================================================================== */
+    .masthead {
+      padding-top: max(12px, env(safe-area-inset-top, 12px));
+      margin-bottom: 14px;
+    }
+
+    .folio-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--rule-soft);
+    }
+
+    .folio-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .icon-btn {
+      min-width: 38px;
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ink);
+      transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+    }
+    .icon-btn:hover { background: var(--paper-2); color: var(--accent); }
+
+    .masthead-main {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 8px 0 8px;
+      gap: 10px;
+    }
+
+    .wordmark-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .wordmark-sub {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 16px;
+      color: var(--ink-2);
+      letter-spacing: 0.01em;
+    }
+
+    .double-rule {
+      border-top: 2px solid var(--rule);
+      border-bottom: 1px solid var(--rule);
+      height: 5px;
+      width: 100%;
+    }
+
+    .rule-1 { border-top: 1px solid var(--rule); width: 100%; }
+    .rule-soft { border-top: 1px solid var(--rule-soft); width: 100%; }
+    .rule-2 { border-top: 2px solid var(--rule); width: 100%; }
+
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0 8px;
+      border-top: 1px solid var(--rule);
+    }
+
+    .section-title-serif {
+      font-family: var(--font-serif);
+      font-size: 24px;
+      line-height: 1.05;
+      font-weight: 400;
+      margin: 0;
+    }
+
+    .text-link {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink);
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 2px;
+      min-height: 32px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .text-link:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* Lead Story */
+    .lead-story {
+      padding: 4px 0 16px;
+    }
+    .lead-kicker-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .eye-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      min-height: 32px;
+      border: 1px solid var(--rule-soft);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-2);
+    }
+    .eye-toggle:hover { border-color: var(--rule); color: var(--ink); }
+
+    .hero-figure {
+      font-family: var(--font-serif);
+      font-size: clamp(46px, 14.5vw, 66px);
+      line-height: 0.94;
+      letter-spacing: -0.02em;
+      font-variant-numeric: lining-nums tabular-nums;
+      margin: 4px 0 8px;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    .hero-figure .cents {
+      font-size: 0.56em;
+      vertical-align: baseline;
+      color: var(--ink-2);
+    }
+
+    .lead-headline {
+      font-family: var(--font-serif);
+      font-size: 25px;
+      line-height: 1.1;
+      margin: 0 0 8px;
+      font-weight: 400;
+    }
+    .lead-standfirst {
+      font-size: 14px;
+      line-height: 1.48;
+      color: var(--ink-2);
+      margin: 0;
+    }
+
+    /* Quick Desk 4-column Ruled Table */
+    .quick-desk {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid var(--rule);
+      border-bottom: 1px solid var(--rule);
+      margin-bottom: 18px;
+    }
+    .quick-cell {
+      min-height: 62px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 8px 4px;
+      border-right: 1px solid var(--rule-soft);
+      transition: background var(--t-fast) var(--ease);
+    }
+    .quick-cell:last-child { border-right: none; }
+    .quick-cell:hover { background: var(--paper-2); }
+    .quick-cell span {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    /* Dot-Leader Index (Wallets) */
+    .leader-list {
+      display: flex;
+      flex-direction: column;
+    }
+    .leader-row {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--rule-soft);
+      transition: background var(--t-fast) var(--ease);
+    }
+    .leader-row:last-child { border-bottom: none; }
+    .leader-row:hover { background: var(--paper-2); padding-left: 6px; padding-right: 6px; }
+
+    .leader-top {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      width: 100%;
+    }
+    .leader-name {
+      font-family: var(--font-serif);
+      font-size: 21px;
+      line-height: 1.1;
+      flex-shrink: 0;
+    }
+    .leader-dots {
+      flex: 1;
+      border-bottom: 1px dotted var(--ink-muted);
+      transform: translateY(-4px);
+      min-width: 16px;
+    }
+    .leader-amt {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+    .leader-sub {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 2px;
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 14px;
+      color: var(--ink-2);
+    }
+    .leader-num {
+      font-family: var(--font-mono);
+      font-style: normal;
+      font-size: 11px;
+      color: var(--ink-muted);
+    }
+
+    /* Classifieds Box (Favorites) */
+    .classifieds-box {
+      border: 1px solid var(--rule);
+      background: var(--paper-2);
+      padding: 12px;
+      margin-bottom: 18px;
+    }
+    .classifieds-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .classifieds-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .classified-ad {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: space-between;
+      min-height: 58px;
+      padding: 8px 10px;
+      background: var(--paper);
+      border: 1px solid var(--rule-soft);
+      text-align: left;
+      transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+    }
+    .classified-ad:hover { border-color: var(--rule); background: var(--paper-elevated); }
+    .classified-title {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .classified-meta {
+      width: 100%;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-2);
+    }
+
+    /* On the Calendar (Upcoming Events Listing) */
+    .calendar-list {
+      margin-bottom: 18px;
+    }
+    .calendar-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 44px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--rule-soft);
+      text-align: left;
+      min-height: 54px;
+    }
+    .calendar-row:hover { background: var(--paper-2); padding-left: 4px; padding-right: 4px; }
+    .cal-date-box {
+      border-right: 1px solid var(--rule-soft);
+      padding-right: 8px;
+      text-align: center;
+      line-height: 1;
+    }
+    .cal-day {
+      font-family: var(--font-serif);
+      font-size: 26px;
+      display: block;
+    }
+    .cal-mon {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-2);
+    }
+    .cal-info-title {
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 1.25;
+    }
+    .cal-info-sub {
+      font-size: 12px;
+      color: var(--ink-2);
+      margin-top: 2px;
+    }
+    .cal-due-urgent { color: var(--accent); font-weight: 600; }
+
+    /* Ledger Table (Transactions) */
+    .ledger-group-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 10px 0 6px;
+      border-bottom: 1px solid var(--rule);
+      margin-top: 6px;
+    }
+    .ledger-group-date {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .ledger-group-sub {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-2);
+    }
+
+    .ledger-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 44px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--rule-soft);
+      text-align: left;
+      min-height: 48px;
+      transition: background var(--t-fast) var(--ease);
+    }
+    .ledger-row:hover { background: var(--paper-2); padding-left: 4px; padding-right: 4px; }
+    .ledger-date {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-2);
+      line-height: 1.25;
+    }
+    .ledger-desc {
+      min-width: 0;
+    }
+    .ledger-title {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ledger-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 2px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--ink-2);
+    }
+    .ledger-cat {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 1px 4px;
+      border: 1px solid var(--rule-soft);
+      font-size: 9.5px;
+    }
+    .ledger-amt {
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      font-weight: 500;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    /* ========================================================================
+       6. BUTTONS, CHIPS, TABS, INPUTS (ALL RADIUS 0)
+       ======================================================================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      border: 1px solid var(--rule);
+      transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+    }
+    .btn-ink {
+      background: var(--ink);
+      color: var(--paper);
+      border-color: var(--ink);
+    }
+    .btn-ink:hover { background: var(--accent); border-color: var(--accent); color: #F2EDE3; }
+    .btn-outline {
+      background: transparent;
+      color: var(--ink);
+    }
+    .btn-outline:hover { background: var(--paper-2); }
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+    .btn-danger:hover { background: var(--danger); color: #F2EDE3; }
+    .btn-block { width: 100%; }
+
+    /* Sub-navigation / Filter Tabs */
+    .tab-strip {
+      display: flex;
+      border-top: 1px solid var(--rule);
+      border-bottom: 1px solid var(--rule);
+      margin-bottom: 14px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tab-strip::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex: 1;
+      min-height: 40px;
+      padding: 8px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-2);
+      border-right: 1px solid var(--rule-soft);
+      white-space: nowrap;
+      position: relative;
+    }
+    .tab-btn:last-child { border-right: none; }
+    .tab-btn.active { color: var(--ink); font-weight: 700; background: var(--paper-2); }
+    .tab-btn.active::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    .chip-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .tag-chip {
+      min-height: 30px;
+      padding: 4px 8px;
+      border: 1px solid var(--rule-soft);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--ink-2);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: transparent;
+    }
+    .tag-chip.active {
+      background: var(--ink);
+      color: var(--paper);
+      border-color: var(--ink);
+    }
+    .tag-chip:hover:not(.active) { border-color: var(--rule); color: var(--ink); }
+
+    /* Underlined Paper Form Fields */
+    .field {
+      margin-bottom: 11px;
+    }
+    .field-label {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-2);
+      margin-bottom: 3px;
+    }
+    .field-input, .field-select {
+      width: 100%;
+      min-height: 38px;
+      padding: 6px 2px;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--rule);
+      font-size: 15px;
+      color: var(--ink);
+    }
+    .field-select { background: var(--paper); }
+    .field-input::placeholder { color: var(--ink-muted); }
+
+    .amount-input-box {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 4px 0 8px;
+      border-bottom: 2px solid var(--rule);
+      margin-bottom: 10px;
+    }
+    .amount-currency {
+      font-family: var(--font-serif);
+      font-size: 30px;
+      color: var(--ink-2);
+    }
+    .amount-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      font-family: var(--font-mono);
+      font-size: 32px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      outline: none;
+    }
+
+    /* Toggle Switch (Rectangular editorial switch) */
+    .switch-btn {
+      width: 46px;
+      height: 26px;
+      border: 1px solid var(--rule);
+      background: var(--paper-2);
+      position: relative;
+      flex-shrink: 0;
+      transition: background var(--t-fast) var(--ease);
+    }
+    .switch-btn.on {
+      background: var(--ink);
+      border-color: var(--ink);
+    }
+    .switch-knob {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      background: var(--ink);
+      transition: transform var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+    }
+    .switch-btn.on .switch-knob {
+      transform: translateX(20px);
+      background: var(--paper);
+    }
+
+    /* ========================================================================
+       7. SCREENS: INTRO, LOCK, WALLETS, ACTIVITY, DESK, EMPTY
+       ======================================================================== */
+    /* Intro Press-Proof */
+    .intro-screen {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 40px var(--margin) 36px;
+      cursor: pointer;
+    }
+    .intro-center {
+      margin: auto 0;
+    }
+    .intro-rule-draw {
+      height: 2px;
+      background: var(--rule);
+      width: 100%;
+      margin: 14px 0;
+      transform-origin: left;
+      animation: ruleDraw 650ms var(--ease) both;
+    }
+    .intro-wordmark {
+      animation: fadeUp 450ms var(--ease) 120ms both;
+    }
+
+    /* Lock Screen (Cover Page) */
+    .lock-screen {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px var(--margin) 24px;
+    }
+    .pin-boxes {
+      display: flex;
+      gap: 14px;
+      margin: 18px 0 8px;
+    }
+    .pin-boxes.shake {
+      animation: shakeX 360ms var(--ease);
+    }
+    .pin-box {
+      width: 44px;
+      height: 50px;
+      border: 1px solid var(--rule);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--paper-2);
+    }
+    .pin-dot {
+      width: 12px;
+      height: 12px;
+      background: var(--ink);
+      transform: scale(0);
+      transition: transform 140ms var(--ease);
+    }
+    .pin-box.filled .pin-dot { transform: scale(1); }
+    .pin-box.error { border-color: var(--accent); }
+    .pin-box.error .pin-dot { background: var(--accent); }
+
+    .pin-keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 2px solid var(--rule);
+      border-left: 1px solid var(--rule-soft);
+    }
+    .pin-key {
+      min-height: 62px;
+      border-right: 1px solid var(--rule-soft);
+      border-bottom: 1px solid var(--rule-soft);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-serif);
+      font-size: 30px;
+      color: var(--ink);
+      transition: background var(--t-fast) var(--ease);
+    }
+    .pin-key:hover { background: var(--paper-2); }
+    .pin-key-sub {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-2);
+    }
+
+    /* Two-column Newspaper Grid */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--gutter);
+      padding: 12px 0;
+      border-top: 1px solid var(--rule);
+      border-bottom: 1px solid var(--rule);
+    }
+    .col-divided {
+      border-right: 1px solid var(--rule-soft);
+      padding-right: 12px;
+    }
+
+    /* Infographic Charts & Thermometer */
+    .chart-box {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--rule);
+    }
+    .chart-legend {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 8px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--ink-2);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .legend-swatch {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      margin-right: 5px;
+      vertical-align: -1px;
+    }
+
+    .thermo-track {
+      position: relative;
+      height: 22px;
+      border: 1px solid var(--rule);
+      background: var(--paper-2);
+      margin: 10px 0 8px;
+    }
+    .thermo-fill {
+      height: 100%;
+      background: var(--salmon);
+      border-right: 2px solid var(--accent);
+      transition: width 450ms var(--ease);
+    }
+    .thermo-fill.over {
+      background: var(--accent);
+    }
+    .thermo-ideal {
+      position: absolute;
+      top: -5px;
+      bottom: -5px;
+      width: 2px;
+      background: var(--ink);
+    }
+    .thermo-ideal-tag {
+      position: absolute;
+      top: -19px;
+      transform: translateX(-50%);
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+      color: var(--ink);
+    }
+
+    /* 100%-stacked Column Inches Bar */
+    .col-inches-bar {
+      display: flex;
+      height: 26px;
+      border: 1px solid var(--rule);
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    .col-inches-seg {
+      height: 100%;
+      border-right: 1px solid var(--paper);
+      transition: width 350ms var(--ease);
+    }
+    .col-inches-seg:last-child { border-right: none; }
+
+    /* Category Budget Printed Table */
+    .cat-budget-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 92px 1fr 90px;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--rule-soft);
+      text-align: left;
+      min-height: 50px;
+    }
+    .cat-budget-row:hover { background: var(--paper-2); }
+    .spark-track {
+      height: 8px;
+      background: var(--paper-2);
+      border: 1px solid var(--rule-soft);
+      width: 100%;
+    }
+    .spark-fill {
+      height: 100%;
+      background: var(--ink);
+    }
+    .spark-fill.near { background: var(--warn); }
+    .spark-fill.over { background: var(--accent); }
+
+    /* Desk (Settings) */
+    .desk-profile {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--rule);
+    }
+    .avatar-circle {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: 1px solid var(--rule);
+      background: var(--ink);
+      color: var(--paper);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-serif);
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .desk-row {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--rule-soft);
+      min-height: 52px;
+      text-align: left;
+    }
+    .desk-row-title { font-weight: 500; font-size: 14.5px; }
+    .desk-row-sub { font-size: 12.5px; color: var(--ink-2); margin-top: 1px; }
+
+    .accent-swatches {
+      display: flex;
+      gap: 8px;
+    }
+    .swatch-btn {
+      width: 30px;
+      height: 30px;
+      border: 1px solid var(--rule);
+      position: relative;
+    }
+    .swatch-btn.active::after {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border: 2px solid var(--paper);
+    }
+
+    /* Wallet Reorder Controls */
+    .reorder-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--rule-soft);
+    }
+    .reorder-btns {
+      display: flex;
+      gap: 4px;
+    }
+    .mini-square-btn {
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--rule);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--paper);
+    }
+    .mini-square-btn:disabled { opacity: 0.3; cursor: default; }
+
+    /* ========================================================================
+       8. PAPER SHEETS & TOAST
+       ======================================================================== */
+    .sheet-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: 40;
+      background: rgba(26, 23, 20, 0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--t-med) var(--ease);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+    .sheet-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sheet-paper {
+      background: var(--paper);
+      border-top: 2px solid var(--rule);
+      border-left: 1px solid var(--rule);
+      border-right: 1px solid var(--rule);
+      box-shadow: var(--sheet-shadow);
+      max-height: 92%;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform var(--t-med) var(--ease);
+    }
+    .sheet-backdrop.open .sheet-paper {
+      transform: translateY(0);
+    }
+
+    .sheet-handle-bar {
+      display: flex;
+      justify-content: center;
+      padding: 7px 0 3px;
+      cursor: grab;
+    }
+    .sheet-handle-rule {
+      width: 44px;
+      height: 3px;
+      background: var(--rule);
+    }
+
+    .sheet-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 4px var(--margin) 8px;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .sheet-body {
+      padding: 12px var(--margin) calc(18px + env(safe-area-inset-bottom, 0px));
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .sheet-body::-webkit-scrollbar { display: none; }
+
+    /* Ruled Entry Keypad (optional compact keypad for fast amount tap) */
+    .mini-keypad {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid var(--rule);
+      border-left: 1px solid var(--rule-soft);
+      margin-bottom: 10px;
+    }
+    .mini-key {
+      min-height: 33px;
+      border-right: 1px solid var(--rule-soft);
+      border-bottom: 1px solid var(--rule-soft);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .mini-key:hover { background: var(--paper-2); }
+
+    /* Toast */
+    .toast-host {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      top: 14px;
+      z-index: 60;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .toast {
+      pointer-events: auto;
+      background: var(--ink);
+      color: var(--paper);
+      border: 1px solid var(--ink);
+      border-left: 4px solid var(--accent);
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.22);
+      animation: fadeDown 220ms var(--ease) both;
+    }
+    .toast-undo {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--salmon);
+      border-bottom: 1px solid var(--salmon);
+      padding-bottom: 1px;
+      flex-shrink: 0;
+    }
+
+    /* ========================================================================
+       9. ANIMATIONS & REDUCED MOTION
+       ======================================================================== */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes ruleDraw {
+      from { transform: scaleX(0); }
+      to   { transform: scaleX(1); }
+    }
+    @keyframes shakeX {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+
+    .stagger-1 { animation: fadeUp 240ms var(--ease) 30ms both; }
+    .stagger-2 { animation: fadeUp 240ms var(--ease) 60ms both; }
+    .stagger-3 { animation: fadeUp 240ms var(--ease) 90ms both; }
+    .stagger-4 { animation: fadeUp 240ms var(--ease) 120ms both; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <main class="phone-frame" id="phone-frame" aria-label="Ang Pitaka Gazette app">
+      <div id="toast-host" class="toast-host" aria-live="polite"></div>
+
+      <div id="screen-host" tabindex="-1"></div>
+
+      <button class="entry-fab" id="fab-entry" data-qa="fab" aria-label="File new entry" title="File entry">
+        <span class="entry-fab-plus">+</span>
+        <span class="entry-fab-txt">Entry</span>
+      </button>
+
+      <nav class="gazette-nav" id="bottom-nav" aria-label="Gazette sections">
+        <button class="nav-item" data-nav="home" aria-label="1 Front">
+          <span class="nav-num">01</span>
+          <span class="nav-label">Front</span>
+        </button>
+        <button class="nav-item" data-nav="wallets" aria-label="2 Wallets">
+          <span class="nav-num">02</span>
+          <span class="nav-label">Wallets</span>
+        </button>
+        <button class="nav-item" data-nav="activity" aria-label="3 Ledger">
+          <span class="nav-num">03</span>
+          <span class="nav-label">Ledger</span>
+        </button>
+        <button class="nav-item" data-nav="settings" aria-label="4 Desk">
+          <span class="nav-num">04</span>
+          <span class="nav-label">Desk</span>
+        </button>
+      </nav>
+
+      <div class="sheet-backdrop" id="sheet-backdrop" aria-hidden="true">
+        <section class="sheet-paper" id="sheet-paper" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+          <div class="sheet-handle-bar" id="sheet-handle"><div class="sheet-handle-rule"></div></div>
+          <div id="sheet-content"></div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="desktop-caption">
+      <span>Ang Pitaka Gazette · Concept 03</span>
+      <a href="../index.html">&larr; Design showcase</a>
+    </footer>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       PITAKA · My Wallet — shared mock dataset for ALL design concepts.
+       Paste this block verbatim into each prototype's <script> (prototypes must
+       stay self-contained). Every number shown in a prototype must be derived
+       from this data so concepts stay comparable.
+       "Today" is fixed to Tue, 24 Nov 2026.
+       Mirrors the real app model: src/types/{wallet,schedule,budget,favorite}.ts
+       ========================================================================== */
+    const TODAY = new Date(2026, 10, 24, 19, 5); // 24 Nov 2026, 7:05 PM
+
+    const PROFILE = {
+      fullName: "Justin Santos",
+      firstName: "Justin",
+      initials: "JS",
+      email: "justin.santos@gmail.com",
+      lastSyncedAt: "Today, 6:58 PM",
+    };
+
+    /* Wallet.type in the app: "E-wallet" | "Bank" | "Cash" (+ preset group "Digital Bank") */
+    const WALLETS = [
+      { id: "gcash",  name: "GCash",       type: "E-wallet",     account: "Personal",       balance: 18450.75, mark: "G",   logo: "gcash",  brand: "#0a5bff", number: "0917 •••• 482" },
+      { id: "bpi",    name: "BPI Savings", type: "Bank",         account: "Primary bank",   balance: 42840.50, mark: "BPI", logo: "bpi",    brand: "#c8102e", number: "•••• 3391" },
+      { id: "gotyme", name: "GoTyme",      type: "Digital Bank", account: "Emergency fund", balance: 12700.00, mark: "GT",  logo: "gotyme", brand: "#16b3a6", number: "•••• 7720" },
+      { id: "maya",   name: "Maya",        type: "E-wallet",     account: "Savings",        balance: 7680.25,  mark: "M",   logo: "maya",   brand: "#00b464", number: "0917 •••• 482" },
+      { id: "cash",   name: "Cash",        type: "Cash",         account: "On hand",        balance: 6350.00,  mark: "₱",   logo: "cash",   brand: "#3f8f5a", number: "Physical" },
+    ];
+
+    /* Categories exactly as in the app (label, icon-name hint) */
+    const EXPENSE_CATEGORIES = [
+      ["Food","cup"],["Groceries","cart"],["Transport","car"],["Bills","bolt"],["Internet","wifi"],
+      ["Rent","home"],["Shopping","bag"],["Health","heart"],["Debt","card"],["Loan","bank"],
+      ["Leisure","film"],["Subs","sync"],["Education","book"],["Family","users"],["Other","adjust"],
+    ];
+    const INCOME_CATEGORIES = [
+      ["Salary","briefcase"],["Freelance","phone"],["Business","cash"],["Bonus","star"],["Allowance","wallet"],
+      ["Interest","trend"],["Cashback","tag"],["Repayment","swap"],["Loan","bank"],["Gift","gift"],
+      ["Refund","arrow-down"],["Other","plus"],
+    ];
+
+    /* kind: expense category | income category | "Transfer" | "Updated" (balance adjustment)
+       amount: negative = money out, positive = money in. Transfers carry `to`. */
+    const TRANSACTIONS = [
+      { id:"t01", title:"SM Supermarket",          kind:"Groceries", wallet:"gcash",  amount:-1856.35, at:"2026-11-24T18:42", note:"Weekly groceries" },
+      { id:"t02", title:"Balance adjustment",      kind:"Updated",   wallet:"cash",   amount:500.00,   at:"2026-11-24T09:15", note:"Found in jacket" },
+      { id:"t03", title:"Grab to Ortigas",         kind:"Transport", wallet:"gcash",  amount:-248.00,  at:"2026-11-24T08:10" },
+      { id:"t04", title:"Jollibee Katipunan",      kind:"Food",      wallet:"cash",   amount:-389.00,  at:"2026-11-23T19:30" },
+      { id:"t05", title:"Netflix Premium",         kind:"Subs",      wallet:"maya",   amount:-549.00,  at:"2026-11-23T13:05" },
+      { id:"t06", title:"Uniqlo Trinoma",          kind:"Shopping",  wallet:"bpi",    amount:-1990.00, at:"2026-11-22T15:20" },
+      { id:"t07", title:"Coffee Project",          kind:"Food",      wallet:"cash",   amount:-285.00,  at:"2026-11-21T10:06" },
+      { id:"t08", title:"GCash to Maya",           kind:"Transfer",  wallet:"gcash",  to:"maya", amount:-2000.00, at:"2026-11-20T16:21" },
+      { id:"t09", title:"Logo design — Kapé Co.",  kind:"Freelance", wallet:"gcash",  amount:8500.00,  at:"2026-11-20T09:00" },
+      { id:"t10", title:"Meralco bill",            kind:"Bills",     wallet:"maya",   amount:-3241.60, at:"2026-11-19T19:32" },
+      { id:"t11", title:"PLDT Fiber",              kind:"Internet",  wallet:"maya",   amount:-1699.00, at:"2026-11-18T18:15" },
+      { id:"t12", title:"Mercury Drug",            kind:"Health",    wallet:"cash",   amount:-642.50,  at:"2026-11-17T12:40" },
+      { id:"t13", title:"Salary — Nov 15",         kind:"Salary",    wallet:"bpi",    amount:16250.00, at:"2026-11-15T08:00" },
+      { id:"t14", title:"Rent — November",         kind:"Rent",      wallet:"bpi",    amount:-9500.00, at:"2026-11-15T09:30" },
+      { id:"t15", title:"Ramen Nagi BGC",          kind:"Food",      wallet:"gcash",  amount:-1120.00, at:"2026-11-14T20:45" },
+      { id:"t16", title:"GoTyme interest",         kind:"Interest",  wallet:"gotyme", amount:38.12,    at:"2026-11-12T00:05" },
+      { id:"t17", title:"BPI to GoTyme",           kind:"Transfer",  wallet:"bpi",    to:"gotyme", amount:-3000.00, at:"2026-11-10T14:10" },
+      { id:"t18", title:"Shopee checkout",         kind:"Shopping",  wallet:"gcash",  amount:-756.00,  at:"2026-11-09T21:12" },
+      { id:"t19", title:"Angkas ride",             kind:"Transport", wallet:"cash",   amount:-180.00,  at:"2026-11-08T07:50" },
+      { id:"t20", title:"Spotify Family",          kind:"Subs",      wallet:"gcash",  amount:-279.00,  at:"2026-11-06T06:00" },
+      { id:"t21", title:"Tuition installment",     kind:"Education", wallet:"bpi",    amount:-4500.00, at:"2026-11-05T10:20" },
+      { id:"t22", title:"Padala kay Mama",         kind:"Family",    wallet:"gcash",  amount:-3000.00, at:"2026-11-03T17:00" },
+      { id:"t23", title:"SM Cinema — Wicked",      kind:"Leisure",   wallet:"maya",   amount:-700.00,  at:"2026-11-01T19:40" },
+      /* October (for month-over-month comparison + longer history) */
+      { id:"t24", title:"Salary — Oct 30",         kind:"Salary",    wallet:"bpi",    amount:16250.00, at:"2026-10-30T08:00" },
+      { id:"t25", title:"Puregold",                kind:"Groceries", wallet:"cash",   amount:-2310.40, at:"2026-10-28T17:30" },
+      { id:"t26", title:"Meralco bill",            kind:"Bills",     wallet:"maya",   amount:-2987.25, at:"2026-10-19T19:00" },
+      { id:"t27", title:"Salary — Oct 15",         kind:"Salary",    wallet:"bpi",    amount:16250.00, at:"2026-10-15T08:00" },
+      { id:"t28", title:"Rent — October",          kind:"Rent",      wallet:"bpi",    amount:-9500.00, at:"2026-10-15T09:30" },
+      { id:"t29", title:"Cebu Pacific — MNL→CEB",  kind:"Leisure",   wallet:"bpi",    amount:-4280.00, at:"2026-10-08T11:15" },
+      { id:"t30", title:"Cashback — Maya",         kind:"Cashback",  wallet:"maya",   amount:120.00,   at:"2026-10-04T10:00" },
+    ];
+
+    /* Monthly budget + category limits (Activity → Budgets) */
+    const MONTHLY_BUDGET = 35000; // Nov spent ₱30,935.45 → 88% used, 6 days left (pace warning state)
+    /* Reference values (computed): total balance ₱88,021.50 · Nov spent ₱30,935.45 · Nov income ₱24,788.12
+       Top categories: Rent 9,500 · Education 4,500 · Bills 3,241.60 · Family 3,000 · Shopping 2,746 (92% of limit) */
+    const CATEGORY_LIMITS = { Food: 4000, Groceries: 6000, Transport: 1500, Shopping: 3000, Subs: 1000, Bills: 5000, Leisure: 2000 };
+
+    /* Quick-add favorites (Home) */
+    const FAVORITES = [
+      { id:"f1", name:"Morning coffee", direction:"expense", category:"Food",      wallet:"cash",  defaultAmount:285 },
+      { id:"f2", name:"Grab to work",   direction:"expense", category:"Transport", wallet:"gcash", defaultAmount:248 },
+      { id:"f3", name:"MRT + jeep",     direction:"expense", category:"Transport", wallet:"cash",  defaultAmount:58 },
+      { id:"f4", name:"Lunch out",      direction:"expense", category:"Food",      wallet:"gcash", defaultAmount:null },
+    ];
+
+    /* Recurring bills & paydays (Home → Upcoming, Manage schedules) */
+    const SCHEDULES = [
+      { id:"s1", title:"Globe Postpaid", amount:1299,  direction:"expense", category:"Bills",    wallet:"gcash", due:"2026-11-25", repeat:"monthly", reminder:true  },
+      { id:"s2", title:"Payday",         amount:16250, direction:"income",  category:"Salary",   wallet:"bpi",   due:"2026-11-30", repeat:"biweekly", reminder:true },
+      { id:"s3", title:"Spotify Family", amount:279,   direction:"expense", category:"Subs",     wallet:"gcash", due:"2026-12-06", repeat:"monthly", reminder:false },
+      { id:"s4", title:"Rent",           amount:9500,  direction:"expense", category:"Rent",     wallet:"bpi",   due:"2026-12-15", repeat:"monthly", reminder:true  },
+      { id:"s5", title:"PLDT Fiber",     amount:1699,  direction:"expense", category:"Internet", wallet:"maya",  due:"2026-12-18", repeat:"monthly", reminder:false },
+    ];
+    const REPEAT_LABEL = { weekly: "Weekly", biweekly: "Every 2 weeks", monthly: "Monthly" };
+
+    /* Add-wallet preset catalogue (groups exactly as in the app) */
+    const WALLET_PRESETS = {
+      "E-wallet":     ["GCash","Maya","ShopeePay","GrabPay","Coins.ph","PayPal"],
+      "Bank":         ["BPI","BDO","UnionBank","Metrobank","Landbank","Security Bank"],
+      "Digital Bank": ["GoTyme","MariBank","Tonik","CIMB","UNO Bank"],
+      "Cash":         ["Cash"],
+    };
+
+    /* ----------------------------- helpers ---------------------------------- */
+    const fmt = (v, { sign = false, cents = true } = {}) => {
+      const abs = Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 });
+      return `${v < 0 ? "−" : sign && v > 0 ? "+" : ""}₱${abs}`;
+    };
+    const fmtCompact = (v) => Math.abs(v) >= 1000 ? `₱${(v / 1000).toFixed(Math.abs(v) >= 10000 ? 1 : 1).replace(/\.0$/, "")}K` : `₱${Math.round(v)}`;
+    const splitMoney = (v) => { const [w, c] = Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).split("."); return { whole: w, cents: c }; };
+    const walletById = (id) => WALLETS.find((w) => w.id === id);
+    const isTransfer = (t) => t.kind === "Transfer";
+    const isAdjust = (t) => t.kind === "Updated";
+    const isExpense = (t) => t.amount < 0 && !isTransfer(t) && !isAdjust(t);
+    const isIncome = (t) => t.amount > 0 && !isTransfer(t) && !isAdjust(t);
+    const txDate = (t) => new Date(t.at);
+    const sameMonth = (d, ref = TODAY) => d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth();
+    const totalBalance = () => WALLETS.reduce((s, w) => s + w.balance, 0); // ₱88,021.50
+    const monthTx = (ref = TODAY) => TRANSACTIONS.filter((t) => sameMonth(txDate(t), ref));
+    const monthSpent = (ref = TODAY) => monthTx(ref).filter(isExpense).reduce((s, t) => s - t.amount, 0);
+    const monthIncome = (ref = TODAY) => monthTx(ref).filter(isIncome).reduce((s, t) => s + t.amount, 0);
+    const spendingByCategory = (ref = TODAY) => {
+      const m = {}; monthTx(ref).filter(isExpense).forEach((t) => { m[t.kind] = (m[t.kind] || 0) - t.amount; });
+      return Object.entries(m).sort((a, b) => b[1] - a[1]); // [[category, amount], ...]
+    };
+    /* daily series for the current month up to today: [{day, in, out}] */
+    const dailySeries = (ref = TODAY) => Array.from({ length: ref.getDate() }, (_, i) => {
+      const day = i + 1; const tx = monthTx(ref).filter((t) => txDate(t).getDate() === day);
+      return { day, in: tx.filter(isIncome).reduce((s, t) => s + t.amount, 0), out: tx.filter(isExpense).reduce((s, t) => s - t.amount, 0) };
+    });
+    /* weekly series: last 7 days ending today */
+    const weekSeries = (ref = TODAY) => Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(ref); d.setDate(ref.getDate() - 6 + i);
+      const tx = TRANSACTIONS.filter((t) => txDate(t).toDateString() === d.toDateString());
+      return { label: d.toLocaleDateString("en-PH", { weekday: "short" }), date: d, in: tx.filter(isIncome).reduce((s, t) => s + t.amount, 0), out: tx.filter(isExpense).reduce((s, t) => s - t.amount, 0) };
+    });
+    const walletTx = (id) => TRANSACTIONS.filter((t) => t.wallet === id || t.to === id)
+      .map((t) => (t.to === id ? { ...t, amount: Math.abs(t.amount), incoming: true } : t));
+    const dayLabel = (d) => {
+      const diff = Math.round((new Date(TODAY.toDateString()) - new Date(d.toDateString())) / 864e5);
+      return diff === 0 ? "Today" : diff === 1 ? "Yesterday" : d.toLocaleDateString("en-PH", { month: "short", day: "numeric" });
+    };
+    const timeLabel = (d) => d.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" });
+    const daysAway = (iso) => Math.round((new Date(iso + "T00:00:00") - new Date(TODAY.toDateString())) / 864e5);
+    const dueLabel = (n) => n === 0 ? "Due today" : n === 1 ? "Due tomorrow" : n < 0 ? `${-n} days overdue` : `Due in ${n} days`;
+
+    /* ========================================================================
+       2. STATE, QUERY PARAMS, INITIAL SNAPSHOT & EDITORIAL HELPERS
+       ======================================================================== */
+    const INITIAL_SNAPSHOT = {
+      profile: JSON.parse(JSON.stringify(PROFILE)),
+      wallets: JSON.parse(JSON.stringify(WALLETS)),
+      transactions: JSON.parse(JSON.stringify(TRANSACTIONS)),
+      favorites: JSON.parse(JSON.stringify(FAVORITES)),
+      schedules: JSON.parse(JSON.stringify(SCHEDULES)),
+      categoryLimits: JSON.parse(JSON.stringify(CATEGORY_LIMITS)),
+      monthlyBudget: MONTHLY_BUDGET,
+    };
+
+    const state = {
+      theme: "light",
+      accent: "red",
+      hideBalances: false,
+      appLock: true,
+      pinCode: "1234",
+      biometric: true,
+      signedIn: true,
+      synced: true,
+      monthlyBudget: MONTHLY_BUDGET,
+
+      // UI state
+      activeNav: "home",
+      parentRoute: "home",
+      pinBuffer: "",
+      pinError: false,
+      walletReorderMode: false,
+      walletFilter: "all", // wallet detail: all | in | out | transfer
+      activityRange: "month", // month | week
+      activityFilter: "all", // all | expense | income | transfer | adjust
+      activityWalletFilter: "all",
+      activitySearch: "",
+      activityLimit: 12,
+      selectedChartDay: null, // day number or index
+      searchQuery: "",
+      authMode: "signin", // signin | signup
+      confirmPayload: null,
+      draftTx: null,
+      draftScheduleId: null,
+      draftFavId: null,
+      introTimer: null,
+    };
+
+    function parseQueryFlags() {
+      const sources = [window.location.search];
+      const hashParts = window.location.hash.split("?");
+      if (hashParts[1]) sources.push("?" + hashParts[1]);
+      sources.forEach((qs) => {
+        if (!qs) return;
+        const p = new URLSearchParams(qs);
+        if (p.get("theme") === "dark" || p.get("theme") === "light") state.theme = p.get("theme");
+        if (["red", "blue", "forest", "ochre"].includes(p.get("accent"))) state.accent = p.get("accent");
+        if (p.get("hidden") === "1" || p.get("hidden") === "true") state.hideBalances = true;
+        if (p.get("hidden") === "0") state.hideBalances = false;
+      });
+      applyThemeTokens();
+    }
+
+    function applyThemeTokens() {
+      document.documentElement.setAttribute("data-theme", state.theme);
+      document.documentElement.setAttribute("data-accent", state.accent);
+    }
+
+    function resetDemo() {
+      Object.assign(PROFILE, JSON.parse(JSON.stringify(INITIAL_SNAPSHOT.profile)));
+      WALLETS.splice(0, WALLETS.length, ...JSON.parse(JSON.stringify(INITIAL_SNAPSHOT.wallets)));
+      TRANSACTIONS.splice(0, TRANSACTIONS.length, ...JSON.parse(JSON.stringify(INITIAL_SNAPSHOT.transactions)));
+      FAVORITES.splice(0, FAVORITES.length, ...JSON.parse(JSON.stringify(INITIAL_SNAPSHOT.favorites)));
+      SCHEDULES.splice(0, SCHEDULES.length, ...JSON.parse(JSON.stringify(INITIAL_SNAPSHOT.schedules)));
+      Object.keys(CATEGORY_LIMITS).forEach((k) => delete CATEGORY_LIMITS[k]);
+      Object.assign(CATEGORY_LIMITS, JSON.parse(JSON.stringify(INITIAL_SNAPSHOT.categoryLimits)));
+      state.monthlyBudget = INITIAL_SNAPSHOT.monthlyBudget;
+      state.hideBalances = false;
+      state.theme = "light";
+      state.accent = "red";
+      state.appLock = true;
+      state.pinCode = "1234";
+      state.biometric = true;
+      state.walletReorderMode = false;
+      state.activityLimit = 12;
+      applyThemeTokens();
+      showToast("Edition restored to 24 Nov press state");
+      navigate("home");
+    }
+
+    function esc(str) {
+      return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    function maskAmt(v, opts = {}) {
+      if (state.hideBalances) return `${v < 0 ? "−" : opts.sign && v > 0 ? "+" : ""}₱ ••••`;
+      return fmt(v, opts);
+    }
+
+    function maskHeroHtml(v) {
+      if (state.hideBalances) return `<span class="peso-mark">₱</span>••••••`;
+      const { whole, cents } = splitMoney(v);
+      return `<span class="peso-mark">₱</span>${whole}<span class="cents">.${cents}</span>`;
+    }
+
+    function fmtSerif(v, { sign = false, cents = false } = {}) {
+      if (state.hideBalances) return `${v < 0 ? "−" : sign && v > 0 ? "+" : ""}<span class="peso-mark">₱</span>••••`;
+      const abs = Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 });
+      const prefix = v < 0 ? "−" : sign && v > 0 ? "+" : "";
+      return `${prefix}<span class="peso-mark">₱</span>${abs}`;
+    }
+
+    function getGreeting() {
+      const h = TODAY.getHours();
+      if (h < 12) return "morning";
+      if (h < 18) return "afternoon";
+      return "evening";
+    }
+
+    function numberWord(n) {
+      const words = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"];
+      return words[n] || String(n);
+    }
+
+    function showToast(message, undoFn) {
+      const host = document.getElementById("toast-host");
+      if (!host) return;
+      host.innerHTML = "";
+      const el = document.createElement("div");
+      el.className = "toast";
+      el.innerHTML = `<span>${esc(message)}</span>${undoFn ? `<button class="toast-undo" type="button">Undo</button>` : ""}`;
+      host.appendChild(el);
+      if (undoFn) {
+        el.querySelector(".toast-undo").addEventListener("click", () => {
+          undoFn();
+          el.remove();
+        });
+      }
+      setTimeout(() => { if (el.parentNode) el.remove(); }, 3400);
+    }
+
+    /* ========================================================================
+       3. COHESIVE EDITORIAL SVG ICONS & PITAKA FOLDED-P WORDMARK
+       ======================================================================== */
+    function icon(name, size = 16) {
+      const p = {
+        search: `<circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/>`,
+        eye: `<path d="M2 12s3.8-6.5 10-6.5S22 12 22 12s-3.8 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/>`,
+        eyeOff: `<path d="M3 3l18 18"/><path d="M10.6 5.6A11.4 11.4 0 0 1 12 5.5c6.2 0 10 6.5 10 6.5a17.7 17.7 0 0 1-4.1 4.8"/><path d="M6.6 6.6A17.8 17.8 0 0 0 2 12s3.8 6.5 10 6.5c1.7 0 3.2-.4 4.5-1"/>`,
+        update: `<line x1="4" y1="7" x2="20" y2="7"/><rect x="7" y="4" width="4" height="6" fill="var(--paper)"/><line x1="4" y1="17" x2="20" y2="17"/><rect x="13" y="14" width="4" height="6" fill="var(--paper)"/>`,
+        transfer: `<polyline points="16 4 20 8 16 12"/><line x1="4" y1="8" x2="20" y2="8"/><polyline points="8 20 4 16 8 12"/><line x1="20" y1="16" x2="4" y2="16"/>`,
+        plus: `<line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/>`,
+        wallet: `<rect x="3" y="5" width="18" height="14"/><polyline points="3 9 21 9"/><rect x="15" y="12" width="6" height="4"/>`,
+        close: `<line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/>`,
+        chevronRight: `<polyline points="9 5 16 12 9 19"/>`,
+        chevronLeft: `<polyline points="15 5 8 12 15 19"/>`,
+        arrowUp: `<line x1="12" y1="19" x2="12" y2="5"/><polyline points="6 11 12 5 18 11"/>`,
+        arrowDown: `<line x1="12" y1="5" x2="12" y2="19"/><polyline points="6 13 12 19 18 13"/>`,
+        check: `<polyline points="4 12 9.5 17.5 20 6.5"/>`,
+        fingerprint: `<path d="M12 10v4"/><path d="M8.5 14v-3a3.5 3.5 0 0 1 7 0v3.5"/><path d="M5 14v-3a7 7 0 0 1 14 0v2"/><path d="M12 18v3"/>`,
+        trash: `<polyline points="4 7 20 7"/><path d="M9 7V4h6v3"/><rect x="6" y="7" width="12" height="13"/><line x1="10" y1="11" x2="10" y2="16"/><line x1="14" y1="11" x2="14" y2="16"/>`,
+        edit: `<path d="M15.5 4.5l4 4L8 20H4v-4L15.5 4.5z"/>`,
+        star: `<polygon points="12 3 14.8 9 21 9.8 16.4 14.2 17.6 20.5 12 17.3 6.4 20.5 7.6 14.2 3 9.8 9.2 9"/>`,
+        calendar: `<rect x="3" y="5" width="18" height="16"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/>`,
+        download: `<path d="M12 4v11"/><polyline points="7 11 12 16 17 11"/><polyline points="4 17 4 20 20 20 20 17"/>`,
+        sync: `<polyline points="20 5 20 10 15 10"/><polyline points="4 19 4 14 9 14"/><path d="M19.5 10A8 8 0 0 0 5.6 7.5"/><path d="M4.5 14a8 8 0 0 0 13.9 2.5"/>`,
+        backspace: `<polygon points="8 5 21 5 21 19 8 19 2 12"/><line x1="11" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="11" y2="15"/>`,
+      };
+      return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">${p[name] || p.plus}</svg>`;
+    }
+
+    /* Folded-corner 'p' typographic colophon + Instrument Serif "pitaka" wordmark */
+    function pitakaWordmark(size = 38) {
+      const box = Math.round(size * 0.72);
+      return `
+        <span class="wordmark-wrap" aria-label="Ang Pitaka Gazette">
+          <svg width="${box}" height="${box}" viewBox="0 0 28 28" fill="none" aria-hidden="true" style="transform:translateY(2px);flex-shrink:0;">
+            <polygon points="8,2 25,2 25,26 3,26 3,7" fill="var(--ink)" />
+            <polygon points="3,7 8,7 8,2" fill="var(--accent)" />
+            <path d="M10.5 21.5V9.5h4.8c2.6 0 4.3 1.4 4.3 3.8s-1.7 3.8-4.3 3.8h-2.5v4.4h-2.3zm2.3-6.4h2.2c1.4 0 2.3-.7 2.3-1.8s-.9-1.8-2.3-1.8h-2.2v3.6z" fill="var(--paper)"/>
+          </svg>
+          <span class="serif" style="font-size:${size}px;line-height:0.88;letter-spacing:-0.025em;">pitaka</span>
+          <span class="wordmark-sub">Gazette</span>
+        </span>
+      `;
+    }
+
+    function mastheadHtml({ folio = "TUE, 24 NOV 2026 · ISSUE Nº 11 · ₱ EDITION", showEye = false, showBack = false, backTarget = "home", pageTag = "" } = {}) {
+      return `
+        <header class="masthead">
+          <div class="folio-bar">
+            <span class="folio">${esc(folio)}</span>
+            <div class="folio-actions">
+              ${showEye ? `<button class="icon-btn" data-action="toggle-hide" aria-label="${state.hideBalances ? "Show balances" : "Hide balances"}" title="${state.hideBalances ? "Show figures" : "Mask figures"}">${icon(state.hideBalances ? "eyeOff" : "eye", 16)}</button>` : ""}
+              <button class="icon-btn" data-action="open-search" aria-label="Open Index search" title="Index & Search">${icon("search", 16)}</button>
+            </div>
+          </div>
+          <div class="masthead-main">
+            ${showBack ? `
+              <button class="text-link" data-nav-to="${esc(backTarget)}" aria-label="Back">
+                ${icon("chevronLeft", 13)} Back
+              </button>
+              <span class="folio" style="color:var(--accent);font-weight:600;">${esc(pageTag)}</span>
+            ` : `
+              ${pitakaWordmark(38)}
+              <span class="folio" style="text-align:right;">MANILA<br/>DESK</span>
+            `}
+          </div>
+          <div class="double-rule"></div>
+        </header>
+      `;
+    }
+
+    /* ========================================================================
+       4. SCREEN RENDERERS
+       ======================================================================== */
+    function renderIntro() {
+      return `
+        <div class="screen no-nav-pad intro-screen" data-action="skip-intro" role="button" tabindex="0" aria-label="Skip intro">
+          <div class="folio-bar">
+            <span class="folio">EDITION Nº 11 · NOV 2026</span>
+            <span class="folio">TAP TO CONTINUE</span>
+          </div>
+          <div class="intro-center">
+            <div class="kicker" style="margin-bottom:10px;">ANG PITAKA GAZETTE</div>
+            <div class="intro-wordmark">${pitakaWordmark(48)}</div>
+            <div class="intro-rule-draw"></div>
+            <p class="serif italic" style="font-size:21px;color:var(--ink-2);margin:0;">
+              Your personal ledger, set in ink and broadsheet rules.
+            </p>
+          </div>
+          <div class="folio-bar" style="border-top:1px solid var(--rule-soft);border-bottom:none;padding-top:10px;">
+            <span class="folio">MANILA · OFFLINE-FIRST LEDGER</span>
+            <span class="folio">₱ EDITION</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderLock() {
+      const greeting = getGreeting();
+      const boxes = [0, 1, 2, 3].map((i) => {
+        const filled = i < state.pinBuffer.length;
+        return `<div class="pin-box ${filled ? "filled" : ""} ${state.pinError ? "error" : ""}"><div class="pin-dot"></div></div>`;
+      }).join("");
+
+      const digits = [
+        ["1", ""], ["2", "ABC"], ["3", "DEF"],
+        ["4", "GHI"], ["5", "JKL"], ["6", "MNO"],
+        ["7", "PQRS"], ["8", "TUV"], ["9", "WXYZ"],
+      ];
+
+      return `
+        <div class="screen no-nav-pad lock-screen">
+          <div>
+            <div class="folio-bar" style="padding-top:8px;">
+              <span class="folio">PRIVATE EDITION · SUBSCRIBER LOCK</span>
+              <span class="folio">ISSUE Nº 11</span>
+            </div>
+            <div style="padding:10px 0 8px;">${pitakaWordmark(30)}</div>
+            <div class="double-rule"></div>
+
+            <div style="padding-top:22px;">
+              <div class="kicker" style="margin-bottom:8px;">SUBSCRIBER VERIFICATION</div>
+              <h1 class="serif" style="font-size:44px;line-height:0.98;font-weight:400;margin:0 0 10px;">
+                Good <span class="italic">${greeting}</span>,<br/>${esc(PROFILE.firstName)}.
+              </h1>
+              <p style="font-size:13.5px;color:var(--ink-2);margin:0;">
+                Enter your 4-digit press code to unseal the November ledger.
+                <span class="mono" style="font-size:11px;display:block;margin-top:4px;color:var(--ink-muted);">Demo PIN: ${esc(state.pinCode)}</span>
+              </p>
+              <div class="pin-boxes ${state.pinError ? "shake" : ""}" aria-label="PIN entry progress">
+                ${boxes}
+              </div>
+              ${state.pinError ? `<div class="kicker" style="color:var(--accent);margin-top:4px;">Incorrect code — try 1234</div>` : `<div style="height:17px;"></div>`}
+            </div>
+          </div>
+
+          <div>
+            <div class="pin-keypad" role="group" aria-label="PIN keypad">
+              ${digits.map(([d, sub]) => `
+                <button class="pin-key" data-pin="${d}" aria-label="Digit ${d}">
+                  <span>${d}</span>
+                  ${sub ? `<span class="pin-key-sub">${sub}</span>` : ""}
+                </button>
+              `).join("")}
+              <button class="pin-key" data-action="biometric-unlock" aria-label="Biometric unlock" title="Biometric unlock">
+                ${icon("fingerprint", 22)}
+                <span class="pin-key-sub">Touch ID</span>
+              </button>
+              <button class="pin-key" data-pin="0" aria-label="Digit 0">
+                <span>0</span>
+                <span class="pin-key-sub">+</span>
+              </button>
+              <button class="pin-key" data-action="pin-backspace" aria-label="Backspace">
+                ${icon("backspace", 20)}
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAuth() {
+      const isSignUp = state.authMode === "signup";
+      return `
+        <div class="screen no-nav-pad">
+          ${mastheadHtml({ folio: "SUBSCRIBER DESK · CLOUD ARCHIVE", showBack: true, backTarget: "settings", pageTag: "EDITION ACCESS" })}
+          <div style="padding-top:8px;">
+            <div class="kicker" style="margin-bottom:6px;">ANG PITAKA ARCHIVE</div>
+            <h1 class="serif" style="font-size:38px;line-height:1.02;font-weight:400;margin:0 0 8px;">
+              ${isSignUp ? "Open a <span class='italic'>subscriber</span> account." : "Sign in to your <span class='italic'>cloud</span> archive."}
+            </h1>
+            <p style="font-size:14px;color:var(--ink-2);margin:0 0 18px;">
+              Your ledger lives offline on this device first. Optional archive sync keeps an encrypted backup across editions.
+            </p>
+
+            <div class="tab-strip">
+              <button class="tab-btn ${!isSignUp ? "active" : ""}" data-action="auth-mode" data-mode="signin">Sign In</button>
+              <button class="tab-btn ${isSignUp ? "active" : ""}" data-action="auth-mode" data-mode="signup">Create Account</button>
+            </div>
+
+            <form id="auth-form">
+              ${isSignUp ? `
+                <div class="field">
+                  <label class="field-label" for="auth-name">Full Name</label>
+                  <input class="field-input" id="auth-name" type="text" value="${esc(PROFILE.fullName)}" required />
+                </div>
+              ` : ""}
+              <div class="field">
+                <label class="field-label" for="auth-email">Email Address</label>
+                <input class="field-input" id="auth-email" type="email" value="${esc(PROFILE.email)}" required />
+              </div>
+              <div class="field">
+                <label class="field-label" for="auth-pass">Passphrase</label>
+                <input class="field-input" id="auth-pass" type="password" value="••••••••••" required />
+              </div>
+              <button type="submit" class="btn btn-ink btn-block" style="margin-top:8px;">
+                ${isSignUp ? "Create Subscriber Archive" : "Sign In & Sync"}
+              </button>
+            </form>
+            <button class="btn btn-outline btn-block" style="margin-top:10px;" data-nav-to="home">
+              Continue Offline Only
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderEmpty() {
+      return `
+        <div class="screen">
+          ${mastheadHtml({ folio: "TUE, 24 NOV 2026 · ISSUE Nº 1 · ₱ EDITION", showEye: false })}
+          <section style="padding:18px 0 22px;border-bottom:1px solid var(--rule);">
+            <div class="kicker" style="margin-bottom:8px;">SPECIAL EDITION · FIRST PRESS</div>
+            <h1 class="serif" style="font-size:44px;line-height:0.98;font-weight:400;margin:0 0 14px;">
+              Issue Nº 1 — <span class="italic">The first page is blank.</span>
+            </h1>
+            <p class="drop-cap" style="font-size:15px;line-height:1.5;color:var(--ink-2);margin:0 0 20px;">
+              No accounts have been filed to your personal ledger yet. Open your first wallet—whether GCash, BPI, GoTyme, or cash on hand—to begin recording dispatches and monthly plans.
+            </p>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <button class="btn btn-ink btn-block" data-nav-to="sheet/add-wallet">
+                ${icon("plus", 15)} Open your first wallet
+              </button>
+              <button class="btn btn-outline btn-block" data-action="reset-demo">
+                Load sample November issue
+              </button>
+            </div>
+          </section>
+          <section style="padding-top:16px;">
+            <div class="kicker" style="margin-bottom:8px;">HOW THE GAZETTE WORKS</div>
+            <div class="leader-list">
+              <div class="leader-row" style="cursor:default;">
+                <div class="leader-top"><span class="serif" style="font-size:19px;">01 · Track wallets</span><span class="leader-dots"></span><span class="mono" style="font-size:12px;">OFFLINE</span></div>
+                <div class="leader-sub">Banks, digital banks, e-wallets &amp; physical cash</div>
+              </div>
+              <div class="leader-row" style="cursor:default;">
+                <div class="leader-top"><span class="serif" style="font-size:19px;">02 · File daily entries</span><span class="leader-dots"></span><span class="mono" style="font-size:12px;">INSTANT</span></div>
+                <div class="leader-sub">Expenses, money-in &amp; inter-wallet transfers</div>
+              </div>
+              <div class="leader-row" style="cursor:default;">
+                <div class="leader-top"><span class="serif" style="font-size:19px;">03 · Read monthly pace</span><span class="leader-dots"></span><span class="mono" style="font-size:12px;">BUDGETS</span></div>
+                <div class="leader-sub">Category limits &amp; upcoming bill calendar</div>
+              </div>
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
+    function renderHome() {
+      if (WALLETS.length === 0) return renderEmpty();
+      const total = totalBalance();
+      const spent = monthSpent();
+      const pctPlan = Math.round((spent / state.monthlyBudget) * 100);
+      const sortedWallets = [...WALLETS].sort((a, b) => b.balance - a.balance);
+      const topW = sortedWallets[0];
+      const topShare = total > 0 ? Math.round((topW.balance / total) * 100) : 0;
+      const daysLeft = 30 - TODAY.getDate();
+
+      const recent5 = [...TRANSACTIONS].sort((a, b) => txDate(b) - txDate(a)).slice(0, 5);
+      const upcoming3 = [...SCHEDULES].sort((a, b) => new Date(a.due) - new Date(b.due)).slice(0, 3);
+
+      return `
+        <div class="screen">
+          ${mastheadHtml({ showEye: true })}
+
+          <!-- LEAD STORY -->
+          <section class="lead-story stagger-1">
+            <div class="lead-kicker-row">
+              <span class="kicker">LEAD STORY · LIQUIDITY REPORT</span>
+              <button class="eye-toggle" data-action="toggle-hide" aria-label="${state.hideBalances ? "Show balances" : "Hide balances"}">
+                ${icon(state.hideBalances ? "eyeOff" : "eye", 12)}
+                <span>${state.hideBalances ? "Masked" : "Visible"}</span>
+              </button>
+            </div>
+            <div class="hero-figure" data-count-hero="${total}">${maskHeroHtml(total)}</div>
+            <h1 class="lead-headline">
+              ${numberWord(WALLETS.length)} wallets, <span class="italic">${fmtSerif(total, { cents: true })}</span> on hand.
+            </h1>
+            <p class="lead-standfirst drop-cap">
+              ${esc(topW.name)} carries ${topShare >= 45 && topShare <= 55 ? "nearly half" : `${topShare}%`} of liquid reserves at ${state.hideBalances ? "₱ ••••" : fmt(topW.balance)}, while November outlays stand at ${state.hideBalances ? "₱ ••••" : fmt(spent, { cents: false })} — ${pctPlan}% of plan, with ${daysLeft} days to go.
+            </p>
+          </section>
+
+          <!-- QUICK DESK -->
+          <section class="quick-desk stagger-2" aria-label="Quick actions">
+            <button class="quick-cell" data-nav-to="sheet/update">
+              ${icon("update", 16)}
+              <span>Update</span>
+            </button>
+            <button class="quick-cell" data-nav-to="sheet/transfer">
+              ${icon("transfer", 16)}
+              <span>Transfer</span>
+            </button>
+            <button class="quick-cell" data-nav-to="sheet/add-tx">
+              ${icon("plus", 16)}
+              <span>Add</span>
+            </button>
+            <button class="quick-cell" data-nav-to="wallets">
+              ${icon("wallet", 16)}
+              <span>Wallets</span>
+            </button>
+          </section>
+
+          <!-- DOT-LEADER WALLET INDEX -->
+          <section class="stagger-2" style="margin-bottom:18px;">
+            <div class="section-head" style="border-top:none;padding-top:0;">
+              <div>
+                <div class="kicker">INDEX · ACCOUNTS</div>
+                <h2 class="section-title-serif">Wallet Holdings</h2>
+              </div>
+              <button class="text-link" data-nav-to="wallets">All ${WALLETS.length} ${icon("chevronRight", 12)}</button>
+            </div>
+            <div class="leader-list">
+              ${WALLETS.map((w) => `
+                <button class="leader-row" data-nav-to="wallet/${esc(w.id)}">
+                  <div class="leader-top">
+                    <span class="leader-name">${esc(w.name)}</span>
+                    <span class="leader-dots"></span>
+                    <span class="leader-amt">${maskAmt(w.balance)}</span>
+                  </div>
+                  <div class="leader-sub">
+                    <span>${esc(w.type)} · ${esc(w.account)}</span>
+                    <span class="leader-num">${esc(w.number)}</span>
+                  </div>
+                </button>
+              `).join("")}
+            </div>
+          </section>
+
+          <!-- CLASSIFIEDS: FAVORITES -->
+          <section class="classifieds-box stagger-3">
+            <div class="classifieds-head">
+              <div>
+                <div class="kicker">CLASSIFIEDS · ONE-TAP DISPATCH</div>
+                <h2 class="serif" style="font-size:21px;font-weight:400;margin:2px 0 0;">Frequent Entries</h2>
+              </div>
+              <button class="text-link" data-nav-to="sheet/favorite">Edit</button>
+            </div>
+            <div class="classifieds-grid">
+              ${FAVORITES.map((f) => {
+                const w = walletById(f.wallet);
+                return `
+                  <button class="classified-ad" data-fav-id="${esc(f.id)}">
+                    <span class="classified-title">${esc(f.name)}</span>
+                    <div class="classified-meta">
+                      <span>${esc(w ? w.name : f.wallet)}</span>
+                      <span style="color:var(--ink);font-weight:600;">${f.defaultAmount != null ? (state.hideBalances ? "₱•••" : fmt(f.defaultAmount, { cents: false })) : "Set ₱"}</span>
+                    </div>
+                  </button>
+                `;
+              }).join("")}
+            </div>
+          </section>
+
+          <!-- ON THE CALENDAR: UPCOMING -->
+          <section class="calendar-list stagger-3">
+            <div class="section-head">
+              <div>
+                <div class="kicker">ON THE CALENDAR</div>
+                <h2 class="section-title-serif">Upcoming Notices</h2>
+              </div>
+              <button class="text-link" data-nav-to="sheet/schedules">Schedules ${icon("chevronRight", 12)}</button>
+            </div>
+            ${upcoming3.map((s) => {
+              const d = new Date(s.due + "T00:00:00");
+              const away = daysAway(s.due);
+              const w = walletById(s.wallet);
+              const isInc = s.direction === "income";
+              return `
+                <button class="calendar-row" data-schedule-record="${esc(s.id)}">
+                  <div class="cal-date-box">
+                    <span class="cal-day">${d.getDate()}</span>
+                    <span class="cal-mon">${d.toLocaleDateString("en-US", { month: "short" })}</span>
+                  </div>
+                  <div>
+                    <div class="cal-info-title">${esc(s.title)}</div>
+                    <div class="cal-info-sub">
+                      <span class="${away <= 1 ? "cal-due-urgent" : ""}">${esc(dueLabel(away))}</span>
+                      · ${esc(w ? w.name : s.wallet)}
+                    </div>
+                  </div>
+                  <div class="ledger-amt ${isInc ? "money-in" : "money-out"}">
+                    ${maskAmt(isInc ? s.amount : -s.amount, { sign: true, cents: false })}
+                  </div>
+                </button>
+              `;
+            }).join("")}
+          </section>
+
+          <!-- LATEST ENTRIES LEDGER -->
+          <section class="stagger-4">
+            <div class="section-head">
+              <div>
+                <div class="kicker">LATEST ENTRIES</div>
+                <h2 class="section-title-serif">Daybook Ledger</h2>
+              </div>
+              <button class="text-link" data-nav-to="activity">Continue reading &rarr; Ledger</button>
+            </div>
+            ${recent5.map((t) => renderLedgerRowHtml(t)).join("")}
+          </section>
+        </div>
+      `;
+    }
+
+    function renderLedgerRowHtml(t, { showFullDate = false } = {}) {
+      const d = txDate(t);
+      const w = walletById(t.wallet);
+      const toW = t.to ? walletById(t.to) : null;
+      const isIn = t.amount > 0 && !isAdjust(t);
+      const cls = isTransfer(t) ? (t.incoming ? "money-in" : "money-out") : (isIn ? "money-in" : "money-out");
+      const dateStr = showFullDate
+        ? d.toLocaleDateString("en-PH", { month: "short", day: "numeric" })
+        : (dayLabel(d) === "Today" ? timeLabel(d) : dayLabel(d));
+      const walletText = isTransfer(t) && toW
+        ? `${w ? w.name : t.wallet} &rarr; ${toW.name}`
+        : `${w ? w.name : t.wallet}`;
+      return `
+        <button class="ledger-row" data-nav-to="sheet/tx/${esc(t.id)}">
+          <span class="ledger-date">${esc(dateStr)}</span>
+          <span class="ledger-desc">
+            <span class="ledger-title" style="display:block;">${esc(t.title)}</span>
+            <span class="ledger-meta">
+              <span class="ledger-cat">${esc(t.kind)}</span>
+              <span>${walletText}</span>
+            </span>
+          </span>
+          <span class="ledger-amt ${cls}">${maskAmt(t.amount, { sign: true })}</span>
+        </button>
+      `;
+    }
+
+    function renderWallets() {
+      const total = totalBalance();
+      const banksTotal = WALLETS.filter((w) => w.type === "Bank" || w.type === "Digital Bank").reduce((s, w) => s + w.balance, 0);
+      const liquidTotal = WALLETS.filter((w) => w.type === "E-wallet" || w.type === "Cash").reduce((s, w) => s + w.balance, 0);
+
+      return `
+        <div class="screen">
+          ${mastheadHtml({ folio: "SECTION 02 · ACCOUNTS LEDGER", showEye: true })}
+
+          <section style="padding-bottom:14px;">
+            <div class="kicker" style="margin-bottom:6px;">COMBINED RESERVES</div>
+            <div class="hero-figure">${maskHeroHtml(total)}</div>
+            <p class="serif italic" style="font-size:19px;color:var(--ink-2);margin:0 0 14px;">
+              Spread across ${WALLETS.length} active Philippine accounts.
+            </p>
+            <div class="two-col">
+              <div class="col-divided">
+                <div class="small-caps" style="color:var(--ink-2);">Banks &amp; Digital</div>
+                <div class="mono" style="font-size:18px;font-weight:500;margin-top:4px;">${maskAmt(banksTotal)}</div>
+              </div>
+              <div>
+                <div class="small-caps" style="color:var(--ink-2);">E-Wallets &amp; Cash</div>
+                <div class="mono" style="font-size:18px;font-weight:500;margin-top:4px;">${maskAmt(liquidTotal)}</div>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <div class="section-head" style="border-top:none;">
+              <div>
+                <div class="kicker">TABLE OF ACCOUNTS</div>
+                <h2 class="section-title-serif">Directory</h2>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;">
+                <button class="text-link" data-action="toggle-reorder">${state.walletReorderMode ? "Done" : "Arrange"}</button>
+                <button class="text-link" data-nav-to="sheet/add-wallet">+ Open</button>
+              </div>
+            </div>
+
+            ${state.walletReorderMode ? `
+              <div>
+                ${WALLETS.map((w, idx) => `
+                  <div class="reorder-row">
+                    <div style="flex:1;">
+                      <div class="serif" style="font-size:21px;">${esc(w.name)}</div>
+                      <div class="folio">${esc(w.type)} · ${maskAmt(w.balance)}</div>
+                    </div>
+                    <div class="reorder-btns">
+                      <button class="mini-square-btn" data-move-wallet="${idx}" data-dir="-1" ${idx === 0 ? "disabled" : ""} aria-label="Move ${esc(w.name)} up">${icon("arrowUp", 14)}</button>
+                      <button class="mini-square-btn" data-move-wallet="${idx}" data-dir="1" ${idx === WALLETS.length - 1 ? "disabled" : ""} aria-label="Move ${esc(w.name)} down">${icon("arrowDown", 14)}</button>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            ` : `
+              <div class="leader-list">
+                ${WALLETS.map((w) => {
+                  const pct = total > 0 ? Math.round((w.balance / total) * 100) : 0;
+                  return `
+                    <button class="leader-row" data-nav-to="wallet/${esc(w.id)}">
+                      <div class="leader-top">
+                        <span style="display:inline-block;width:6px;height:16px;background:${esc(w.brand)};margin-right:4px;transform:translateY(2px);flex-shrink:0;"></span>
+                        <span class="leader-name">${esc(w.name)}</span>
+                        <span class="leader-dots"></span>
+                        <span class="leader-amt">${maskAmt(w.balance)}</span>
+                      </div>
+                      <div class="leader-sub">
+                        <span>${esc(w.type)} · ${esc(w.account)} (${pct}%)</span>
+                        <span class="leader-num">${esc(w.number)}</span>
+                      </div>
+                    </button>
+                  `;
+                }).join("")}
+              </div>
+            `}
+          </section>
+
+          <div style="margin-top:18px;">
+            <button class="btn btn-outline btn-block" data-nav-to="sheet/add-wallet">
+              ${icon("plus", 15)} Open a New Wallet
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderWalletDetail(walletId) {
+      const w = walletById(walletId) || WALLETS[0];
+      if (!w) return renderEmpty();
+      const allTx = walletTx(w.id).sort((a, b) => txDate(b) - txDate(a));
+      const filtered = allTx.filter((t) => {
+        if (state.walletFilter === "in") return t.amount > 0 && !isTransfer(t) && !isAdjust(t);
+        if (state.walletFilter === "out") return t.amount < 0 && !isTransfer(t);
+        if (state.walletFilter === "transfer") return isTransfer(t);
+        return true;
+      });
+
+      return `
+        <div class="screen">
+          ${mastheadHtml({ folio: `ACCOUNT DOSSIER · ${w.type.toUpperCase()}`, showBack: true, backTarget: "wallets", pageTag: w.number })}
+
+          <!-- ARTICLE HEADER -->
+          <section style="padding-bottom:16px;">
+            <div class="kicker" style="margin-bottom:4px;">${esc(w.type)} · ${esc(w.account)}</div>
+            <h1 class="serif" style="font-size:44px;line-height:0.96;font-weight:400;margin:0 0 8px;">${esc(w.name)}</h1>
+            <div class="hero-figure">${maskHeroHtml(w.balance)}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+              <span style="display:inline-block;width:12px;height:12px;background:${esc(w.brand)};border:1px solid var(--rule);"></span>
+              <span class="folio">ACCOUNT REF ${esc(w.number)} · ${allTx.length} FILED ENTRIES</span>
+            </div>
+          </section>
+
+          <!-- 3-COL ACTION STRIP -->
+          <section class="quick-desk" style="grid-template-columns:repeat(3,1fr);">
+            <button class="quick-cell" data-nav-to="sheet/update?wallet=${esc(w.id)}">
+              ${icon("update", 16)}
+              <span>Update Balance</span>
+            </button>
+            <button class="quick-cell" data-nav-to="sheet/transfer?from=${esc(w.id)}">
+              ${icon("transfer", 16)}
+              <span>Transfer</span>
+            </button>
+            <button class="quick-cell" data-nav-to="sheet/edit-wallet/${esc(w.id)}">
+              ${icon("edit", 16)}
+              <span>Edit Wallet</span>
+            </button>
+          </section>
+
+          <!-- FILTER TABS -->
+          <div class="tab-strip" role="tablist">
+            <button class="tab-btn ${state.walletFilter === "all" ? "active" : ""}" data-wallet-filter="all">Recent</button>
+            <button class="tab-btn ${state.walletFilter === "in" ? "active" : ""}" data-wallet-filter="in">Money In</button>
+            <button class="tab-btn ${state.walletFilter === "out" ? "active" : ""}" data-wallet-filter="out">Money Out</button>
+            <button class="tab-btn ${state.walletFilter === "transfer" ? "active" : ""}" data-wallet-filter="transfer">Transfers</button>
+          </div>
+
+          <!-- WALLET LEDGER -->
+          <section>
+            ${filtered.length ? filtered.map((t) => renderLedgerRowHtml(t, { showFullDate: true })).join("") : `
+              <p class="serif italic" style="font-size:19px;color:var(--ink-2);padding:20px 0;">
+                No dispatches filed under this filter for ${esc(w.name)}.
+              </p>
+            `}
+          </section>
+        </div>
+      `;
+    }
+
+    function renderColumnChartSvg(series, isWeek) {
+      const W = 350, H = 148;
+      const padL = 4, padR = 4, padT = 14, padB = 24;
+      const chartH = H - padT - padB;
+      const maxVal = Math.max(1000, ...series.map((d) => Math.max(d.in, d.out)));
+      const n = series.length;
+      const slotW = (W - padL - padR) / n;
+      const barW = isWeek ? Math.min(14, slotW * 0.34) : Math.max(4, slotW * 0.36);
+
+      const bars = series.map((d, i) => {
+        const cx = padL + i * slotW + slotW / 2;
+        const outH = (d.out / maxVal) * chartH;
+        const inH = (d.in / maxVal) * chartH;
+        const isToday = isWeek ? i === n - 1 : d.day === TODAY.getDate();
+        const outColor = isToday ? "var(--accent)" : "var(--ink)";
+        const both = d.in > 0 && d.out > 0;
+        const xOut = (isWeek || both) ? cx - barW - 0.5 : cx - barW / 2;
+        const xIn = (isWeek || both) ? cx + 0.5 : cx - barW / 2;
+
+        // Tick labels
+        let tick = "";
+        if (isWeek) {
+          tick = `<text x="${cx}" y="${H - 6}" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="${isToday ? "var(--accent)" : "var(--ink-2)"}">${esc(d.label.toUpperCase())}</text>`;
+        } else if (d.day === 1 || d.day === 8 || d.day === 15 || d.day === 22 || d.day === TODAY.getDate()) {
+          tick = `<text x="${cx}" y="${H - 6}" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="${isToday ? "var(--accent)" : "var(--ink-2)"}">${d.day}</text>`;
+        }
+
+        const isSelected = state.selectedChartDay === i;
+        return `
+          <g class="chart-col" data-chart-idx="${i}" style="cursor:pointer;">
+            ${isSelected ? `<rect x="${padL + i * slotW}" y="${padT}" width="${slotW}" height="${chartH}" fill="var(--accent-soft)"/>` : ""}
+            ${d.in > 0 ? `<rect x="${xIn}" y="${padT + chartH - inH}" width="${barW}" height="${Math.max(2, inH)}" fill="url(#hatch-blue)" stroke="var(--ink-blue)" stroke-width="0.9"/>` : ""}
+            ${d.out > 0 ? `<rect x="${xOut}" y="${padT + chartH - outH}" width="${barW}" height="${Math.max(2, outH)}" fill="${outColor}"/>` : ""}
+            <rect x="${padL + i * slotW}" y="${padT}" width="${slotW}" height="${chartH + padB}" fill="transparent"/>
+            ${tick}
+          </g>
+        `;
+      }).join("");
+
+      return `
+        <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible;" aria-label="Spending and income bar chart">
+          <defs>
+            <pattern id="hatch-blue" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <rect width="4" height="4" fill="var(--ink-blue-soft)"/>
+              <line x1="0" y1="0" x2="0" y2="4" stroke="var(--ink-blue)" stroke-width="1.6"/>
+            </pattern>
+          </defs>
+          <line x1="${padL}" y1="${padT}" x2="${W - padR}" y2="${padT}" stroke="var(--rule-soft)" stroke-dasharray="2 2"/>
+          <line x1="${padL}" y1="${padT + chartH / 2}" x2="${W - padR}" y2="${padT + chartH / 2}" stroke="var(--rule-soft)" stroke-dasharray="2 2"/>
+          <line x1="${padL}" y1="${padT + chartH}" x2="${W - padR}" y2="${padT + chartH}" stroke="var(--rule)" stroke-width="1"/>
+          <text x="${W - padR}" y="${padT - 3}" text-anchor="end" font-family="var(--font-mono)" font-size="9" fill="var(--ink-muted)">${fmtCompact(maxVal)}</text>
+          ${bars}
+        </svg>
+      `;
+    }
+
+    function renderActivity(subRoute = "overview") {
+      const isBudgets = subRoute === "budgets";
+      const isWeek = state.activityRange === "week";
+      const novSpent = monthSpent();
+      const novIn = monthIncome();
+      const budget = state.monthlyBudget;
+      const pctBudget = Math.round((novSpent / budget) * 100);
+      const idealPct = Math.round((TODAY.getDate() / 30) * 100); // 80%
+      const daysLeft = 30 - TODAY.getDate();
+
+      // Series
+      const series = isWeek ? weekSeries() : dailySeries();
+      const periodSpent = series.reduce((s, d) => s + d.out, 0);
+      const periodIn = series.reduce((s, d) => s + d.in, 0);
+      const periodNet = periodIn - periodSpent;
+
+      const selectedItem = state.selectedChartDay != null && series[state.selectedChartDay]
+        ? series[state.selectedChartDay]
+        : series[series.length - 1];
+      const selectedLabel = isWeek ? selectedItem.label : `Nov ${selectedItem.day}`;
+
+      // Categories
+      const cats = spendingByCategory();
+      const catTotal = cats.reduce((s, [, v]) => s + v, 0) || 1;
+      const colInchesColors = ["var(--ink)", "var(--accent)", "var(--ink-blue)", "var(--salmon)", "var(--ink-2)"];
+      const top4 = cats.slice(0, 4);
+      const restSum = cats.slice(4).reduce((s, [, v]) => s + v, 0);
+      const stackSegs = [...top4, ...(restSum > 0 ? [["Other", restSum]] : [])];
+
+      // Category budget map
+      const spentMap = Object.fromEntries(cats);
+      const budgetedRows = Object.entries(CATEGORY_LIMITS).map(([cat, limit]) => {
+        const used = spentMap[cat] || 0;
+        const pct = Math.round((used / limit) * 100);
+        return { cat, limit, used, pct };
+      }).sort((a, b) => b.pct - a.pct);
+
+      // Filtered transactions for ledger
+      const q = state.activitySearch.trim().toLowerCase();
+      const filteredTx = [...TRANSACTIONS].sort((a, b) => txDate(b) - txDate(a)).filter((t) => {
+        if (state.activityFilter === "expense" && !isExpense(t)) return false;
+        if (state.activityFilter === "income" && !isIncome(t)) return false;
+        if (state.activityFilter === "transfer" && !isTransfer(t)) return false;
+        if (state.activityFilter === "adjust" && !isAdjust(t)) return false;
+        if (state.activityWalletFilter !== "all" && t.wallet !== state.activityWalletFilter && t.to !== state.activityWalletFilter) return false;
+        if (q) {
+          const w = walletById(t.wallet);
+          const hay = `${t.title} ${t.kind} ${t.note || ""} ${w ? w.name : ""}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+      const shownTx = filteredTx.slice(0, state.activityLimit);
+
+      // Group by day
+      const groups = [];
+      shownTx.forEach((t) => {
+        const d = txDate(t);
+        const key = d.toDateString();
+        let g = groups.find((x) => x.key === key);
+        if (!g) { g = { key, date: d, items: [], netOut: 0, netIn: 0 }; groups.push(g); }
+        g.items.push(t);
+        if (isExpense(t)) g.netOut -= t.amount;
+        if (isIncome(t)) g.netIn += t.amount;
+      });
+
+      return `
+        <div class="screen">
+          ${mastheadHtml({ folio: "SECTION 03 · THE FINANCIAL SPREAD", showEye: true })}
+
+          <div class="tab-strip" role="tablist">
+            <button class="tab-btn ${!isBudgets ? "active" : ""}" data-nav-to="activity">Dispatches &amp; Flow</button>
+            <button class="tab-btn ${isBudgets ? "active" : ""}" data-nav-to="activity/budgets">Budgets &amp; Pace</button>
+          </div>
+
+          ${isBudgets ? `
+            <!-- BUDGETS SPREAD -->
+            <section style="padding-bottom:14px;border-bottom:1px solid var(--rule);">
+              <div class="kicker" style="margin-bottom:6px;">MONTHLY ALLOCATION · NOVEMBER</div>
+              <h1 class="serif" style="font-size:34px;line-height:1.02;font-weight:400;margin:0 0 8px;">
+                ${pctBudget >= 100 ? "Over plan" : `${pctBudget}% of plan`} — <span class="italic">${fmtSerif(Math.max(0, budget - novSpent), { cents: false })}</span> left for ${daysLeft} days.
+              </h1>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;">
+                <span class="mono" style="font-size:13px;">${maskAmt(novSpent)} spent</span>
+                <span class="mono" style="font-size:12px;color:var(--ink-2);">Plan: ${maskAmt(budget, { cents: false })}</span>
+              </div>
+              <div class="thermo-track" style="margin-top:26px;">
+                <div class="thermo-fill ${pctBudget >= 100 ? "over" : ""}" style="width:${Math.min(100, pctBudget)}%;"></div>
+                <div class="thermo-ideal" style="left:${idealPct}%;">
+                  <span class="thermo-ideal-tag">IDEAL ${idealPct}%</span>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+                <span class="folio" style="color:${pctBudget > idealPct ? "var(--accent)" : "var(--ink-2)"};font-weight:600;">
+                  ${pctBudget > idealPct ? `+${pctBudget - idealPct}% AHEAD OF PACE` : "WITHIN IDEAL PACE"}
+                </span>
+                <button class="text-link" data-nav-to="sheet/budget">Adjust Monthly Plan</button>
+              </div>
+            </section>
+
+            <section style="padding-top:12px;">
+              <div class="section-head" style="border-top:none;padding-top:0;">
+                <div>
+                  <div class="kicker">CATEGORY QUOTAS</div>
+                  <h2 class="section-title-serif">Printed Limits Table</h2>
+                </div>
+                <span class="folio">TAP ROW TO EDIT</span>
+              </div>
+              ${budgetedRows.map((r) => {
+                const flag = r.pct >= 100 ? "OVER" : r.pct >= 85 ? "NEAR LIMIT" : `${r.pct}%`;
+                const cls = r.pct >= 100 ? "over" : r.pct >= 85 ? "near" : "";
+                return `
+                  <button class="cat-budget-row" data-nav-to="sheet/category-budget/${encodeURIComponent(r.cat)}">
+                    <div>
+                      <div style="font-weight:600;font-size:13.5px;">${esc(r.cat)}</div>
+                      <div class="folio" style="color:${r.pct >= 85 ? "var(--accent)" : "var(--ink-muted)"};font-weight:${r.pct >= 85 ? 700 : 400};">${flag}</div>
+                    </div>
+                    <div class="spark-track">
+                      <div class="spark-fill ${cls}" style="width:${Math.min(100, r.pct)}%;"></div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div class="mono" style="font-size:12.5px;font-weight:500;">${maskAmt(r.used, { cents: false })}</div>
+                      <div class="mono" style="font-size:10.5px;color:var(--ink-2);">/ ${maskAmt(r.limit, { cents: false })}</div>
+                    </div>
+                  </button>
+                `;
+              }).join("")}
+            </section>
+
+            <section style="margin-top:16px;">
+              <div class="kicker" style="margin-bottom:8px;">UNBUDGETED NOVEMBER CATEGORIES</div>
+              <div class="chip-strip">
+                ${cats.filter(([c]) => !CATEGORY_LIMITS[c]).map(([c, amt]) => `
+                  <button class="tag-chip" data-nav-to="sheet/category-budget/${encodeURIComponent(c)}">
+                    ${esc(c)} · ${maskAmt(amt, { cents: false })} +
+                  </button>
+                `).join("")}
+              </div>
+            </section>
+          ` : `
+            <!-- DISPATCHES / ANALYTICS SPREAD -->
+            <section style="padding-bottom:12px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;">
+                <span class="kicker">${isWeek ? "SEVEN-DAY DISPATCH" : "NOVEMBER ISSUE · SUMMARY"}</span>
+                <div style="display:flex;border:1px solid var(--rule);">
+                  <button class="tag-chip ${!isWeek ? "active" : ""}" style="border:none;min-height:28px;padding:3px 9px;" data-range="month">Month</button>
+                  <button class="tag-chip ${isWeek ? "active" : ""}" style="border:none;min-height:28px;padding:3px 9px;" data-range="week">Week</button>
+                </div>
+              </div>
+
+              <h1 class="serif" style="font-size:34px;line-height:1.02;font-weight:400;margin:0 0 12px;">
+                ${isWeek
+                  ? `You spent <span class="italic">${state.hideBalances ? "₱ ••••" : fmt(periodSpent, { cents: false })}</span> over the past seven days.`
+                  : `You spent ${state.hideBalances ? "₱ ••••" : fmt(novSpent, { cents: false })} in <span class="italic">November</span> — ${pctBudget}% of plan, with ${daysLeft} days to go.`
+                }
+              </h1>
+
+              <!-- 3-COL SERIF FLOW CALLOUTS -->
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:10px 0;">
+                <div style="border-right:1px solid var(--rule-soft);padding-right:8px;">
+                  <div class="folio">MONEY IN</div>
+                  <div class="serif money-in" style="font-size:23px;line-height:1.1;margin-top:3px;">${fmtSerif(periodIn, { sign: true, cents: false })}</div>
+                </div>
+                <div style="border-right:1px solid var(--rule-soft);padding:0 8px;">
+                  <div class="folio">SPENDING</div>
+                  <div class="serif" style="font-size:23px;line-height:1.1;margin-top:3px;">${fmtSerif(-periodSpent, { cents: false })}</div>
+                </div>
+                <div style="padding-left:8px;">
+                  <div class="folio">NET FLOW</div>
+                  <div class="serif ${periodNet >= 0 ? "money-in" : ""}" style="font-size:23px;line-height:1.1;margin-top:3px;">${fmtSerif(periodNet, { sign: true, cents: false })}</div>
+                </div>
+              </div>
+            </section>
+
+            <!-- COLUMN CHART -->
+            <section class="chart-box">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
+                <span class="small-caps">${isWeek ? "Daily Flow (7 Days)" : "Daily Flow (Nov 1–24)"}</span>
+                <span class="mono" style="font-size:11px;">
+                  <strong>${esc(selectedLabel)}</strong>:
+                  Out ${maskAmt(-selectedItem.out, { cents: false })}
+                  ${selectedItem.in > 0 ? ` · <span class="money-in">In ${maskAmt(selectedItem.in, { sign: true, cents: false })}</span>` : ""}
+                </span>
+              </div>
+              ${renderColumnChartSvg(series, isWeek)}
+              <div class="chart-legend">
+                <span><span class="legend-swatch" style="background:var(--ink);"></span>Out</span>
+                <span><span class="legend-swatch" style="background:var(--accent);"></span>Today</span>
+                <span><span class="legend-swatch" style="background:var(--ink-blue);"></span>Money In (hatched)</span>
+              </div>
+            </section>
+
+            <!-- 100%-STACKED COLUMN INCHES -->
+            <section style="padding:12px 0;border-bottom:1px solid var(--rule);">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                <span class="small-caps">Column Inches · Category Share</span>
+                <button class="text-link" data-nav-to="activity/budgets">Budgets ${icon("chevronRight", 11)}</button>
+              </div>
+              <div class="col-inches-bar" aria-label="Category spending proportions">
+                ${stackSegs.map(([cat, amt], idx) => `
+                  <div class="col-inches-seg" style="width:${(amt / catTotal) * 100}%;background:${colInchesColors[idx % colInchesColors.length]};" title="${esc(cat)}: ${Math.round((amt / catTotal) * 100)}%"></div>
+                `).join("")}
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px 14px;font-size:11px;">
+                ${stackSegs.map(([cat, amt], idx) => `
+                  <span style="display:inline-flex;align-items:center;gap:5px;">
+                    <span style="width:8px;height:8px;background:${colInchesColors[idx % colInchesColors.length]};display:inline-block;"></span>
+                    <span class="small-caps" style="font-size:10px;">${esc(cat)}</span>
+                    <span class="mono" style="font-size:10.5px;color:var(--ink-2);">${Math.round((amt / catTotal) * 100)}%</span>
+                  </span>
+                `).join("")}
+              </div>
+            </section>
+
+            <!-- BUDGET PACE THERMOMETER -->
+            <section style="padding:12px 0;border-bottom:1px solid var(--rule);">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                <span class="small-caps">Monthly Plan Thermometer</span>
+                <button class="text-link" data-nav-to="sheet/budget">Edit ₱${(budget / 1000).toFixed(0)}K</button>
+              </div>
+              <div class="thermo-track" style="margin-top:26px;">
+                <div class="thermo-fill ${pctBudget >= 100 ? "over" : ""}" style="width:${Math.min(100, pctBudget)}%;"></div>
+                <div class="thermo-ideal" style="left:${idealPct}%;">
+                  <span class="thermo-ideal-tag">IDEAL ${idealPct}%</span>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--ink-2);">
+                <span>${maskAmt(novSpent)} / ${maskAmt(budget, { cents: false })}</span>
+                <span style="color:${pctBudget > idealPct ? "var(--accent)" : "var(--ink)"};font-weight:600;">${pctBudget}% used · ${daysLeft}d left</span>
+              </div>
+            </section>
+
+            <!-- FULL LEDGER WITH FILTERS & EXPORT -->
+            <section style="padding-top:14px;">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+                <div>
+                  <div class="kicker">ARCHIVE LEDGER</div>
+                  <h2 class="section-title-serif">All Transactions (${filteredTx.length})</h2>
+                </div>
+                <button class="text-link" data-action="export-csv">${icon("download", 13)} Export CSV</button>
+              </div>
+
+              <div class="chip-strip" style="margin-bottom:10px;">
+                ${[["all", "All"], ["expense", "Expenses"], ["income", "Income"], ["transfer", "Transfers"], ["adjust", "Adjusted"]].map(([k, lbl]) => `
+                  <button class="tag-chip ${state.activityFilter === k ? "active" : ""}" data-act-filter="${k}">${lbl}</button>
+                `).join("")}
+              </div>
+
+              <div style="display:grid;grid-template-columns:1fr 124px;gap:10px;margin-bottom:12px;">
+                <input class="field-input" id="activity-search" type="search" placeholder="Filter by merchant or note…" value="${esc(state.activitySearch)}" aria-label="Filter transactions" />
+                <select class="field-select" id="activity-wallet-select" aria-label="Filter by wallet">
+                  <option value="all" ${state.activityWalletFilter === "all" ? "selected" : ""}>All Wallets</option>
+                  ${WALLETS.map((w) => `<option value="${esc(w.id)}" ${state.activityWalletFilter === w.id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}
+                </select>
+              </div>
+
+              ${groups.length ? groups.map((g) => {
+                const subText = g.netOut > 0 ? `Out ${maskAmt(-g.netOut, { cents: false })}` : (g.netIn > 0 ? `In ${maskAmt(g.netIn, { sign: true, cents: false })}` : "");
+                return `
+                  <div class="ledger-group-head">
+                    <span class="ledger-group-date">${esc(dayLabel(g.date))} · ${g.date.toLocaleDateString("en-PH", { weekday: "short", month: "short", day: "numeric" })}</span>
+                    <span class="ledger-group-sub">${subText}</span>
+                  </div>
+                  ${g.items.map((t) => renderLedgerRowHtml(t)).join("")}
+                `;
+              }).join("") : `
+                <p class="serif italic" style="font-size:19px;color:var(--ink-2);padding:20px 0;">
+                  No entries match the current ledger filter.
+                </p>
+              `}
+
+              ${filteredTx.length > state.activityLimit ? `
+                <button class="btn btn-outline btn-block" style="margin-top:14px;" data-action="load-more-tx">
+                  Load Earlier Dispatches (${filteredTx.length - state.activityLimit} remaining)
+                </button>
+              ` : ""}
+            </section>
+          `}
+        </div>
+      `;
+    }
+
+    function renderSettings() {
+      const accents = [
+        { id: "red", label: "Editor's Red", hex: "#C8361D" },
+        { id: "blue", label: "Ink Blue", hex: "#203A5C" },
+        { id: "forest", label: "Forest", hex: "#2E5E3E" },
+        { id: "ochre", label: "Ochre", hex: "#B7791F" },
+      ];
+
+      return `
+        <div class="screen">
+          ${mastheadHtml({ folio: "SECTION 04 · THE EDITORIAL DESK" })}
+
+          <!-- MASTHEAD PROFILE -->
+          <section class="desk-profile">
+            <div class="avatar-circle" aria-hidden="true">${esc(PROFILE.initials)}</div>
+            <div style="flex:1;min-width:0;">
+              <div class="kicker">MANAGING EDITOR</div>
+              <h1 class="serif" style="font-size:28px;line-height:1.05;font-weight:400;margin:2px 0;">
+                Edited by <span class="italic">${esc(PROFILE.fullName)}</span>
+              </h1>
+              <div class="folio">${esc(PROFILE.email)}</div>
+            </div>
+            <button class="text-link" data-nav-to="sheet/profile">Edit</button>
+          </section>
+
+          <!-- ACCOUNT & SYNC -->
+          <section style="margin-top:14px;">
+            <h2 class="serif" style="font-size:22px;font-weight:400;margin:0 0 6px;border-bottom:1px solid var(--rule);padding-bottom:4px;">
+              Archive &amp; Sync
+            </h2>
+            <button class="desk-row" data-nav-to="auth">
+              <div>
+                <div class="desk-row-title">${state.signedIn ? "Subscriber Account Active" : "Sign In or Create Account"}</div>
+                <div class="desk-row-sub">${state.signedIn ? esc(PROFILE.email) : "Enable encrypted cloud backup"}</div>
+              </div>
+              ${icon("chevronRight", 16)}
+            </button>
+            <div class="desk-row">
+              <div>
+                <div class="desk-row-title">Backup &amp; Sync</div>
+                <div class="desk-row-sub">Last synced ${esc(PROFILE.lastSyncedAt)}</div>
+              </div>
+              <button class="btn btn-outline" style="min-height:36px;padding:6px 12px;" data-action="sync-now">
+                ${icon("sync", 14)} Sync Now
+              </button>
+            </div>
+          </section>
+
+          <!-- APPEARANCE -->
+          <section style="margin-top:16px;">
+            <h2 class="serif" style="font-size:22px;font-weight:400;margin:0 0 6px;border-bottom:1px solid var(--rule);padding-bottom:4px;">
+              Typography &amp; Print Edition
+            </h2>
+            <div class="desk-row">
+              <div>
+                <div class="desk-row-title">Night Edition</div>
+                <div class="desk-row-sub">Dark newsprint surface &amp; cream ink</div>
+              </div>
+              <button class="switch-btn ${state.theme === "dark" ? "on" : ""}" data-action="toggle-theme" role="switch" aria-checked="${state.theme === "dark"}" aria-label="Toggle Night Edition">
+                <span class="switch-knob"></span>
+              </button>
+            </div>
+            <div class="desk-row">
+              <div>
+                <div class="desk-row-title">Ink Accent</div>
+                <div class="desk-row-sub">Kickers, active rules &amp; highlights</div>
+              </div>
+              <div class="accent-swatches" role="group" aria-label="Accent color picker">
+                ${accents.map((a) => `
+                  <button class="swatch-btn ${state.accent === a.id ? "active" : ""}" style="background:${a.hex};" data-accent-pick="${a.id}" aria-label="${esc(a.label)}" title="${esc(a.label)}"></button>
+                `).join("")}
+              </div>
+            </div>
+            <div class="desk-row">
+              <div>
+                <div class="desk-row-title">Mask Balances</div>
+                <div class="desk-row-sub">Replace figures with ₱ •••• across all pages</div>
+              </div>
+              <button class="switch-btn ${state.hideBalances ? "on" : ""}" data-action="toggle-hide" role="switch" aria-checked="${state.hideBalances}" aria-label="Mask balances">
+                <span class="switch-knob"></span>
+              </button>
+            </div>
+          </section>
+
+          <!-- SECURITY -->
+          <section style="margin-top:16px;">
+            <h2 class="serif" style="font-size:22px;font-weight:400;margin:0 0 6px;border-bottom:1px solid var(--rule);padding-bottom:4px;">
+              Vault &amp; Security
+            </h2>
+            <div class="desk-row">
+              <div>
+                <div class="desk-row-title">App Lock</div>
+                <div class="desk-row-sub">Require 4-digit press code on launch</div>
+              </div>
+              <button class="switch-btn ${state.appLock ? "on" : ""}" data-action="toggle-applock" role="switch" aria-checked="${state.appLock}" aria-label="App lock">
+                <span class="switch-knob"></span>
+              </button>
+            </div>
+            <button class="desk-row" data-nav-to="sheet/pin">
+              <div>
+                <div class="desk-row-title">Change PIN Code</div>
+                <div class="desk-row-sub">Current demo code: ${esc(state.pinCode)}</div>
+              </div>
+              ${icon("chevronRight", 16)}
+            </button>
+            <div class="desk-row">
+              <div>
+                <div class="desk-row-title">Biometric Unlock</div>
+                <div class="desk-row-sub">Fingerprint / Face ID verification</div>
+              </div>
+              <button class="switch-btn ${state.biometric ? "on" : ""}" data-action="toggle-bio" role="switch" aria-checked="${state.biometric}" aria-label="Biometric unlock">
+                <span class="switch-knob"></span>
+              </button>
+            </div>
+          </section>
+
+          <!-- RECURRING & FAVORITES -->
+          <section style="margin-top:16px;">
+            <h2 class="serif" style="font-size:22px;font-weight:400;margin:0 0 6px;border-bottom:1px solid var(--rule);padding-bottom:4px;">
+              Schedules &amp; Classifieds
+            </h2>
+            <button class="desk-row" data-nav-to="sheet/schedules">
+              <div>
+                <div class="desk-row-title">Manage Recurring Schedules</div>
+                <div class="desk-row-sub">${SCHEDULES.length} bills &amp; paydays on the calendar</div>
+              </div>
+              ${icon("chevronRight", 16)}
+            </button>
+            <button class="desk-row" data-nav-to="sheet/favorite">
+              <div>
+                <div class="desk-row-title">Manage Favorites</div>
+                <div class="desk-row-sub">${FAVORITES.length} one-tap classified chips</div>
+              </div>
+              ${icon("chevronRight", 16)}
+            </button>
+          </section>
+
+          <!-- COLOPHON -->
+          <section style="margin-top:18px;padding:14px;border:1px solid var(--rule);background:var(--paper-2);">
+            <div class="kicker" style="margin-bottom:4px;">COLOPHON</div>
+            <p style="font-size:13px;color:var(--ink-2);margin:0 0 12px;">
+              <strong>Ang Pitaka Gazette</strong> · Edition 1.0<br/>
+              Set in Instrument Serif, Inter Tight &amp; IBM Plex Mono.<br/>
+              Offline SQLite ledger with optional archive sync.
+            </p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <button class="btn btn-outline" data-nav-to="lock">Lock Edition</button>
+              <button class="btn btn-outline" data-action="reset-demo">Reset Demo</button>
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
+    /* ========================================================================
+       5. PAPER SHEET RENDERERS
+       ======================================================================== */
+    function sheetHead(kicker, title) {
+      return `
+        <div class="sheet-head">
+          <div>
+            <div class="kicker" style="margin-bottom:2px;">${esc(kicker)}</div>
+            <h2 class="serif" id="sheet-title" style="font-size:28px;line-height:1.05;font-weight:400;margin:0;">${title}</h2>
+          </div>
+          <button class="icon-btn" data-action="close-sheet" aria-label="Close slip">${icon("close", 18)}</button>
+        </div>
+      `;
+    }
+
+    function renderAddTxSheet(direction = "expense", editTx = null) {
+      const isEdit = !!editTx;
+      const dir = isEdit ? (editTx.amount >= 0 ? "income" : "expense") : direction;
+      const cats = dir === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+      const draft = state.draftTx || {};
+      const selCat = isEdit ? editTx.kind : (draft.category || cats[0][0]);
+      const selWallet = isEdit ? editTx.wallet : (draft.wallet || (WALLETS[0] && WALLETS[0].id) || "gcash");
+      const defaultAmt = isEdit ? Math.abs(editTx.amount).toFixed(2) : (draft.amount != null ? String(draft.amount) : "");
+      const defaultTitle = isEdit ? editTx.title : (draft.title || "");
+      const defaultNote = isEdit ? (editTx.note || "") : (draft.note || "");
+      const defaultDate = isEdit ? editTx.at.slice(0, 10) : "2026-11-24";
+
+      return `
+        ${sheetHead(isEdit ? "AMENDMENT SLIP" : "PAPER ENTRY SLIP", isEdit ? "Edit Entry" : (dir === "income" ? "Record <span class='italic'>Money In</span>" : "File an <span class='italic'>Expense</span>"))}
+        <div class="sheet-body">
+          ${!isEdit ? `
+            <div class="tab-strip" style="margin-bottom:12px;">
+              <button type="button" class="tab-btn ${dir === "expense" ? "active" : ""}" data-entry-dir="expense">Expense Out</button>
+              <button type="button" class="tab-btn ${dir === "income" ? "active" : ""}" data-entry-dir="income">Money In</button>
+            </div>
+          ` : ""}
+
+          <form id="entry-slip-form" data-edit-id="${isEdit ? esc(editTx.id) : ""}" data-dir="${dir}">
+            <div class="field-label">Amount (PHP)</div>
+            <div class="amount-input-box">
+              <span class="amount-currency">₱</span>
+              <input class="amount-input" id="entry-amount" type="number" step="0.01" min="0.01" inputmode="decimal" placeholder="0.00" value="${esc(defaultAmt)}" required />
+            </div>
+
+            <!-- Compact 4-col ruled helper keypad -->
+            <div class="mini-keypad" aria-label="Quick amount buttons">
+              ${["+50", "+100", "+500", "CLR"].map((k) => `<button type="button" class="mini-key" data-amt-add="${k}">${k}</button>`).join("")}
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="entry-title">${dir === "income" ? "Source" : "Where it went"}</label>
+              <input class="field-input" id="entry-title" type="text" placeholder="${dir === "income" ? "e.g. Client invoice, Bonus" : "e.g. Mercury Drug, Lunch"}" value="${esc(defaultTitle)}" required />
+            </div>
+
+            <div class="field">
+              <div class="field-label">Category</div>
+              <div class="chip-strip" id="entry-cat-chips">
+                ${cats.map(([label]) => `
+                  <button type="button" class="tag-chip ${selCat === label ? "active" : ""}" style="min-height:27px;padding:3px 7px;" data-pick-cat="${esc(label)}">${esc(label)}</button>
+                `).join("")}
+              </div>
+              <input type="hidden" id="entry-cat" value="${esc(selCat)}" />
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 130px;gap:12px;">
+              <div class="field">
+                <label class="field-label" for="entry-wallet">Account / Wallet</label>
+                <select class="field-select" id="entry-wallet">
+                  ${WALLETS.map((w) => `<option value="${esc(w.id)}" ${w.id === selWallet ? "selected" : ""}>${esc(w.name)} (${maskAmt(w.balance, { cents: false })})</option>`).join("")}
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label" for="entry-date">Date</label>
+                <input class="field-input mono" id="entry-date" type="date" value="${esc(defaultDate)}" style="font-size:13px;" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="entry-note">Editorial Note (Optional)</label>
+              <input class="field-input" id="entry-note" type="text" placeholder="Memo for the daybook…" value="${esc(defaultNote)}" />
+            </div>
+
+            ${!isEdit ? `
+              <label style="display:flex;align-items:center;gap:10px;padding:6px 0 14px;cursor:pointer;font-size:13px;">
+                <input type="checkbox" id="entry-save-fav" style="width:18px;height:18px;accent-color:var(--ink);" />
+                <span>Save to Classifieds (one-tap favorite)</span>
+              </label>
+            ` : ""}
+
+            <button type="submit" class="btn btn-ink btn-block">
+              ${isEdit ? "Update Ledger Entry" : "File Entry to Ledger"}
+            </button>
+          </form>
+        </div>
+      `;
+    }
+
+    function renderTransferSheet(queryStr = "") {
+      const qs = new URLSearchParams(queryStr);
+      const fromDefault = qs.get("from") || (WALLETS[0] && WALLETS[0].id) || "gcash";
+      const toDefault = WALLETS.find((w) => w.id !== fromDefault)?.id || fromDefault;
+      return `
+        ${sheetHead("INTERNAL DISPATCH", "Move Funds <span class='italic'>Between</span> Wallets")}
+        <div class="sheet-body">
+          <form id="transfer-form">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="field">
+                <label class="field-label" for="txf-from">From Account</label>
+                <select class="field-select" id="txf-from">
+                  ${WALLETS.map((w) => `<option value="${esc(w.id)}" ${w.id === fromDefault ? "selected" : ""}>${esc(w.name)} (${maskAmt(w.balance, { cents: false })})</option>`).join("")}
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label" for="txf-to">To Account</label>
+                <select class="field-select" id="txf-to">
+                  ${WALLETS.map((w) => `<option value="${esc(w.id)}" ${w.id === toDefault ? "selected" : ""}>${esc(w.name)} (${maskAmt(w.balance, { cents: false })})</option>`).join("")}
+                </select>
+              </div>
+            </div>
+
+            <div class="field-label">Transfer Amount</div>
+            <div class="amount-input-box">
+              <span class="amount-currency">₱</span>
+              <input class="amount-input" id="txf-amount" type="number" step="0.01" min="1" inputmode="decimal" placeholder="2,000.00" value="2000" required />
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="txf-fee">Optional Transfer Fee (InstaPay / PESONet)</label>
+              <input class="field-input mono" id="txf-fee" type="number" step="0.01" min="0" placeholder="0.00" value="0" />
+            </div>
+
+            <div id="txf-summary" style="padding:10px 12px;border:1px solid var(--rule);background:var(--paper-2);margin-bottom:14px;font-size:13px;">
+              Moving funds updates both wallet ledgers without counting toward monthly spending.
+            </div>
+
+            <button type="submit" class="btn btn-ink btn-block">Execute Transfer</button>
+          </form>
+        </div>
+      `;
+    }
+
+    function renderUpdateBalanceSheet(queryStr = "") {
+      const qs = new URLSearchParams(queryStr);
+      const wId = qs.get("wallet") || (WALLETS[0] && WALLETS[0].id) || "gcash";
+      const w = walletById(wId) || WALLETS[0];
+      return `
+        ${sheetHead("RECONCILIATION NOTICE", "Update <span class='italic'>Wallet</span> Balance")}
+        <div class="sheet-body">
+          <form id="update-balance-form">
+            <div class="field">
+              <label class="field-label" for="upd-wallet">Account</label>
+              <select class="field-select" id="upd-wallet">
+                ${WALLETS.map((x) => `<option value="${esc(x.id)}" ${x.id === w.id ? "selected" : ""}>${esc(x.name)} · Current ${maskAmt(x.balance)}</option>`).join("")}
+              </select>
+            </div>
+
+            <div class="field">
+              <div class="field-label">Adjustment Method</div>
+              <div class="tab-strip" id="upd-mode-tabs">
+                <button type="button" class="tab-btn active" data-upd-mode="set">Set Exact (=)</button>
+                <button type="button" class="tab-btn" data-upd-mode="add">Add (+)</button>
+                <button type="button" class="tab-btn" data-upd-mode="sub">Subtract (−)</button>
+              </div>
+              <input type="hidden" id="upd-mode" value="set" />
+            </div>
+
+            <div class="field-label">Amount</div>
+            <div class="amount-input-box">
+              <span class="amount-currency">₱</span>
+              <input class="amount-input" id="upd-amount" type="number" step="0.01" min="0" inputmode="decimal" value="${w.balance.toFixed(2)}" required />
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="upd-note">Reason / Audit Note</label>
+              <input class="field-input" id="upd-note" type="text" placeholder="e.g. Cash count reconciliation" />
+            </div>
+
+            <button type="submit" class="btn btn-ink btn-block">Record Reconciliation</button>
+          </form>
+        </div>
+      `;
+    }
+
+    function renderAddWalletSheet() {
+      const swatches = ["#0a5bff", "#c8102e", "#16b3a6", "#00b464", "#3f8f5a", "#203A5C", "#B7791F", "#1A1714"];
+      return `
+        ${sheetHead("NEW ACCOUNT DOSSIER", "Open a <span class='italic'>Wallet</span>")}
+        <div class="sheet-body">
+          <form id="add-wallet-form">
+            <div class="field">
+              <label class="field-label" for="preset-search">Search Philippine Presets</label>
+              <input class="field-input" id="preset-search" type="search" placeholder="Search GCash, BPI, Maya, GoTyme, SeaBank…" />
+            </div>
+
+            <div id="preset-groups" style="margin-bottom:10px;max-height:150px;overflow-y:auto;padding-right:2px;border-bottom:1px solid var(--rule-soft);padding-bottom:8px;">
+              ${Object.entries(WALLET_PRESETS).map(([group, list]) => `
+                <div style="margin-bottom:6px;">
+                  <div class="folio" style="margin-bottom:3px;">${esc(group)}</div>
+                  <div class="chip-strip">
+                    ${list.map((name) => `
+                      <button type="button" class="tag-chip" style="min-height:27px;padding:3px 7px;" data-preset-name="${esc(name)}" data-preset-type="${esc(group)}">${esc(name)}</button>
+                    `).join("")}
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="field">
+                <label class="field-label" for="nw-name">Wallet Name</label>
+                <input class="field-input" id="nw-name" type="text" placeholder="e.g. UnionBank" required />
+              </div>
+              <div class="field">
+                <label class="field-label" for="nw-type">Category Type</label>
+                <select class="field-select" id="nw-type">
+                  <option value="E-wallet">E-wallet</option>
+                  <option value="Bank">Bank</option>
+                  <option value="Digital Bank">Digital Bank</option>
+                  <option value="Cash">Cash</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="field">
+                <label class="field-label" for="nw-account">Account Label</label>
+                <input class="field-input" id="nw-account" type="text" value="Personal" />
+              </div>
+              <div class="field">
+                <label class="field-label" for="nw-balance">Starting Balance (₱)</label>
+                <input class="field-input mono" id="nw-balance" type="number" step="0.01" min="0" value="0.00" />
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="field-label">Ink / Brand Swatch</div>
+              <div class="accent-swatches" id="nw-swatches">
+                ${swatches.map((hex, i) => `
+                  <button type="button" class="swatch-btn ${i === 0 ? "active" : ""}" style="background:${hex};" data-nw-color="${hex}" aria-label="Color ${hex}"></button>
+                `).join("")}
+              </div>
+              <input type="hidden" id="nw-brand" value="${swatches[0]}" />
+            </div>
+
+            <button type="submit" class="btn btn-ink btn-block">Open Wallet Account</button>
+          </form>
+        </div>
+      `;
+    }
+
+    function renderEditWalletSheet(id) {
+      const w = walletById(id) || WALLETS[0];
+      if (!w) return renderAddWalletSheet();
+      const swatches = ["#0a5bff", "#c8102e", "#16b3a6", "#00b464", "#3f8f5a", "#203A5C", "#B7791F", "#1A1714"];
+      return `
+        ${sheetHead("EDIT ACCOUNT", esc(w.name))}
+        <div class="sheet-body">
+          <form id="edit-wallet-form" data-wallet-id="${esc(w.id)}">
+            <div class="field">
+              <label class="field-label" for="ew-name">Account Name</label>
+              <input class="field-input" id="ew-name" type="text" value="${esc(w.name)}" required />
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="field">
+                <label class="field-label" for="ew-type">Type</label>
+                <select class="field-select" id="ew-type">
+                  ${["E-wallet", "Bank", "Digital Bank", "Cash"].map((t) => `<option value="${t}" ${w.type === t ? "selected" : ""}>${t}</option>`).join("")}
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label" for="ew-account">Label</label>
+                <input class="field-input" id="ew-account" type="text" value="${esc(w.account)}" />
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="ew-number">Account Ref / Number</label>
+              <input class="field-input mono" id="ew-number" type="text" value="${esc(w.number)}" />
+            </div>
+            <div class="field">
+              <div class="field-label">Ink Swatch</div>
+              <div class="accent-swatches">
+                ${swatches.map((hex) => `
+                  <button type="button" class="swatch-btn ${w.brand === hex ? "active" : ""}" style="background:${hex};" data-ew-color="${hex}" aria-label="Color ${hex}"></button>
+                `).join("")}
+              </div>
+              <input type="hidden" id="ew-brand" value="${esc(w.brand)}" />
+            </div>
+            <button type="submit" class="btn btn-ink btn-block" style="margin-bottom:10px;">Save Account Changes</button>
+          </form>
+          <button type="button" class="btn btn-danger btn-block" data-delete-wallet="${esc(w.id)}">
+            ${icon("trash", 14)} Close &amp; Delete Wallet
+          </button>
+        </div>
+      `;
+    }
+
+    function renderTxDetailSheet(txId) {
+      const t = TRANSACTIONS.find((x) => x.id === txId) || TRANSACTIONS[0];
+      if (!t) return `<div class="sheet-body"><p>Entry not found.</p></div>`;
+      const w = walletById(t.wallet);
+      const toW = t.to ? walletById(t.to) : null;
+      const d = txDate(t);
+      const isIn = t.amount > 0 && !isAdjust(t);
+      return `
+        ${sheetHead(`DISPATCH CLIPPING · ${t.kind.toUpperCase()}`, esc(t.title))}
+        <div class="sheet-body">
+          <div style="padding:10px 0 14px;border-bottom:1px solid var(--rule);">
+            <div class="serif ${isIn ? "money-in" : ""}" style="font-size:48px;line-height:0.95;font-variant-numeric:lining-nums tabular-nums;">
+              ${fmtSerif(t.amount, { sign: true, cents: true })}
+            </div>
+            <div class="folio" style="margin-top:8px;">
+              ${d.toLocaleDateString("en-PH", { weekday: "long", day: "numeric", month: "short", year: "numeric" })} · ${timeLabel(d)}
+            </div>
+          </div>
+
+          <div class="leader-list" style="margin-bottom:16px;">
+            <div class="leader-row" style="cursor:default;">
+              <div class="leader-top">
+                <span class="small-caps" style="color:var(--ink-2);">Account</span>
+                <span class="leader-dots"></span>
+                <span class="mono" style="font-size:13px;">${esc(w ? w.name : t.wallet)}${toW ? ` &rarr; ${esc(toW.name)}` : ""}</span>
+              </div>
+            </div>
+            <div class="leader-row" style="cursor:default;">
+              <div class="leader-top">
+                <span class="small-caps" style="color:var(--ink-2);">Classification</span>
+                <span class="leader-dots"></span>
+                <span class="mono" style="font-size:13px;">${esc(t.kind)}</span>
+              </div>
+            </div>
+            <div class="leader-row" style="cursor:default;">
+              <div class="leader-top">
+                <span class="small-caps" style="color:var(--ink-2);">Archive Status</span>
+                <span class="leader-dots"></span>
+                <span class="mono" style="font-size:12px;color:var(--forest);">${state.synced ? "Synced to Archive" : "Saved on device"}</span>
+              </div>
+            </div>
+            ${t.note ? `
+              <div class="leader-row" style="cursor:default;">
+                <div class="small-caps" style="color:var(--ink-2);margin-bottom:3px;">Editorial Note</div>
+                <div class="serif italic" style="font-size:18px;">“${esc(t.note)}”</div>
+              </div>
+            ` : ""}
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+            <button class="btn btn-outline" data-nav-to="sheet/edit-tx/${esc(t.id)}">${icon("edit", 14)} Edit</button>
+            <button class="btn btn-outline" data-fav-from-tx="${esc(t.id)}">${icon("star", 14)} Favorite</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <button class="btn btn-outline" data-recur-from-tx="${esc(t.id)}">${icon("calendar", 14)} Recurring</button>
+            <button class="btn btn-danger" data-delete-tx="${esc(t.id)}">${icon("trash", 14)} Delete</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSearchSheet() {
+      const q = state.searchQuery.trim().toLowerCase();
+      const matchedWallets = q ? WALLETS.filter((w) => `${w.name} ${w.type} ${w.account}`.toLowerCase().includes(q)) : WALLETS.slice(0, 3);
+      const matchedTx = q ? TRANSACTIONS.filter((t) => `${t.title} ${t.kind} ${t.note || ""}`.toLowerCase().includes(q)) : TRANSACTIONS.slice(0, 4);
+      const quickActions = [
+        { label: "File new expense", route: "sheet/add-tx" },
+        { label: "Record money in", route: "sheet/add-income" },
+        { label: "Transfer between wallets", route: "sheet/transfer" },
+        { label: "Monthly budgets & pace", route: "activity/budgets" },
+        { label: "Toggle Night Edition", action: "toggle-theme" },
+      ].filter((a) => !q || a.label.toLowerCase().includes(q));
+
+      const emptyResults = q && matchedWallets.length === 0 && matchedTx.length === 0 && quickActions.length === 0;
+
+      return `
+        ${sheetHead("THE GAZETTE INDEX", "Search &amp; <span class='italic'>Commands</span>")}
+        <div class="sheet-body">
+          <div class="field">
+            <input class="field-input" id="index-search-input" type="search" placeholder="Search wallets, merchants, categories, commands…" value="${esc(state.searchQuery)}" autofocus />
+          </div>
+
+          ${emptyResults ? `
+            <p class="serif italic" style="font-size:20px;color:var(--ink-2);padding:16px 0;">
+              No dispatches match “${esc(state.searchQuery)}”.
+            </p>
+          ` : `
+            ${quickActions.length ? `
+              <div style="margin-bottom:14px;">
+                <div class="kicker" style="margin-bottom:6px;">QUICK COMMANDS</div>
+                <div class="chip-strip">
+                  ${quickActions.map((a) => a.route
+                    ? `<button class="tag-chip" data-nav-to="${a.route}">${esc(a.label)}</button>`
+                    : `<button class="tag-chip" data-action="${a.action}">${esc(a.label)}</button>`
+                  ).join("")}
+                </div>
+              </div>
+            ` : ""}
+
+            ${matchedWallets.length ? `
+              <div style="margin-bottom:14px;">
+                <div class="kicker" style="margin-bottom:4px;">ACCOUNTS</div>
+                ${matchedWallets.map((w) => `
+                  <button class="leader-row" data-nav-to="wallet/${esc(w.id)}">
+                    <div class="leader-top">
+                      <span class="leader-name" style="font-size:18px;">${esc(w.name)}</span>
+                      <span class="leader-dots"></span>
+                      <span class="leader-amt">${maskAmt(w.balance)}</span>
+                    </div>
+                  </button>
+                `).join("")}
+              </div>
+            ` : ""}
+
+            ${matchedTx.length ? `
+              <div>
+                <div class="kicker" style="margin-bottom:4px;">LEDGER ENTRIES (${matchedTx.length})</div>
+                ${matchedTx.slice(0, 6).map((t) => renderLedgerRowHtml(t, { showFullDate: true })).join("")}
+              </div>
+            ` : ""}
+          `}
+        </div>
+      `;
+    }
+
+    function renderSchedulesSheet() {
+      const sorted = [...SCHEDULES].sort((a, b) => new Date(a.due) - new Date(b.due));
+      return `
+        ${sheetHead("CALENDAR DESK", "Recurring <span class='italic'>Schedules</span>")}
+        <div class="sheet-body">
+          <div style="margin-bottom:14px;">
+            ${sorted.map((s) => {
+              const w = walletById(s.wallet);
+              const away = daysAway(s.due);
+              return `
+                <div class="desk-row">
+                  <button style="flex:1;text-align:left;" data-edit-schedule="${esc(s.id)}">
+                    <div class="desk-row-title">${esc(s.title)} · <span class="mono" style="font-size:13px;">${maskAmt(s.direction === "income" ? s.amount : -s.amount, { sign: true, cents: false })}</span></div>
+                    <div class="desk-row-sub">
+                      <span class="${away <= 1 ? "cal-due-urgent" : ""}">${esc(dueLabel(away))}</span> · ${esc(REPEAT_LABEL[s.repeat] || s.repeat)} · ${esc(w ? w.name : s.wallet)}
+                    </div>
+                  </button>
+                  <button class="switch-btn ${s.reminder ? "on" : ""}" data-toggle-sched-rem="${esc(s.id)}" aria-label="Toggle reminder for ${esc(s.title)}">
+                    <span class="switch-knob"></span>
+                  </button>
+                </div>
+              `;
+            }).join("")}
+          </div>
+          <button class="btn btn-ink btn-block" data-nav-to="sheet/schedule-edit">
+            ${icon("plus", 15)} Add Recurring Schedule
+          </button>
+        </div>
+      `;
+    }
+
+    function renderScheduleEditSheet(schedId = null) {
+      const s = schedId ? SCHEDULES.find((x) => x.id === schedId) : null;
+      const dir = s ? s.direction : "expense";
+      const cats = dir === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+      return `
+        ${sheetHead("CALENDAR ENTRY", s ? "Edit Schedule" : "New <span class='italic'>Schedule</span>")}
+        <div class="sheet-body">
+          <form id="schedule-form" data-sched-id="${s ? esc(s.id) : ""}">
+            <div class="field">
+              <label class="field-label" for="sc-title">Title</label>
+              <input class="field-input" id="sc-title" type="text" placeholder="e.g. Internet bill, Payday" value="${s ? esc(s.title) : ""}" required />
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="field">
+                <label class="field-label" for="sc-dir">Direction</label>
+                <select class="field-select" id="sc-dir">
+                  <option value="expense" ${dir === "expense" ? "selected" : ""}>Expense</option>
+                  <option value="income" ${dir === "income" ? "selected" : ""}>Money In</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label" for="sc-amount">Amount (₱)</label>
+                <input class="field-input mono" id="sc-amount" type="number" step="0.01" min="1" value="${s ? s.amount : ""}" required />
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="field">
+                <label class="field-label" for="sc-cat">Category</label>
+                <select class="field-select" id="sc-cat">
+                  ${cats.map(([c]) => `<option value="${esc(c)}" ${s && s.category === c ? "selected" : ""}>${esc(c)}</option>`).join("")}
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label" for="sc-wallet">Wallet</label>
+                <select class="field-select" id="sc-wallet">
+                  ${WALLETS.map((w) => `<option value="${esc(w.id)}" ${s && s.wallet === w.id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}
+                </select>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="field">
+                <label class="field-label" for="sc-due">First / Next Due Date</label>
+                <input class="field-input mono" id="sc-due" type="date" value="${s ? esc(s.due) : "2026-11-30"}" />
+              </div>
+              <div class="field">
+                <label class="field-label" for="sc-repeat">Frequency</label>
+                <select class="field-select" id="sc-repeat">
+                  <option value="weekly" ${s && s.repeat === "weekly" ? "selected" : ""}>Weekly</option>
+                  <option value="biweekly" ${s && s.repeat === "biweekly" ? "selected" : ""}>Every 2 weeks</option>
+                  <option value="monthly" ${!s || s.repeat === "monthly" ? "selected" : ""}>Monthly</option>
+                </select>
+              </div>
+            </div>
+            <label style="display:flex;align-items:center;gap:10px;padding:6px 0 14px;cursor:pointer;font-size:13px;">
+              <input type="checkbox" id="sc-rem" ${!s || s.reminder ? "checked" : ""} style="width:18px;height:18px;accent-color:var(--ink);" />
+              <span>Enable phone reminder alert</span>
+            </label>
+            <button type="submit" class="btn btn-ink btn-block">Save Schedule</button>
+          </form>
+        </div>
+      `;
+    }
+
+    function renderBudgetSheet() {
+      const novSpent = monthSpent();
+      const pct = Math.round((novSpent / state.monthlyBudget) * 100);
+      return `
+        ${sheetHead("PLANNING DESK", "Monthly <span class='italic'>Budget</span> Plan")}
+        <div class="sheet-body">
+          <p style="font-size:14px;color:var(--ink-2);margin:0 0 12px;">
+            November spending is currently <strong>${maskAmt(novSpent)}</strong> (${pct}% of your current plan).
+          </p>
+          <form id="monthly-budget-form">
+            <div class="field-label">Monthly Spending Target</div>
+            <div class="amount-input-box">
+              <span class="amount-currency">₱</span>
+              <input class="amount-input" id="mb-amount" type="number" step="100" min="100" value="${state.monthlyBudget}" required />
+            </div>
+            <div class="chip-strip" style="margin-bottom:16px;">
+              ${[25000, 30000, 35000, 40000, 50000].map((v) => `
+                <button type="button" class="tag-chip" data-mb-preset="${v}">₱${(v / 1000)}K</button>
+              `).join("")}
+            </div>
+            <button type="submit" class="btn btn-ink btn-block">Save Monthly Plan</button>
+          </form>
+        </div>
+      `;
+    }
+
+    function renderCategoryBudgetSheet(catName) {
+      const cat = decodeURIComponent(catName || "Shopping");
+      const currentLimit = CATEGORY_LIMITS[cat] || 0;
+      const spent = spendingByCategory().find(([c]) => c === cat)?.[1] || 0;
+      return `
+        ${sheetHead("CATEGORY QUOTA", `${esc(cat)} <span class='italic'>Limit</span>`)}
+        <div class="sheet-body">
+          <p style="font-size:14px;color:var(--ink-2);margin:0 0 12px;">
+            Spent in November: <strong class="mono">${maskAmt(spent)}</strong>
+          </p>
+          <form id="cat-budget-form" data-cat="${esc(cat)}">
+            <div class="field-label">Monthly Category Limit (₱)</div>
+            <div class="amount-input-box">
+              <span class="amount-currency">₱</span>
+              <input class="amount-input" id="cb-amount" type="number" step="100" min="0" value="${currentLimit || 3000}" required />
+            </div>
+            <button type="submit" class="btn btn-ink btn-block" style="margin-bottom:10px;">Save Category Quota</button>
+            ${currentLimit ? `<button type="button" class="btn btn-outline btn-block" data-clear-cat-budget="${esc(cat)}">Remove Quota</button>` : ""}
+          </form>
+        </div>
+      `;
+    }
+
+    function renderFavoriteSheet() {
+      const editItem = state.draftFavId ? FAVORITES.find((f) => f.id === state.draftFavId) : null;
+      return `
+        ${sheetHead("CLASSIFIEDS MANAGER", "One-Tap <span class='italic'>Favorites</span>")}
+        <div class="sheet-body">
+          <div style="margin-bottom:14px;">
+            ${FAVORITES.map((f) => {
+              const w = walletById(f.wallet);
+              return `
+                <div class="desk-row">
+                  <button style="flex:1;text-align:left;" data-edit-fav="${esc(f.id)}">
+                    <div class="desk-row-title">${esc(f.name)}</div>
+                    <div class="desk-row-sub">${esc(f.category)} · ${esc(w ? w.name : f.wallet)} · ${f.defaultAmount != null ? fmt(f.defaultAmount, { cents: false }) : "Prompt amount"}</div>
+                  </button>
+                  <button class="icon-btn" data-delete-fav="${esc(f.id)}" aria-label="Remove ${esc(f.name)}">${icon("trash", 15)}</button>
+                </div>
+              `;
+            }).join("")}
+          </div>
+
+          <div class="kicker" style="margin-bottom:8px;">${editItem ? "EDIT CLASSIFIED" : "ADD NEW CLASSIFIED"}</div>
+          <form id="favorite-form" data-fav-id="${editItem ? esc(editItem.id) : ""}">
+            <div style="display:grid;grid-template-columns:1fr 110px;gap:12px;">
+              <div class="field">
+                <label class="field-label" for="fv-name">Label</label>
+                <input class="field-input" id="fv-name" type="text" placeholder="e.g. Milk tea" value="${editItem ? esc(editItem.name) : ""}" required />
+              </div>
+              <div class="field">
+                <label class="field-label" for="fv-amt">Default ₱</label>
+                <input class="field-input mono" id="fv-amt" type="number" step="1" placeholder="Optional" value="${editItem && editItem.defaultAmount != null ? editItem.defaultAmount : ""}" />
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="field">
+                <label class="field-label" for="fv-cat">Category</label>
+                <select class="field-select" id="fv-cat">
+                  ${EXPENSE_CATEGORIES.map(([c]) => `<option value="${esc(c)}" ${editItem && editItem.category === c ? "selected" : ""}>${esc(c)}</option>`).join("")}
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label" for="fv-wallet">Wallet</label>
+                <select class="field-select" id="fv-wallet">
+                  ${WALLETS.map((w) => `<option value="${esc(w.id)}" ${editItem && editItem.wallet === w.id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-ink btn-block">${editItem ? "Update Favorite" : "Add to Classifieds"}</button>
+          </form>
+        </div>
+      `;
+    }
+
+    function renderProfileSheet() {
+      return `
+        ${sheetHead("EDITOR CREDENTIALS", "Edit <span class='italic'>Profile</span>")}
+        <div class="sheet-body">
+          <form id="profile-form">
+            <div class="field">
+              <label class="field-label" for="pr-name">Full Name</label>
+              <input class="field-input" id="pr-name" type="text" value="${esc(PROFILE.fullName)}" required />
+            </div>
+            <div class="field">
+              <label class="field-label" for="pr-email">Email</label>
+              <input class="field-input" id="pr-email" type="email" value="${esc(PROFILE.email)}" required />
+            </div>
+            <button type="submit" class="btn btn-ink btn-block">Save Masthead Profile</button>
+          </form>
+        </div>
+      `;
+    }
+
+    function renderPinSheet() {
+      return `
+        ${sheetHead("VAULT CREDENTIALS", "Press <span class='italic'>PIN</span> Setup")}
+        <div class="sheet-body">
+          <form id="pin-change-form">
+            <div class="field">
+              <label class="field-label" for="pin-new">New 4-Digit Press Code</label>
+              <input class="field-input mono" id="pin-new" type="password" inputmode="numeric" pattern="\\d{4}" maxlength="4" placeholder="1234" value="${esc(state.pinCode)}" required />
+            </div>
+            <div class="field">
+              <label class="field-label" for="pin-confirm">Confirm 4-Digit Code</label>
+              <input class="field-input mono" id="pin-confirm" type="password" inputmode="numeric" pattern="\\d{4}" maxlength="4" placeholder="1234" value="${esc(state.pinCode)}" required />
+            </div>
+            <button type="submit" class="btn btn-ink btn-block" style="margin-bottom:10px;">Update Press Code</button>
+            <button type="button" class="btn btn-outline btn-block" data-action="disable-pin">Disable App Lock</button>
+          </form>
+        </div>
+      `;
+    }
+
+    function renderConfirmDeleteSheet() {
+      const p = state.confirmPayload || {
+        title: "Strike this entry?",
+        body: "This will permanently remove the selected record from your local ledger.",
+        confirmLabel: "Delete Record",
+        onConfirm: () => { showToast("Record removed"); closeSheet(); },
+      };
+      return `
+        ${sheetHead("CONFIRMATION REQUIRED", esc(p.title))}
+        <div class="sheet-body">
+          <p style="font-size:14.5px;color:var(--ink-2);margin:0 0 18px;">${esc(p.body)}</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <button type="button" class="btn btn-outline" data-action="close-sheet">Cancel</button>
+            <button type="button" class="btn btn-danger" id="confirm-delete-go">${esc(p.confirmLabel || "Delete")}</button>
+          </div>
+        </div>
+      `;
+    }
+
+    /* ========================================================================
+       6. ROUTER & RENDER ENGINE
+       ======================================================================== */
+    function parseHash() {
+      const raw = window.location.hash.replace(/^#\/?/, "");
+      const [pathPart, queryPart = ""] = raw.split("?");
+      const path = pathPart.replace(/\/+$/, "");
+      return { path, query: queryPart };
+    }
+
+    function navigate(route) {
+      window.location.hash = `#/${route.replace(/^\/+/, "")}`;
+    }
+
+    function closeSheet() {
+      state.draftTx = null;
+      state.draftFavId = null;
+      const bd = document.getElementById("sheet-backdrop");
+      bd.classList.remove("open");
+      bd.setAttribute("aria-hidden", "true");
+      if (window.location.hash.startsWith("#/sheet/")) {
+        navigate(state.parentRoute || "home");
+      }
+    }
+
+    function updateNavChrome(routePath) {
+      const nav = document.getElementById("bottom-nav");
+      const fab = document.getElementById("fab-entry");
+      const hideNav = routePath === "intro" || routePath === "lock" || routePath === "auth";
+      nav.classList.toggle("hidden", hideNav);
+      fab.classList.toggle("hidden", hideNav || routePath === "empty");
+
+      let active = "home";
+      if (routePath.startsWith("wallet")) active = "wallets";
+      else if (routePath.startsWith("activity")) active = "activity";
+      else if (routePath.startsWith("settings")) active = "settings";
+      else if (routePath === "home" || routePath === "empty") active = "home";
+      else active = state.activeNav;
+
+      state.activeNav = active;
+      nav.querySelectorAll(".nav-item").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.nav === active);
+      });
+    }
+
+    function renderRoute() {
+      parseQueryFlags();
+      clearTimeout(state.introTimer);
+
+      const { path, query } = parseHash();
+      const route = path || "intro";
+      const host = document.getElementById("screen-host");
+      const backdrop = document.getElementById("sheet-backdrop");
+      const sheetContent = document.getElementById("sheet-content");
+
+      const isSheet = route.startsWith("sheet/");
+      let screenRoute = isSheet ? (state.parentRoute || "home") : route;
+
+      // Natural parent inference for direct sheet deep links
+      if (isSheet && !state.parentRoute) screenRoute = "home";
+      if (isSheet) {
+        if (route.startsWith("sheet/budget") || route.startsWith("sheet/category-budget")) screenRoute = "activity/budgets";
+        else if (route.startsWith("sheet/edit-wallet/")) screenRoute = "wallets";
+        else if (route.startsWith("sheet/profile") || route.startsWith("sheet/pin") || route.startsWith("sheet/schedules") || route.startsWith("sheet/schedule-edit") || route.startsWith("sheet/favorite")) {
+          if (state.parentRoute === "settings") screenRoute = "settings";
+        }
+      }
+
+      if (!isSheet) state.parentRoute = screenRoute;
+      updateNavChrome(screenRoute);
+
+      // Render underlying screen
+      let html = "";
+      if (screenRoute === "intro") {
+        html = renderIntro();
+        state.introTimer = setTimeout(() => {
+          if (parseHash().path === "" || parseHash().path === "intro") navigate("lock");
+        }, 1800);
+      } else if (screenRoute === "lock") {
+        html = renderLock();
+      } else if (screenRoute === "auth") {
+        html = renderAuth();
+      } else if (screenRoute === "empty") {
+        html = renderEmpty();
+      } else if (screenRoute === "wallets") {
+        html = renderWallets();
+      } else if (screenRoute.startsWith("wallet/")) {
+        html = renderWalletDetail(screenRoute.slice("wallet/".length));
+      } else if (screenRoute === "activity") {
+        html = renderActivity("overview");
+      } else if (screenRoute === "activity/budgets") {
+        html = renderActivity("budgets");
+      } else if (screenRoute === "settings") {
+        html = renderSettings();
+      } else {
+        html = renderHome();
+      }
+
+      host.innerHTML = html;
+      host.scrollTop = 0;
+
+      // Subtle editorial count-up on Home hero balance
+      if (screenRoute === "home" && !isSheet && !state.hideBalances && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        const heroEl = host.querySelector("[data-count-hero]");
+        if (heroEl) {
+          const target = parseFloat(heroEl.dataset.countHero);
+          if (target > 0) {
+            const start = performance.now();
+            const dur = 320;
+            const tick = (now) => {
+              const p = Math.min(1, (now - start) / dur);
+              const eased = 1 - Math.pow(1 - p, 3);
+              heroEl.innerHTML = maskHeroHtml(target * (0.85 + 0.15 * eased));
+              if (p < 1) requestAnimationFrame(tick);
+              else heroEl.innerHTML = maskHeroHtml(target);
+            };
+            requestAnimationFrame(tick);
+          }
+        }
+      }
+
+      // Sheet overlay
+      if (isSheet) {
+        let sHtml = "";
+        if (route === "sheet/add-tx") sHtml = renderAddTxSheet("expense");
+        else if (route === "sheet/add-income") sHtml = renderAddTxSheet("income");
+        else if (route === "sheet/transfer") sHtml = renderTransferSheet(query);
+        else if (route === "sheet/update") sHtml = renderUpdateBalanceSheet(query);
+        else if (route === "sheet/add-wallet") sHtml = renderAddWalletSheet();
+        else if (route.startsWith("sheet/edit-wallet/")) sHtml = renderEditWalletSheet(route.slice("sheet/edit-wallet/".length));
+        else if (route.startsWith("sheet/tx/")) sHtml = renderTxDetailSheet(route.slice("sheet/tx/".length));
+        else if (route.startsWith("sheet/edit-tx/")) {
+          const tx = TRANSACTIONS.find((x) => x.id === route.slice("sheet/edit-tx/".length));
+          sHtml = renderAddTxSheet("expense", tx);
+        }
+        else if (route === "sheet/search") sHtml = renderSearchSheet();
+        else if (route === "sheet/schedules") sHtml = renderSchedulesSheet();
+        else if (route === "sheet/schedule-edit") sHtml = renderScheduleEditSheet(state.draftScheduleId);
+        else if (route.startsWith("sheet/schedule-edit/")) sHtml = renderScheduleEditSheet(route.slice("sheet/schedule-edit/".length));
+        else if (route === "sheet/budget") sHtml = renderBudgetSheet();
+        else if (route.startsWith("sheet/category-budget/")) sHtml = renderCategoryBudgetSheet(route.slice("sheet/category-budget/".length));
+        else if (route === "sheet/favorite") sHtml = renderFavoriteSheet();
+        else if (route === "sheet/profile") sHtml = renderProfileSheet();
+        else if (route === "sheet/pin") sHtml = renderPinSheet();
+        else if (route === "sheet/confirm-delete") sHtml = renderConfirmDeleteSheet();
+        else sHtml = renderAddTxSheet("expense");
+
+        sheetContent.innerHTML = sHtml;
+        backdrop.classList.add("open");
+        backdrop.setAttribute("aria-hidden", "false");
+        bindSheetForms();
+      } else {
+        backdrop.classList.remove("open");
+        backdrop.setAttribute("aria-hidden", "true");
+      }
+    }
+
+    /* ========================================================================
+       7. INTERACTIONS, MUTATIONS & FORM HANDLERS
+       ======================================================================== */
+    function handlePinDigit(d) {
+      if (state.pinBuffer.length >= 4) return;
+      state.pinError = false;
+      state.pinBuffer += d;
+      renderRoute();
+      if (state.pinBuffer.length === 4) {
+        setTimeout(() => {
+          if (state.pinBuffer === state.pinCode || state.pinBuffer === "1234") {
+            state.pinBuffer = "";
+            navigate("home");
+          } else {
+            state.pinError = true;
+            state.pinBuffer = "";
+            renderRoute();
+          }
+        }, 160);
+      }
+    }
+
+    function recordTransaction({ title, kind, walletId, amount, dateStr, note }) {
+      const w = walletById(walletId);
+      if (!w) return;
+      const id = "t" + Date.now();
+      const at = `${dateStr || "2026-11-24"}T${String(TODAY.getHours()).padStart(2, "0")}:${String(TODAY.getMinutes()).padStart(2, "0")}`;
+      const tx = { id, title, kind, wallet: w.id, amount, at, ...(note ? { note } : {}) };
+      TRANSACTIONS.unshift(tx);
+      w.balance = +(w.balance + amount).toFixed(2);
+      return tx;
+    }
+
+    function exportCsv() {
+      const rows = [["Date", "Title", "Kind", "Wallet", "Amount", "Note"]];
+      TRANSACTIONS.forEach((t) => {
+        const w = walletById(t.wallet);
+        rows.push([t.at, t.title, t.kind, w ? w.name : t.wallet, t.amount.toFixed(2), t.note || ""]);
+      });
+      const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+      try {
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "pitaka-gazette-nov-2026.csv";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch {}
+      showToast(`Exported ${TRANSACTIONS.length} ledger rows to CSV`);
+    }
+
+    function bindSheetForms() {
+      // Entry slip form (Add / Edit)
+      const entryForm = document.getElementById("entry-slip-form");
+      if (entryForm) {
+        entryForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const amtRaw = parseFloat(document.getElementById("entry-amount").value);
+          if (!amtRaw || amtRaw <= 0) return;
+          const title = document.getElementById("entry-title").value.trim() || "Untitled entry";
+          const kind = document.getElementById("entry-cat").value;
+          const walletId = document.getElementById("entry-wallet").value;
+          const dateStr = document.getElementById("entry-date").value || "2026-11-24";
+          const note = document.getElementById("entry-note").value.trim();
+          const dir = entryForm.dataset.dir;
+          const signedAmt = dir === "income" ? Math.abs(amtRaw) : -Math.abs(amtRaw);
+          const editId = entryForm.dataset.editId;
+
+          if (editId) {
+            const old = TRANSACTIONS.find((x) => x.id === editId);
+            if (old) {
+              const oldW = walletById(old.wallet);
+              if (oldW) oldW.balance = +(oldW.balance - old.amount).toFixed(2);
+              old.title = title;
+              old.kind = kind;
+              old.wallet = walletId;
+              old.amount = signedAmt;
+              old.at = `${dateStr}T${old.at.slice(11, 16) || "12:00"}`;
+              old.note = note || undefined;
+              const newW = walletById(walletId);
+              if (newW) newW.balance = +(newW.balance + signedAmt).toFixed(2);
+            }
+            showToast("Ledger entry updated");
+          } else {
+            recordTransaction({ title, kind, walletId, amount: signedAmt, dateStr, note });
+            const saveFav = document.getElementById("entry-save-fav")?.checked;
+            if (saveFav) {
+              FAVORITES.push({
+                id: "f" + Date.now(),
+                name: title,
+                direction: dir,
+                category: kind,
+                wallet: walletId,
+                defaultAmount: Math.round(amtRaw),
+              });
+            }
+            showToast(dir === "income" ? "Money-in recorded" : "Expense filed to ledger");
+          }
+          closeSheet();
+        });
+      }
+
+      // Transfer form
+      const txfForm = document.getElementById("transfer-form");
+      if (txfForm) {
+        txfForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const fromId = document.getElementById("txf-from").value;
+          const toId = document.getElementById("txf-to").value;
+          const amt = parseFloat(document.getElementById("txf-amount").value);
+          const fee = parseFloat(document.getElementById("txf-fee").value) || 0;
+          if (fromId === toId) { showToast("Choose two different wallets"); return; }
+          if (!amt || amt <= 0) return;
+          const wFrom = walletById(fromId);
+          const wTo = walletById(toId);
+          if (!wFrom || !wTo) return;
+          wFrom.balance = +(wFrom.balance - amt - fee).toFixed(2);
+          wTo.balance = +(wTo.balance + amt).toFixed(2);
+          TRANSACTIONS.unshift({
+            id: "t" + Date.now(),
+            title: `${wFrom.name} to ${wTo.name}`,
+            kind: "Transfer",
+            wallet: wFrom.id,
+            to: wTo.id,
+            amount: -amt,
+            at: "2026-11-24T19:05",
+            ...(fee > 0 ? { note: `Includes ₱${fee.toFixed(2)} fee` } : {}),
+          });
+          showToast(`Transferred ${fmt(amt)} to ${wTo.name}`);
+          closeSheet();
+        });
+      }
+
+      // Update balance form
+      const updForm = document.getElementById("update-balance-form");
+      if (updForm) {
+        updForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const w = walletById(document.getElementById("upd-wallet").value);
+          const mode = document.getElementById("upd-mode").value;
+          const amt = parseFloat(document.getElementById("upd-amount").value);
+          const note = document.getElementById("upd-note").value.trim();
+          if (!w || isNaN(amt)) return;
+          let delta = 0;
+          if (mode === "set") delta = +(amt - w.balance).toFixed(2);
+          else if (mode === "add") delta = +amt.toFixed(2);
+          else delta = -amt.toFixed(2);
+          w.balance = +(w.balance + delta).toFixed(2);
+          TRANSACTIONS.unshift({
+            id: "t" + Date.now(),
+            title: "Balance adjustment",
+            kind: "Updated",
+            wallet: w.id,
+            amount: delta,
+            at: "2026-11-24T19:05",
+            ...(note ? { note } : {}),
+          });
+          showToast(`${w.name} reconciled to ${fmt(w.balance)}`);
+          closeSheet();
+        });
+      }
+
+      // Add wallet form + preset filter
+      const presetSearch = document.getElementById("preset-search");
+      if (presetSearch) {
+        presetSearch.addEventListener("input", () => {
+          const q = presetSearch.value.trim().toLowerCase();
+          document.querySelectorAll("[data-preset-name]").forEach((btn) => {
+            const match = btn.dataset.presetName.toLowerCase().includes(q);
+            btn.style.display = match ? "" : "none";
+          });
+        });
+      }
+      const addWalletForm = document.getElementById("add-wallet-form");
+      if (addWalletForm) {
+        addWalletForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const name = document.getElementById("nw-name").value.trim();
+          if (!name) return;
+          const type = document.getElementById("nw-type").value;
+          const account = document.getElementById("nw-account").value.trim() || "Personal";
+          const balance = parseFloat(document.getElementById("nw-balance").value) || 0;
+          const brand = document.getElementById("nw-brand").value || "#1A1714";
+          const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "") + Math.floor(Math.random() * 90 + 10);
+          WALLETS.push({
+            id,
+            name,
+            type,
+            account,
+            balance: +balance.toFixed(2),
+            mark: name.slice(0, 2).toUpperCase(),
+            logo: id,
+            brand,
+            number: type === "Cash" ? "Physical" : "•••• " + Math.floor(1000 + Math.random() * 8999),
+          });
+          showToast(`${name} added to your directory`);
+          state.parentRoute = "wallets";
+          closeSheet();
+        });
+      }
+
+      // Edit wallet form
+      const editWalletForm = document.getElementById("edit-wallet-form");
+      if (editWalletForm) {
+        editWalletForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const w = walletById(editWalletForm.dataset.walletId);
+          if (w) {
+            w.name = document.getElementById("ew-name").value.trim() || w.name;
+            w.type = document.getElementById("ew-type").value;
+            w.account = document.getElementById("ew-account").value.trim() || w.account;
+            w.number = document.getElementById("ew-number").value.trim() || w.number;
+            w.brand = document.getElementById("ew-brand").value;
+          }
+          showToast("Account dossier updated");
+          closeSheet();
+        });
+      }
+
+      // Search sheet input
+      const idxInput = document.getElementById("index-search-input");
+      if (idxInput) {
+        idxInput.addEventListener("input", () => {
+          state.searchQuery = idxInput.value;
+          const pos = idxInput.selectionStart;
+          document.getElementById("sheet-content").innerHTML = renderSearchSheet();
+          bindSheetForms();
+          const next = document.getElementById("index-search-input");
+          if (next) { next.focus(); next.setSelectionRange(pos, pos); }
+        });
+      }
+
+      // Schedule form
+      const schedForm = document.getElementById("schedule-form");
+      if (schedForm) {
+        schedForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const id = schedForm.dataset.schedId;
+          const obj = {
+            id: id || "s" + Date.now(),
+            title: document.getElementById("sc-title").value.trim(),
+            direction: document.getElementById("sc-dir").value,
+            amount: parseFloat(document.getElementById("sc-amount").value) || 0,
+            category: document.getElementById("sc-cat").value,
+            wallet: document.getElementById("sc-wallet").value,
+            due: document.getElementById("sc-due").value,
+            repeat: document.getElementById("sc-repeat").value,
+            reminder: document.getElementById("sc-rem").checked,
+          };
+          if (id) {
+            const idx = SCHEDULES.findIndex((x) => x.id === id);
+            if (idx >= 0) SCHEDULES[idx] = obj;
+          } else {
+            SCHEDULES.push(obj);
+          }
+          state.draftScheduleId = null;
+          showToast("Calendar schedule saved");
+          navigate("sheet/schedules");
+        });
+      }
+
+      // Monthly budget form
+      const mbForm = document.getElementById("monthly-budget-form");
+      if (mbForm) {
+        mbForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const v = parseFloat(document.getElementById("mb-amount").value);
+          if (v > 0) state.monthlyBudget = v;
+          showToast(`Monthly plan set to ${fmt(state.monthlyBudget, { cents: false })}`);
+          closeSheet();
+        });
+      }
+
+      // Category budget form
+      const cbForm = document.getElementById("cat-budget-form");
+      if (cbForm) {
+        cbForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const cat = cbForm.dataset.cat;
+          const v = parseFloat(document.getElementById("cb-amount").value);
+          if (v > 0) CATEGORY_LIMITS[cat] = v;
+          showToast(`${cat} limit set to ${fmt(v, { cents: false })}`);
+          closeSheet();
+        });
+      }
+
+      // Favorite form
+      const favForm = document.getElementById("favorite-form");
+      if (favForm) {
+        favForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const id = favForm.dataset.favId;
+          const amtRaw = document.getElementById("fv-amt").value;
+          const obj = {
+            id: id || "f" + Date.now(),
+            name: document.getElementById("fv-name").value.trim(),
+            direction: "expense",
+            category: document.getElementById("fv-cat").value,
+            wallet: document.getElementById("fv-wallet").value,
+            defaultAmount: amtRaw ? parseFloat(amtRaw) : null,
+          };
+          if (id) {
+            const idx = FAVORITES.findIndex((f) => f.id === id);
+            if (idx >= 0) FAVORITES[idx] = obj;
+          } else {
+            FAVORITES.push(obj);
+          }
+          state.draftFavId = null;
+          showToast("Classifieds updated");
+          renderRoute();
+        });
+      }
+
+      // Profile form
+      const profForm = document.getElementById("profile-form");
+      if (profForm) {
+        profForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const full = document.getElementById("pr-name").value.trim();
+          const email = document.getElementById("pr-email").value.trim();
+          if (full) {
+            PROFILE.fullName = full;
+            PROFILE.firstName = full.split(/\s+/)[0];
+            PROFILE.initials = full.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+          }
+          if (email) PROFILE.email = email;
+          showToast("Editor profile updated");
+          closeSheet();
+        });
+      }
+
+      // PIN change form
+      const pinForm = document.getElementById("pin-change-form");
+      if (pinForm) {
+        pinForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const p1 = document.getElementById("pin-new").value;
+          const p2 = document.getElementById("pin-confirm").value;
+          if (!/^\d{4}$/.test(p1) || p1 !== p2) {
+            showToast("Enter matching 4-digit PINs");
+            return;
+          }
+          state.pinCode = p1;
+          state.appLock = true;
+          showToast("Press code updated");
+          closeSheet();
+        });
+      }
+
+      // Confirm delete action
+      const confirmGo = document.getElementById("confirm-delete-go");
+      if (confirmGo && state.confirmPayload?.onConfirm) {
+        confirmGo.addEventListener("click", state.confirmPayload.onConfirm);
+      }
+    }
+
+    /* ========================================================================
+       8. GLOBAL EVENT DELEGATION & BOOT
+       ======================================================================== */
+    document.addEventListener("click", (e) => {
+      const target = e.target.closest("button, [data-nav-to], [data-action], [data-chart-idx], [data-nav]");
+      if (!target) return;
+
+      // Bottom nav
+      if (target.dataset.nav) {
+        navigate(target.dataset.nav);
+        return;
+      }
+
+      // FAB
+      if (target.id === "fab-entry") {
+        navigate("sheet/add-tx");
+        return;
+      }
+
+      // Direct route links
+      if (target.dataset.navTo) {
+        navigate(target.dataset.navTo);
+        return;
+      }
+
+      // PIN keypad
+      if (target.dataset.pin) {
+        handlePinDigit(target.dataset.pin);
+        return;
+      }
+
+      // Actions
+      const act = target.dataset.action;
+      if (act === "skip-intro") { navigate("lock"); return; }
+      if (act === "pin-backspace") { state.pinBuffer = state.pinBuffer.slice(0, -1); renderRoute(); return; }
+      if (act === "biometric-unlock") { showToast("Biometric verified"); navigate("home"); return; }
+      if (act === "toggle-hide") { state.hideBalances = !state.hideBalances; renderRoute(); return; }
+      if (act === "open-search") { state.searchQuery = ""; navigate("sheet/search"); return; }
+      if (act === "close-sheet") { closeSheet(); return; }
+      if (act === "toggle-theme") {
+        state.theme = state.theme === "dark" ? "light" : "dark";
+        applyThemeTokens();
+        renderRoute();
+        return;
+      }
+      if (act === "toggle-applock") { state.appLock = !state.appLock; renderRoute(); return; }
+      if (act === "toggle-bio") { state.biometric = !state.biometric; renderRoute(); return; }
+      if (act === "sync-now") {
+        state.synced = true;
+        PROFILE.lastSyncedAt = "Just now";
+        showToast("Archive synced cleanly");
+        renderRoute();
+        return;
+      }
+      if (act === "toggle-reorder") { state.walletReorderMode = !state.walletReorderMode; renderRoute(); return; }
+      if (act === "export-csv") { exportCsv(); return; }
+      if (act === "load-more-tx") { state.activityLimit += 12; renderRoute(); return; }
+      if (act === "reset-demo") { resetDemo(); return; }
+      if (act === "disable-pin") { state.appLock = false; showToast("App lock disabled"); closeSheet(); return; }
+      if (act === "auth-mode") { state.authMode = target.dataset.mode; renderRoute(); return; }
+
+      // Accent picker
+      if (target.dataset.accentPick) {
+        state.accent = target.dataset.accentPick;
+        applyThemeTokens();
+        renderRoute();
+        return;
+      }
+
+      // Wallet move reorder
+      if (target.dataset.moveWallet !== undefined) {
+        const idx = +target.dataset.moveWallet;
+        const dir = +target.dataset.dir;
+        const swapIdx = idx + dir;
+        if (swapIdx >= 0 && swapIdx < WALLETS.length) {
+          const tmp = WALLETS[idx];
+          WALLETS[idx] = WALLETS[swapIdx];
+          WALLETS[swapIdx] = tmp;
+          renderRoute();
+        }
+        return;
+      }
+
+      // Wallet detail filters
+      if (target.dataset.walletFilter) {
+        state.walletFilter = target.dataset.walletFilter;
+        renderRoute();
+        return;
+      }
+
+      // Activity range & filters
+      if (target.dataset.range) {
+        state.activityRange = target.dataset.range;
+        state.selectedChartDay = null;
+        renderRoute();
+        return;
+      }
+      if (target.dataset.actFilter) {
+        state.activityFilter = target.dataset.actFilter;
+        state.activityLimit = 12;
+        renderRoute();
+        return;
+      }
+      if (target.dataset.chartIdx !== undefined) {
+        state.selectedChartDay = +target.dataset.chartIdx;
+        renderRoute();
+        return;
+      }
+
+      // Favorite chip one-tap
+      if (target.dataset.favId) {
+        const fav = FAVORITES.find((f) => f.id === target.dataset.favId);
+        if (!fav) return;
+        if (fav.defaultAmount != null) {
+          const amt = fav.direction === "income" ? fav.defaultAmount : -fav.defaultAmount;
+          const tx = recordTransaction({ title: fav.name, kind: fav.category, walletId: fav.wallet, amount: amt });
+          renderRoute();
+          showToast(`Filed ${fav.name} (${fmt(amt, { cents: false })})`, () => {
+            if (!tx) return;
+            const i = TRANSACTIONS.findIndex((x) => x.id === tx.id);
+            if (i >= 0) TRANSACTIONS.splice(i, 1);
+            const w = walletById(tx.wallet);
+            if (w) w.balance = +(w.balance - tx.amount).toFixed(2);
+            renderRoute();
+          });
+        } else {
+          state.draftTx = { title: fav.name, category: fav.category, wallet: fav.wallet };
+          navigate("sheet/add-tx");
+        }
+        return;
+      }
+
+      // Schedule tap on Home -> prefill entry slip
+      if (target.dataset.scheduleRecord) {
+        const s = SCHEDULES.find((x) => x.id === target.dataset.scheduleRecord);
+        if (s) {
+          state.draftTx = { title: s.title, category: s.category, wallet: s.wallet, amount: s.amount };
+          navigate(s.direction === "income" ? "sheet/add-income" : "sheet/add-tx");
+        }
+        return;
+      }
+
+      // Sheet-specific controls
+      if (target.dataset.entryDir) {
+        navigate(target.dataset.entryDir === "income" ? "sheet/add-income" : "sheet/add-tx");
+        return;
+      }
+      if (target.dataset.amtAdd) {
+        const inp = document.getElementById("entry-amount");
+        if (inp) {
+          if (target.dataset.amtAdd === "CLR") inp.value = "";
+          else inp.value = ((parseFloat(inp.value) || 0) + parseFloat(target.dataset.amtAdd.replace("+", ""))).toFixed(2);
+        }
+        return;
+      }
+      if (target.dataset.pickCat) {
+        document.getElementById("entry-cat").value = target.dataset.pickCat;
+        document.querySelectorAll("[data-pick-cat]").forEach((b) => b.classList.toggle("active", b === target));
+        return;
+      }
+      if (target.dataset.updMode) {
+        document.getElementById("upd-mode").value = target.dataset.updMode;
+        document.querySelectorAll("[data-upd-mode]").forEach((b) => b.classList.toggle("active", b === target));
+        return;
+      }
+      if (target.dataset.presetName) {
+        document.getElementById("nw-name").value = target.dataset.presetName;
+        document.getElementById("nw-type").value = target.dataset.presetType;
+        document.querySelectorAll("[data-preset-name]").forEach((b) => b.classList.toggle("active", b === target));
+        return;
+      }
+      if (target.dataset.nwColor) {
+        document.getElementById("nw-brand").value = target.dataset.nwColor;
+        document.querySelectorAll("[data-nw-color]").forEach((b) => b.classList.toggle("active", b === target));
+        return;
+      }
+      if (target.dataset.ewColor) {
+        document.getElementById("ew-brand").value = target.dataset.ewColor;
+        document.querySelectorAll("[data-ew-color]").forEach((b) => b.classList.toggle("active", b === target));
+        return;
+      }
+      if (target.dataset.mbPreset) {
+        document.getElementById("mb-amount").value = target.dataset.mbPreset;
+        return;
+      }
+      if (target.dataset.clearCatBudget) {
+        delete CATEGORY_LIMITS[target.dataset.clearCatBudget];
+        showToast(`${target.dataset.clearCatBudget} quota cleared`);
+        closeSheet();
+        return;
+      }
+      if (target.dataset.editSchedule) {
+        state.draftScheduleId = target.dataset.editSchedule;
+        navigate("sheet/schedule-edit");
+        return;
+      }
+      if (target.dataset.toggleSchedRem) {
+        const s = SCHEDULES.find((x) => x.id === target.dataset.toggleSchedRem);
+        if (s) { s.reminder = !s.reminder; renderRoute(); }
+        return;
+      }
+      if (target.dataset.editFav) {
+        state.draftFavId = target.dataset.editFav;
+        renderRoute();
+        return;
+      }
+      if (target.dataset.deleteFav) {
+        const idx = FAVORITES.findIndex((f) => f.id === target.dataset.deleteFav);
+        if (idx >= 0) FAVORITES.splice(idx, 1);
+        showToast("Favorite removed");
+        renderRoute();
+        return;
+      }
+      if (target.dataset.favFromTx) {
+        const t = TRANSACTIONS.find((x) => x.id === target.dataset.favFromTx);
+        if (t) {
+          FAVORITES.push({
+            id: "f" + Date.now(),
+            name: t.title,
+            direction: t.amount >= 0 ? "income" : "expense",
+            category: t.kind,
+            wallet: t.wallet,
+            defaultAmount: Math.round(Math.abs(t.amount)),
+          });
+          showToast(`Saved “${t.title}” to Classifieds`);
+        }
+        return;
+      }
+      if (target.dataset.recurFromTx) {
+        const t = TRANSACTIONS.find((x) => x.id === target.dataset.recurFromTx);
+        if (t) {
+          SCHEDULES.push({
+            id: "s" + Date.now(),
+            title: t.title,
+            amount: Math.abs(t.amount),
+            direction: t.amount >= 0 ? "income" : "expense",
+            category: t.kind,
+            wallet: t.wallet,
+            due: "2026-12-24",
+            repeat: "monthly",
+            reminder: true,
+          });
+          showToast(`Added “${t.title}” to monthly calendar`);
+          closeSheet();
+        }
+        return;
+      }
+      if (target.dataset.deleteTx) {
+        const id = target.dataset.deleteTx;
+        const tx = TRANSACTIONS.find((x) => x.id === id);
+        state.confirmPayload = {
+          title: "Strike this entry?",
+          body: tx ? `Remove “${tx.title}” (${fmt(tx.amount, { sign: true })}) and reverse its effect on the account balance?` : "Remove this entry?",
+          confirmLabel: "Strike Entry",
+          onConfirm: () => {
+            const idx = TRANSACTIONS.findIndex((x) => x.id === id);
+            if (idx >= 0) {
+              const removed = TRANSACTIONS.splice(idx, 1)[0];
+              const w = walletById(removed.wallet);
+              if (w) w.balance = +(w.balance - removed.amount).toFixed(2);
+              if (removed.to) {
+                const toW = walletById(removed.to);
+                if (toW) toW.balance = +(toW.balance - Math.abs(removed.amount)).toFixed(2);
+              }
+            }
+            showToast("Entry struck from ledger");
+            closeSheet();
+          },
+        };
+        navigate("sheet/confirm-delete");
+        return;
+      }
+      if (target.dataset.deleteWallet) {
+        const id = target.dataset.deleteWallet;
+        const w = walletById(id);
+        state.confirmPayload = {
+          title: `Close ${w ? w.name : "wallet"}?`,
+          body: "This removes the wallet from your directory. Transactions remain archived in the ledger.",
+          confirmLabel: "Delete Wallet",
+          onConfirm: () => {
+            const idx = WALLETS.findIndex((x) => x.id === id);
+            if (idx >= 0) WALLETS.splice(idx, 1);
+            showToast("Wallet closed");
+            state.parentRoute = WALLETS.length ? "wallets" : "empty";
+            closeSheet();
+          },
+        };
+        navigate("sheet/confirm-delete");
+        return;
+      }
+    });
+
+    // Live inputs outside sheets (Activity search, wallet select, Auth form)
+    document.addEventListener("input", (e) => {
+      if (e.target.id === "activity-search") {
+        state.activitySearch = e.target.value;
+        const pos = e.target.selectionStart;
+        renderRoute();
+        const el = document.getElementById("activity-search");
+        if (el) { el.focus(); el.setSelectionRange(pos, pos); }
+      }
+    });
+    document.addEventListener("change", (e) => {
+      if (e.target.id === "activity-wallet-select") {
+        state.activityWalletFilter = e.target.value;
+        renderRoute();
+      }
+    });
+    document.addEventListener("submit", (e) => {
+      if (e.target.id === "auth-form") {
+        e.preventDefault();
+        state.signedIn = true;
+        state.synced = true;
+        PROFILE.lastSyncedAt = "Just now";
+        showToast("Signed in to Ang Pitaka Archive");
+        navigate("settings");
+      }
+    });
+
+    // Backdrop click & Escape key close sheet
+    document.getElementById("sheet-backdrop").addEventListener("click", (e) => {
+      if (e.target.id === "sheet-backdrop") closeSheet();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && document.getElementById("sheet-backdrop").classList.contains("open")) {
+        closeSheet();
+      }
+    });
+
+    window.addEventListener("hashchange", renderRoute);
+    window.addEventListener("DOMContentLoaded", () => {
+      if (!window.location.hash) window.location.hash = "#/intro";
+      renderRoute();
+    });
+  </script>
+</body>
+</html>
