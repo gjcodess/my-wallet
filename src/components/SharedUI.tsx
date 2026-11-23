@@ -737,9 +737,9 @@ export function BottomNav({
 }) {
   const items: { id: Tab; icon: string; label: string }[] = [
     { id: "home", icon: "home", label: "Home" },
-    { id: "wallets", icon: "wallet", label: "Wallet" },
+    { id: "wallets", icon: "leather-wallet", label: "Wallet" },
     { id: "activity", icon: "transactions", label: "Activity" },
-    { id: "overview", icon: "activity", label: "Overview" },
+    { id: "overview", icon: "pie", label: "Overview" },
   ];
 
   const translateY = navAnim
@@ -788,7 +788,7 @@ export function BottomNav({
     >
       <View style={[styles.navLeatherBar, { backgroundColor: theme.leather.edge, borderColor: theme.leather.edge }]}>
         <NavLeatherSurface theme={theme} />
-        {items.map(renderNavItem)}
+        <View style={styles.navItemsRow}>{items.map(renderNavItem)}</View>
       </View>
       <Pressable
         onPress={onAdd}
@@ -957,8 +957,6 @@ const styles = StyleSheet.create({
   navLeatherBar: {
     flex: 1,
     height: 62,
-    flexDirection: "row",
-    alignItems: "center",
     borderRadius: 31,
     borderWidth: 1,
     overflow: "hidden",
@@ -967,6 +965,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.14,
     shadowRadius: 22,
     elevation: 12,
+  },
+  navItemsRow: {
+    flex: 1,
+    height: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 9,
   },
   navItem: {
     flex: 1,
