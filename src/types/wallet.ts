@@ -15,7 +15,7 @@ export const EXPENSE_CATEGORIES: [string, string][] = [
   ["Subs", "sync"],
   ["Education", "book"],
   ["Family", "users"],
-  ["Other", "adjust"],
+  ["Other", "more"],
 ];
 
 export const INCOME_CATEGORIES: [string, string][] = [
@@ -30,7 +30,7 @@ export const INCOME_CATEGORIES: [string, string][] = [
   ["Loan", "bank"],
   ["Gift", "gift"],
   ["Refund", "arrow-down"],
-  ["Other", "plus"],
+  ["Other", "more"],
 ];
 export type Sheet =
   | "add"

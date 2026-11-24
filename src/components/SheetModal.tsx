@@ -5018,6 +5018,9 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 13,
+    lineHeight: 16,
+    includeFontPadding: false,
+    marginTop: 1,
   },
   closeRoundBtn: {
     width: 42,
@@ -5069,6 +5072,9 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 12,
+    lineHeight: 16,
+    includeFontPadding: false,
+    marginTop: 1,
   },
   entryToggle: {
     height: 54,
@@ -5092,6 +5098,9 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 12.5,
+    lineHeight: 16,
+    includeFontPadding: false,
+    marginTop: 1.5,
     flexShrink: 1,
   },
   walletHeroPanel: {
@@ -5124,6 +5133,9 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 12,
+    lineHeight: 15,
+    includeFontPadding: false,
+    marginTop: 1,
   },
   walletHeroModeBadge: {
     backgroundColor: "rgba(255, 255, 255, 0.10)",
@@ -5263,6 +5275,9 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 13.5,
+    lineHeight: 17,
+    includeFontPadding: false,
+    marginTop: 1.5,
   },
   stitchedPrimaryBtn: {
     height: 52,
@@ -5279,6 +5294,9 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 14.5,
+    lineHeight: 18,
+    includeFontPadding: false,
+    marginTop: 1.5,
   },
   confirmMetaList: {
     paddingTop: 12,
@@ -5333,6 +5351,9 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 10.5,
+    lineHeight: 14,
+    includeFontPadding: false,
+    marginTop: 1.5,
   },
   entryNoteBox: {
     minHeight: 56,
