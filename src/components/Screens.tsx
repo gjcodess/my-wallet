@@ -662,10 +662,10 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
-  const dragOffsetY = useRef(new Animated.Value(0)).current;
   const liftAnim = useRef(new Animated.Value(0)).current;
   const shiftMapRef = useRef<Map<number, Animated.Value>>(new Map());
   const dragIndexRef = useRef<number | null>(null);
+  const dragWalletIdRef = useRef<number | null>(null);
   const hoverIndexRef = useRef<number | null>(null);
   const isDroppingRef = useRef(false);
   const reorderingRef = useRef(reordering);
@@ -682,22 +682,26 @@ export const WalletsScreen = React.memo(function WalletsScreen({
     return anim;
   };
 
+  const walletsOrderKey = wallets.map((w) => w.id).join(",");
+
   useLayoutEffect(() => {
-    dragOffsetY.setValue(0);
+    liftAnim.stopAnimation();
     liftAnim.setValue(0);
     dragIndexRef.current = null;
+    dragWalletIdRef.current = null;
     hoverIndexRef.current = null;
     isDroppingRef.current = false;
     setDragIndex(null);
     setHoverIndex(null);
     for (const anim of shiftMapRef.current.values()) {
+      anim.stopAnimation();
       anim.setValue(0);
     }
-  }, [wallets, dragOffsetY, liftAnim]);
+  }, [walletsOrderKey, liftAnim]);
 
   useEffect(() => {
     if (dragIndex === null || hoverIndex === null) return;
-    wallets.forEach((w, idx) => {
+    walletsRef.current.forEach((w, idx) => {
       if (idx === dragIndex) return;
       let targetShift = 0;
       if (dragIndex < hoverIndex && idx > dragIndex && idx <= hoverIndex) {
@@ -712,17 +716,19 @@ export const WalletsScreen = React.memo(function WalletsScreen({
         bounciness: 4,
       }).start();
     });
-  }, [dragIndex, hoverIndex, wallets, slotHeight]);
+  }, [dragIndex, hoverIndex, slotHeight]);
 
   const startDrag = (index: number) => {
-    if (isDroppingRef.current || !onReorderWallets || walletsRef.current.length <= 1) {
+    const list = walletsRef.current;
+    if (isDroppingRef.current || !onReorderWallets || list.length <= 1 || !list[index]) {
       return;
     }
     dragIndexRef.current = index;
+    dragWalletIdRef.current = list[index].id;
     hoverIndexRef.current = index;
     setDragIndex(index);
     setHoverIndex(index);
-    dragOffsetY.setValue(0);
+    getShiftAnim(list[index].id).setValue(0);
     onDragChange?.(true);
     Animated.spring(liftAnim, {
       toValue: 1,
@@ -734,13 +740,14 @@ export const WalletsScreen = React.memo(function WalletsScreen({
 
   const updateDrag = (dy: number) => {
     const startIdx = dragIndexRef.current;
-    if (startIdx === null || isDroppingRef.current) return;
+    const draggedId = dragWalletIdRef.current;
+    if (startIdx === null || draggedId === null || isDroppingRef.current) return;
     const list = walletsRef.current;
     const step = slotHeightRef.current;
     const minDy = -startIdx * step;
     const maxDy = (list.length - 1 - startIdx) * step;
     const clampedDy = Math.max(minDy, Math.min(maxDy, dy));
-    dragOffsetY.setValue(clampedDy);
+    getShiftAnim(draggedId).setValue(clampedDy);
 
     const nextHover = Math.max(
       0,
@@ -758,40 +765,82 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   const finishDrag = () => {
     const startIdx = dragIndexRef.current;
     const endIdx = hoverIndexRef.current;
-    onDragChange?.(false);
-    if (startIdx === null || endIdx === null || isDroppingRef.current) return;
-    isDroppingRef.current = true;
+    const draggedId = dragWalletIdRef.current;
+    if (
+      startIdx === null ||
+      endIdx === null ||
+      draggedId === null ||
+      isDroppingRef.current
+    ) {
+      onDragChange?.(false);
+      return;
+    }
 
+    const draggedAnim = getShiftAnim(draggedId);
+    if (startIdx === endIdx) {
+      onDragChange?.(false);
+      dragIndexRef.current = null;
+      dragWalletIdRef.current = null;
+      hoverIndexRef.current = null;
+      isDroppingRef.current = false;
+      setDragIndex(null);
+      setHoverIndex(null);
+      for (const w of walletsRef.current) {
+        if (w.id !== draggedId) {
+          const anim = getShiftAnim(w.id);
+          anim.stopAnimation();
+          anim.setValue(0);
+        }
+      }
+      Animated.parallel([
+        Animated.timing(draggedAnim, {
+          toValue: 0,
+          duration: 110,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(liftAnim, {
+          toValue: 0,
+          duration: 110,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+      return;
+    }
+
+    isDroppingRef.current = true;
     const snapDelta = (endIdx - startIdx) * slotHeightRef.current;
     Animated.parallel([
-      Animated.spring(dragOffsetY, {
+      Animated.timing(draggedAnim, {
         toValue: snapDelta,
+        duration: 110,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
-        speed: 30,
-        bounciness: 4,
       }),
-      Animated.spring(liftAnim, {
+      Animated.timing(liftAnim, {
         toValue: 0,
+        duration: 110,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
-        speed: 30,
-        bounciness: 4,
       }),
     ]).start(() => {
+      onDragChange?.(false);
       const list = walletsRef.current;
-      if (startIdx !== endIdx && onReorderWallets && startIdx < list.length && endIdx < list.length) {
+      if (onReorderWallets && startIdx < list.length && endIdx < list.length) {
         const next = [...list];
         const [moved] = next.splice(startIdx, 1);
         next.splice(endIdx, 0, moved);
         onReorderWallets(next);
       } else {
-        dragOffsetY.setValue(0);
-        liftAnim.setValue(0);
         dragIndexRef.current = null;
+        dragWalletIdRef.current = null;
         hoverIndexRef.current = null;
         isDroppingRef.current = false;
         setDragIndex(null);
         setHoverIndex(null);
         for (const anim of shiftMapRef.current.values()) {
+          anim.stopAnimation();
           anim.setValue(0);
         }
       }
@@ -1051,8 +1100,9 @@ export const WalletsScreen = React.memo(function WalletsScreen({
                 style={[
                   {
                     zIndex: isDragged ? 20 : 1,
+                    elevation: isDragged ? 12 : 0,
                     transform: [
-                      { translateY: isDragged ? dragOffsetY : shiftAnim },
+                      { translateY: shiftAnim },
                       {
                         scale: isDragged
                           ? liftAnim.interpolate({
@@ -1156,6 +1206,12 @@ export const WalletsScreen = React.memo(function WalletsScreen({
                       </Text>
                       <View
                         {...(rowPan ? rowPan.panHandlers : {})}
+                        onTouchStart={() => {
+                          if (reorderingRef.current) onDragChange?.(true);
+                        }}
+                        onTouchCancel={() => {
+                          if (dragIndexRef.current === null) onDragChange?.(false);
+                        }}
                         style={styles.dragHandleHitArea}
                       >
                         <View
