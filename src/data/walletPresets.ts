@@ -139,32 +139,98 @@ export const walletPresets: WalletPreset[] = [
   { key: "cash", name: "Cash", type: "Cash", mark: "₱", recommendedTone: "mint", account: "On hand", group: "Cash" },
 ];
 
+export function parseWalletLogoAndBg(logoKey?: string): {
+  logoPresetKey?: string;
+  bgPresetKey?: string;
+  explicitNoLogo: boolean;
+  explicitNoBg: boolean;
+} {
+  if (!logoKey) {
+    return { explicitNoLogo: false, explicitNoBg: false };
+  }
+  if (logoKey === "none" || logoKey === "custom") {
+    return { explicitNoLogo: true, explicitNoBg: true };
+  }
+  if (logoKey.includes("|")) {
+    const [rawLogo, rawBg] = logoKey.split("|", 2);
+    const cleanLogo = rawLogo?.trim();
+    const cleanBg = rawBg?.trim();
+    const explicitNoLogo = !cleanLogo || cleanLogo === "none";
+    const explicitNoBg = cleanBg === "none";
+    return {
+      logoPresetKey: explicitNoLogo ? undefined : cleanLogo,
+      bgPresetKey: !cleanBg || explicitNoBg ? undefined : cleanBg,
+      explicitNoLogo,
+      explicitNoBg,
+    };
+  }
+  return {
+    logoPresetKey: logoKey,
+    bgPresetKey: logoKey,
+    explicitNoLogo: false,
+    explicitNoBg: false,
+  };
+}
+
+export function encodeWalletLogoAndBg(
+  logoPresetKey?: string,
+  bgPresetKey?: string | "none"
+): string | undefined {
+  const cleanLogo =
+    logoPresetKey && logoPresetKey !== "custom" && logoPresetKey !== "none"
+      ? logoPresetKey
+      : undefined;
+
+  if (!bgPresetKey) {
+    return cleanLogo;
+  }
+  if (bgPresetKey === "none") {
+    return cleanLogo ? `${cleanLogo}|none` : "none";
+  }
+  if (cleanLogo && cleanLogo === bgPresetKey) {
+    return cleanLogo;
+  }
+  return `${cleanLogo || "none"}|${bgPresetKey}`;
+}
+
 export function resolveWalletLogo(
   logoKey?: string,
   walletName?: string
 ): ImageSourcePropType | undefined {
-  return resolveFromMap(walletLogoAssets, logoKey, walletName);
+  const { logoPresetKey, explicitNoLogo } = parseWalletLogoAndBg(logoKey);
+  if (explicitNoLogo) return undefined;
+  return resolveFromMap(walletLogoAssets, logoPresetKey, walletName);
 }
 
 export function resolveWalletPrintmark(
   logoKey?: string,
   walletName?: string
 ): ImageSourcePropType | undefined {
-  return resolveFromMap(walletPrintmarkAssets, logoKey, walletName);
+  const { logoPresetKey, explicitNoLogo } = parseWalletLogoAndBg(logoKey);
+  if (explicitNoLogo) return undefined;
+  return resolveFromMap(walletPrintmarkAssets, logoPresetKey, walletName);
 }
 
 export function resolveWalletCardBackground(
   logoKey?: string,
   walletName?: string
 ): ImageSourcePropType | undefined {
-  return resolveFromMap(walletCardBackgroundAssets, logoKey, walletName);
+  const { bgPresetKey, explicitNoBg } = parseWalletLogoAndBg(logoKey);
+  if (explicitNoBg) return undefined;
+  return resolveFromMap(walletCardBackgroundAssets, bgPresetKey, walletName);
 }
 
 export function resolveWalletCardDesign(
   logoKey?: string,
   walletName?: string
 ): WalletCardDesign | undefined {
-  const key = resolvePresetKey(walletCardBackgroundAssets, logoKey, walletName);
+  const { bgPresetKey, explicitNoBg } = parseWalletLogoAndBg(logoKey);
+  if (explicitNoBg) return undefined;
+  const key = resolvePresetKey(
+    walletCardBackgroundAssets,
+    bgPresetKey,
+    walletName
+  );
   if (!key) return undefined;
   const isLight = LIGHT_CARD_KEYS.has(key);
   return {
@@ -178,9 +244,11 @@ export function resolveWalletPreset(
   logoKey?: string,
   walletName?: string
 ): WalletPreset | undefined {
+  const { logoPresetKey, explicitNoLogo } = parseWalletLogoAndBg(logoKey);
+  if (explicitNoLogo) return undefined;
   const key = resolvePresetKey(
     Object.fromEntries(walletPresets.map((p) => [p.key, p])),
-    logoKey,
+    logoPresetKey,
     walletName
   );
   return key ? walletPresets.find((p) => p.key === key) : undefined;

@@ -4,6 +4,7 @@ import {
   Animated,
   BackHandler,
   Easing,
+  ImageSourcePropType,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -17,6 +18,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Image as SvgImage } from "react-native-svg";
 import { AmountKeypad, formatAmountInput } from "./AmountKeypad";
 import {
   ActivityItem,
@@ -57,7 +59,10 @@ import type { CategoryLimits, MonthlySpending } from "../types/budget";
 import { displayDueDate } from "../types/schedule";
 import type { DueSchedule, Schedule } from "../types/schedule";
 import {
+  encodeWalletLogoAndBg,
+  parseWalletLogoAndBg,
   resolveWalletCardDesign,
+  walletCardBackgroundAssets,
   WalletPreset,
   WalletPresetGroup,
   walletPresets,
@@ -221,8 +226,9 @@ export function SheetModal({
   const fallback = selected?.id || wallets[0]?.id || 1;
   const editTarget =
     type === "edit" ? selected || wallets[0] : null;
+  const initialParsedWallet = parseWalletLogoAndBg(editTarget?.logoKey);
   const [selectedPresetKey, setSelectedPresetKey] = useState<string>(
-    editTarget?.logoKey || "custom"
+    initialParsedWallet.logoPresetKey || "custom"
   );
   const [presetGroup, setPresetGroup] = useState<"All" | WalletPresetGroup>("All");
   const [presetSearch, setPresetSearch] = useState("");
@@ -230,16 +236,22 @@ export function SheetModal({
     editTarget?.logoKey
   );
   const [recommendedTone, setRecommendedTone] = useState<Tone | null>(() => {
-    if (!editTarget?.logoKey) return null;
+    if (!initialParsedWallet.logoPresetKey) return null;
     return (
-      walletPresets.find((p) => p.key === editTarget.logoKey)?.recommendedTone ??
-      null
+      walletPresets.find((p) => p.key === initialParsedWallet.logoPresetKey)
+        ?.recommendedTone ?? null
     );
   });
   const [name, setName] = useState(editTarget?.name || "");
   const [category, setCategory] = useState(editTarget?.type || "E-wallet");
   const [accountLabel, setAccountLabel] = useState(editTarget?.account || "");
   const [tone, setTone] = useState<Tone>(editTarget?.tone || "blue");
+  const [showCustomTone, setShowCustomTone] = useState(false);
+  const [customBgTab, setCustomBgTab] = useState<"presets" | "gradient">(
+    resolveWalletCardDesign(editTarget?.logoKey, editTarget?.name)
+      ? "presets"
+      : "gradient"
+  );
   const [balance, setBalance] = useState(
     editTarget ? String(editTarget.balance) : ""
   );
@@ -252,6 +264,7 @@ export function SheetModal({
     sheetScrollY.setValue(0);
     setWalletStep(type === "edit" ? 1 : 0);
     setWalletConfirmDelete(false);
+    setShowCustomTone(false);
     setGlobalSearch("");
     setTransferFee(0);
     setPickingTransferSide(null);
@@ -263,13 +276,19 @@ export function SheetModal({
       setAmount(monthlyBudget && monthlyBudget > 0 ? String(monthlyBudget) : "");
     }
     if (type === "edit" && editTarget) {
-      setSelectedPresetKey(editTarget.logoKey || "custom");
+      const parsedEdit = parseWalletLogoAndBg(editTarget.logoKey);
+      setSelectedPresetKey(parsedEdit.logoPresetKey || "custom");
       setLogoKey(editTarget.logoKey);
       setRecommendedTone(
-        editTarget.logoKey
-          ? (walletPresets.find((p) => p.key === editTarget.logoKey)
+        parsedEdit.logoPresetKey
+          ? (walletPresets.find((p) => p.key === parsedEdit.logoPresetKey)
               ?.recommendedTone ?? null)
           : null
+      );
+      setCustomBgTab(
+        resolveWalletCardDesign(editTarget.logoKey, editTarget.name)
+          ? "presets"
+          : "gradient"
       );
       setName(editTarget.name);
       setCategory(editTarget.type);
@@ -496,9 +515,11 @@ export function SheetModal({
   }, [isPresetSheet, presetGroup, presetSearch]);
 
   const handleSelectPreset = useCallback((preset: WalletPreset | "custom") => {
+    setShowCustomTone(false);
     if (preset === "custom") {
       setSelectedPresetKey("custom");
-      setLogoKey(undefined);
+      setLogoKey("none");
+      setCustomBgTab("gradient");
       setRecommendedTone(null);
       setName("");
       setAccountLabel("");
@@ -506,6 +527,7 @@ export function SheetModal({
     }
     setSelectedPresetKey(preset.key);
     setLogoKey(preset.key);
+    setCustomBgTab("presets");
     setName(preset.name);
     setCategory(preset.type);
     setTone(preset.recommendedTone);
@@ -1263,10 +1285,37 @@ export function SheetModal({
               const isConfirmWalletStep =
                 (isEdit && currentWalletStep === 2) ||
                 (!isEdit && currentWalletStep === 3);
-              const hasBrandCardArt = Boolean(
-                resolveWalletCardDesign(logoKey, name)
-              );
+              const brandCardDesign = resolveWalletCardDesign(logoKey, name);
+              const hasBrandCardArt = Boolean(brandCardDesign);
+              const parsedWalletLogoBg = parseWalletLogoAndBg(logoKey);
+              const activeBgKey = !parsedWalletLogoBg.explicitNoBg
+                ? (parsedWalletLogoBg.bgPresetKey ||
+                  (hasBrandCardArt ? selectedPreset?.key : undefined))
+                : undefined;
+              const activeBgPreset = activeBgKey
+                ? walletPresets.find((p) => p.key === activeBgKey)
+                : undefined;
+              const hasProviderPreset = selectedPresetKey !== "custom";
               const previewPalette = tonePalette[tone] || tonePalette.blue;
+              const bgDesignLabel = hasBrandCardArt
+                ? `${activeBgPreset?.name || selectedPreset?.name || "Preset"} bg`
+                : `${previewPalette.label} gradient`;
+              const cardInk = brandCardDesign
+                ? brandCardDesign.ink
+                : previewPalette.ink;
+              const isLightCardInk = cardInk === "#ffffff";
+              const cardSubInk = isLightCardInk
+                ? "rgba(255, 255, 255, 0.78)"
+                : "rgba(20, 32, 26, 0.68)";
+              const cardBadgeBg = isLightCardInk
+                ? "rgba(0, 0, 0, 0.26)"
+                : "rgba(20, 32, 26, 0.10)";
+              const cardBorder = isLightCardInk
+                ? "rgba(255, 255, 255, 0.20)"
+                : "rgba(20, 32, 26, 0.14)";
+              const cardDivider = isLightCardInk
+                ? "rgba(255, 255, 255, 0.22)"
+                : "rgba(20, 32, 26, 0.14)";
               const presetEntries: (WalletPreset | "custom")[] = [
                 "custom",
                 ...filteredPresets,
@@ -1548,17 +1597,12 @@ export function SheetModal({
                 {/* ==================== STEP 1: WALLET DETAILS ==================== */}
                 {isDetailsStep && (
                   <View>
-                    {/* Dark Stitched Wallet Preview Panel (replaces WalletFolder card) */}
-                    <View
-                      style={[
-                        styles.walletHeroPanel,
-                        {
-                          overflow: "hidden",
-                          borderColor: theme.leather.edge,
-                        },
-                      ]}
+                    {/* Live Card Background Preview */}
+                    <WalletCardPreviewBox
+                      cardDesign={brandCardDesign}
+                      palette={previewPalette}
+                      borderColor={cardBorder}
                     >
-                      <DarkLeatherSurface theme={theme} radius={22} />
                       <View style={styles.walletHeroTopRow}>
                         <View style={styles.walletPreviewIdentity}>
                           <WalletLogoBadge
@@ -1567,21 +1611,26 @@ export function SheetModal({
                             mark={preview.mark}
                             size={30}
                             radius={9}
-                            ink="#ffffff"
+                            ink={cardInk}
                             fontSize={10}
                           />
                           <Text
-                            style={styles.walletPreviewName}
+                            style={[styles.walletPreviewName, { color: cardInk }]}
                             numberOfLines={1}
                           >
                             {preview.name}
                           </Text>
                         </View>
-                        <View style={styles.walletHeroModeBadge}>
+                        <View
+                          style={[
+                            styles.walletHeroModeBadge,
+                            { backgroundColor: cardBadgeBg },
+                          ]}
+                        >
                           <Text
                             style={[
                               styles.walletHeroModeText,
-                              { color: theme.leather.thread },
+                              { color: cardInk },
                             ]}
                           >
                             {category.toUpperCase()}
@@ -1593,7 +1642,7 @@ export function SheetModal({
                           <Text
                             style={[
                               styles.walletHeroSubText,
-                              { color: theme.leather.thread },
+                              { color: cardSubInk },
                             ]}
                           >
                             {preview.account}
@@ -1605,13 +1654,18 @@ export function SheetModal({
                                 { backgroundColor: previewPalette.from },
                               ]}
                             />
-                            <Text style={styles.walletPreviewColorText}>
-                              {previewPalette.label}
+                            <Text
+                              style={[
+                                styles.walletPreviewColorText,
+                                { color: cardInk },
+                              ]}
+                            >
+                              {bgDesignLabel}
                             </Text>
                           </View>
                         </View>
                       </View>
-                    </View>
+                    </WalletCardPreviewBox>
 
                     {/* Stitched Wallet Name Input */}
                     <View
@@ -1711,79 +1765,287 @@ export function SheetModal({
                       </View>
                     </View>
 
-                    {/* 12-Tone Color Picker */}
-                    <View style={styles.colorHeaderRow}>
-                      <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                        {hasBrandCardArt ? "Accent & chart color" : "Card color"}
-                      </Text>
-                      {hasBrandCardArt ? (
-                        <Text
-                          style={[
-                            styles.recommendedHint,
-                            { color: theme.leather.accent },
-                          ]}
-                        >
-                          Uses brand card art
-                        </Text>
-                      ) : recommendedTone ? (
-                        <Text
-                          style={[
-                            styles.recommendedHint,
-                            { color: theme.leather.accent },
-                          ]}
-                        >
-                          Recommended: {tonePalette[recommendedTone].label}
-                          {tone !== recommendedTone ? " (customized)" : ""}
-                        </Text>
-                      ) : null}
-                    </View>
-                    <View style={styles.tonePicker}>
-                      {(Object.keys(tonePalette) as Tone[]).map((t) => {
-                        const pal = tonePalette[t];
-                        const active = tone === t;
-                        return (
-                          <Pressable
-                            key={t}
-                            onPress={() => setTone(t)}
+                    {/* Card Background Section (automatic for presets unless customizing; always open for Custom) */}
+                    {hasProviderPreset ? (
+                      <View
+                        style={[
+                          styles.stitchedPresetBgRow,
+                          {
+                            overflow: "hidden",
+                            backgroundColor: theme.card,
+                            borderColor: hexToRgba(theme.leather.accent, 0.24),
+                          },
+                        ]}
+                      >
+                        <LightLeatherSurface theme={theme} radius={16} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.fieldLabel, { color: theme.muted }]}>
+                            Card background
+                          </Text>
+                          <Text
                             style={[
-                              styles.toneSwatchWrapper,
+                              styles.recommendedHint,
+                              { color: theme.ink, fontSize: 13, marginTop: 2 },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {activeBgKey === selectedPresetKey && hasBrandCardArt
+                              ? `Uses ${selectedPreset?.name || preview.name} preset`
+                              : `Custom: ${bgDesignLabel}`}
+                          </Text>
+                        </View>
+                        <Pressable
+                          onPress={() => setShowCustomTone((v) => !v)}
+                          style={({ pressed }) => [
+                            styles.presetBgToggleBtn,
+                            {
+                              overflow: "hidden",
+                              backgroundColor: showCustomTone
+                                ? theme.leather.edge
+                                : theme.page,
+                              borderColor: showCustomTone
+                                ? theme.leather.edge
+                                : hexToRgba(theme.leather.accent, 0.28),
+                              transform: [{ scale: pressed ? 0.96 : 1 }],
+                            },
+                          ]}
+                        >
+                          {showCustomTone ? (
+                            <DarkLeatherSurface theme={theme} radius={12} />
+                          ) : null}
+                          <Text
+                            style={[
+                              styles.presetBgToggleText,
                               {
-                                borderColor: active
-                                  ? theme.leather.accent
-                                  : theme.page,
+                                color: showCustomTone
+                                  ? "#ffffff"
+                                  : theme.leather.accent,
                               },
                             ]}
                           >
-                            <LinearGradient
-                              colors={[pal.from, pal.to]}
-                              start={{ x: 0, y: 0 }}
-                              end={{ x: 1, y: 1 }}
-                              style={styles.toneSwatch}
+                            {showCustomTone ? "Done" : "Customize"}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <View style={styles.colorHeaderRow}>
+                        <Text style={[styles.fieldLabel, { color: theme.muted }]}>
+                          Card background
+                        </Text>
+                        <Text
+                          style={[
+                            styles.recommendedHint,
+                            { color: theme.leather.accent },
+                          ]}
+                        >
+                          {bgDesignLabel}
+                        </Text>
+                      </View>
+                    )}
+
+                    {(!hasProviderPreset || showCustomTone) && (
+                      <View style={{ marginTop: hasProviderPreset ? 2 : 8 }}>
+                        <View style={styles.bgCustomizeTabsRow}>
+                          {(["presets", "gradient"] as const).map((tabKey) => {
+                            const active = customBgTab === tabKey;
+                            return (
+                              <Pressable
+                                key={tabKey}
+                                onPress={() => setCustomBgTab(tabKey)}
+                                style={[
+                                  styles.bgCustomizeTabBtn,
+                                  {
+                                    overflow: "hidden",
+                                    backgroundColor: active
+                                      ? theme.leather.edge
+                                      : theme.card,
+                                    borderColor: active
+                                      ? theme.leather.edge
+                                      : hexToRgba(theme.leather.accent, 0.22),
+                                  },
+                                ]}
+                              >
+                                {active ? (
+                                  <DarkLeatherSurface theme={theme} radius={12} />
+                                ) : (
+                                  <LightLeatherSurface theme={theme} radius={12} />
+                                )}
+                                <Text
+                                  style={[
+                                    styles.bgCustomizeTabText,
+                                    { color: active ? "#ffffff" : theme.ink },
+                                  ]}
+                                >
+                                  {tabKey === "presets"
+                                    ? "Preset bgs"
+                                    : "Gradient colors"}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                          {hasProviderPreset &&
+                          (activeBgKey !== selectedPresetKey || !hasBrandCardArt) ? (
+                            <Pressable
+                              onPress={() => {
+                                const presetTone =
+                                  selectedPreset?.recommendedTone || tone;
+                                setLogoKey(selectedPresetKey);
+                                setTone(presetTone);
+                                setCustomBgTab("presets");
+                              }}
+                              style={[
+                                styles.bgResetBtn,
+                                {
+                                  borderColor: hexToRgba(
+                                    theme.leather.accent,
+                                    0.25
+                                  ),
+                                },
+                              ]}
                             >
-                              {active && (
-                                <Icon name="check" size={15} color={pal.ink} />
-                              )}
-                            </LinearGradient>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
+                              <Text
+                                style={[
+                                  styles.bgResetText,
+                                  { color: theme.leather.accent },
+                                ]}
+                              >
+                                Reset
+                              </Text>
+                            </Pressable>
+                          ) : null}
+                        </View>
+
+                        {customBgTab === "presets" ? (
+                          <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.bgPresetThumbStrip}
+                          >
+                            {walletPresets.map((p) => {
+                              const bgAsset = walletCardBackgroundAssets[p.key];
+                              if (!bgAsset) return null;
+                              const active = activeBgKey === p.key;
+                              return (
+                                <Pressable
+                                  key={p.key}
+                                  onPress={() => {
+                                    setLogoKey(
+                                      encodeWalletLogoAndBg(
+                                        selectedPresetKey,
+                                        p.key
+                                      )
+                                    );
+                                    setTone(p.recommendedTone);
+                                  }}
+                                  style={({ pressed }) => [
+                                    styles.bgPresetThumbCard,
+                                    {
+                                      borderColor: active
+                                        ? theme.leather.accent
+                                        : hexToRgba(theme.leather.accent, 0.2),
+                                      borderWidth: active ? 2.5 : 1,
+                                      transform: [{ scale: pressed ? 0.96 : 1 }],
+                                    },
+                                  ]}
+                                >
+                                  <View
+                                    pointerEvents="none"
+                                    style={StyleSheet.absoluteFill}
+                                  >
+                                    <Svg width={96} height={60}>
+                                      <SvgImage
+                                        href={bgAsset}
+                                        x={0}
+                                        y={0}
+                                        width={96}
+                                        height={60}
+                                        preserveAspectRatio="xMaxYMid slice"
+                                      />
+                                    </Svg>
+                                  </View>
+                                  <LinearGradient
+                                    pointerEvents="none"
+                                    colors={["rgba(8, 12, 20, 0)", "rgba(8, 12, 20, 0.56)"]}
+                                    start={{ x: 0, y: 0.35 }}
+                                    end={{ x: 0, y: 1 }}
+                                    style={StyleSheet.absoluteFill}
+                                  />
+                                  <View style={styles.bgPresetThumbInner}>
+                                    {active ? (
+                                      <View
+                                        style={[
+                                          styles.bgPresetThumbCheck,
+                                          { backgroundColor: theme.leather.edge },
+                                        ]}
+                                      >
+                                        <Icon name="check" size={10} color="#ffffff" />
+                                      </View>
+                                    ) : null}
+                                    <Text
+                                      style={styles.bgPresetThumbLabel}
+                                      numberOfLines={1}
+                                    >
+                                      {p.name}
+                                    </Text>
+                                  </View>
+                                </Pressable>
+                              );
+                            })}
+                          </ScrollView>
+                        ) : (
+                          <View style={styles.tonePicker}>
+                            {(Object.keys(tonePalette) as Tone[]).map((t) => {
+                              const pal = tonePalette[t];
+                              const active = !hasBrandCardArt && tone === t;
+                              return (
+                                <Pressable
+                                  key={t}
+                                  onPress={() => {
+                                    setLogoKey(
+                                      encodeWalletLogoAndBg(
+                                        selectedPresetKey,
+                                        "none"
+                                      )
+                                    );
+                                    setTone(t);
+                                  }}
+                                  style={[
+                                    styles.toneSwatchWrapper,
+                                    {
+                                      borderColor: active
+                                        ? theme.leather.accent
+                                        : theme.page,
+                                    },
+                                  ]}
+                                >
+                                  <LinearGradient
+                                    colors={[pal.from, pal.to]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.toneSwatch}
+                                  >
+                                    {active && (
+                                      <Icon name="check" size={15} color={pal.ink} />
+                                    )}
+                                  </LinearGradient>
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+                        )}
+                      </View>
+                    )}
                   </View>
                 )}
 
                 {/* ==================== STEP 2 (ADD ONLY): OPENING BALANCE ==================== */}
                 {isBalanceStep && (
                   <View>
-                    <View
-                      style={[
-                        styles.walletHeroPanel,
-                        {
-                          overflow: "hidden",
-                          borderColor: theme.leather.edge,
-                        },
-                      ]}
+                    <WalletCardPreviewBox
+                      cardDesign={brandCardDesign}
+                      palette={previewPalette}
+                      borderColor={cardBorder}
                     >
-                      <DarkLeatherSurface theme={theme} radius={22} />
                       <View style={styles.walletHeroTopRow}>
                         <View style={styles.walletHeroTag}>
                           <WalletLogoBadge
@@ -1792,18 +2054,26 @@ export function SheetModal({
                             mark={preview.mark}
                             size={18}
                             radius={5}
-                            ink="#ffffff"
+                            ink={cardInk}
                             fontSize={7}
                           />
-                          <Text style={styles.walletHeroTagText} numberOfLines={1}>
+                          <Text
+                            style={[styles.walletHeroTagText, { color: cardInk }]}
+                            numberOfLines={1}
+                          >
                             {preview.name}
                           </Text>
                         </View>
-                        <View style={styles.walletHeroModeBadge}>
+                        <View
+                          style={[
+                            styles.walletHeroModeBadge,
+                            { backgroundColor: cardBadgeBg },
+                          ]}
+                        >
                           <Text
                             style={[
                               styles.walletHeroModeText,
-                              { color: theme.leather.thread },
+                              { color: cardInk },
                             ]}
                           >
                             STARTING BALANCE
@@ -1815,18 +2085,20 @@ export function SheetModal({
                         <Text
                           style={[
                             styles.walletHeroLabel,
-                            { color: theme.leather.thread },
+                            { color: cardSubInk },
                           ]}
                         >
                           Opening balance
                         </Text>
                         <View style={styles.entryAmountInputRow}>
-                          <Text style={styles.entryCurrencySign}>₱</Text>
+                          <Text style={[styles.entryCurrencySign, { color: cardInk }]}>
+                            ₱
+                          </Text>
                           <Text
                             style={[
                               styles.entryBigInput,
                               {
-                                color: "#ffffff",
+                                color: cardInk,
                                 opacity: balance ? 1 : 0.8,
                               },
                             ]}
@@ -1842,14 +2114,14 @@ export function SheetModal({
                         <Text
                           style={[
                             styles.walletHeroSubText,
-                            { color: theme.leather.thread },
+                            { color: cardSubInk },
                           ]}
                           numberOfLines={1}
                         >
                           {preview.type} · {preview.account}
                         </Text>
                       </View>
-                    </View>
+                    </WalletCardPreviewBox>
 
                     <AmountKeypad
                       value={balance}
@@ -1865,16 +2137,11 @@ export function SheetModal({
                 {/* ==================== CONFIRM WALLET STEP ==================== */}
                 {isConfirmWalletStep && (
                   <View>
-                    <View
-                      style={[
-                        styles.walletHeroPanel,
-                        {
-                          overflow: "hidden",
-                          borderColor: theme.leather.edge,
-                        },
-                      ]}
+                    <WalletCardPreviewBox
+                      cardDesign={brandCardDesign}
+                      palette={previewPalette}
+                      borderColor={cardBorder}
                     >
-                      <DarkLeatherSurface theme={theme} radius={22} />
                       <View style={styles.walletHeroTopRow}>
                         <View style={styles.walletPreviewIdentity}>
                           <WalletLogoBadge
@@ -1883,18 +2150,26 @@ export function SheetModal({
                             mark={preview.mark}
                             size={30}
                             radius={9}
-                            ink="#ffffff"
+                            ink={cardInk}
                             fontSize={10}
                           />
-                          <Text style={styles.walletPreviewName} numberOfLines={1}>
+                          <Text
+                            style={[styles.walletPreviewName, { color: cardInk }]}
+                            numberOfLines={1}
+                          >
                             {preview.name}
                           </Text>
                         </View>
-                        <View style={styles.walletHeroModeBadge}>
+                        <View
+                          style={[
+                            styles.walletHeroModeBadge,
+                            { backgroundColor: cardBadgeBg },
+                          ]}
+                        >
                           <Text
                             style={[
                               styles.walletHeroModeText,
-                              { color: theme.leather.thread },
+                              { color: cardInk },
                             ]}
                           >
                             {isEdit ? "EDIT WALLET" : "NEW WALLET"}
@@ -1906,15 +2181,17 @@ export function SheetModal({
                         <Text
                           style={[
                             styles.walletHeroLabel,
-                            { color: theme.leather.thread },
+                            { color: cardSubInk },
                           ]}
                         >
                           {isEdit ? "Current balance" : "Opening balance"}
                         </Text>
                         <View style={styles.entryAmountInputRow}>
-                          <Text style={styles.entryCurrencySign}>₱</Text>
+                          <Text style={[styles.entryCurrencySign, { color: cardInk }]}>
+                            ₱
+                          </Text>
                           <Text
-                            style={[styles.entryBigInput, { color: "#ffffff" }]}
+                            style={[styles.entryBigInput, { color: cardInk }]}
                             numberOfLines={1}
                             adjustsFontSizeToFit
                           >
@@ -1923,28 +2200,35 @@ export function SheetModal({
                         </View>
                       </View>
 
-                      <View style={styles.confirmMetaList}>
+                      <View
+                        style={[
+                          styles.confirmMetaList,
+                          { borderTopColor: cardDivider },
+                        ]}
+                      >
                         <View style={styles.confirmMetaRow}>
                           <Text
                             style={[
                               styles.confirmMetaKey,
-                              { color: theme.leather.thread },
+                              { color: cardSubInk },
                             ]}
                           >
                             Category
                           </Text>
-                          <Text style={styles.confirmMetaVal}>{preview.type}</Text>
+                          <Text style={[styles.confirmMetaVal, { color: cardInk }]}>
+                            {preview.type}
+                          </Text>
                         </View>
                         <View style={styles.confirmMetaRow}>
                           <Text
                             style={[
                               styles.confirmMetaKey,
-                              { color: theme.leather.thread },
+                              { color: cardSubInk },
                             ]}
                           >
                             Label
                           </Text>
-                          <Text style={styles.confirmMetaVal}>
+                          <Text style={[styles.confirmMetaVal, { color: cardInk }]}>
                             {preview.account}
                           </Text>
                         </View>
@@ -1952,10 +2236,10 @@ export function SheetModal({
                           <Text
                             style={[
                               styles.confirmMetaKey,
-                              { color: theme.leather.thread },
+                              { color: cardSubInk },
                             ]}
                           >
-                            {hasBrandCardArt ? "Accent color" : "Card color"}
+                            Card design
                           </Text>
                           <View style={styles.walletPreviewColorChip}>
                             <View
@@ -1964,13 +2248,13 @@ export function SheetModal({
                                 { backgroundColor: previewPalette.from },
                               ]}
                             />
-                            <Text style={styles.confirmMetaVal}>
-                              {previewPalette.label}
+                            <Text style={[styles.confirmMetaVal, { color: cardInk }]}>
+                              {bgDesignLabel}
                             </Text>
                           </View>
                         </View>
                       </View>
-                    </View>
+                    </WalletCardPreviewBox>
 
                     {isEdit && editTarget && onDeleteWallet ? (
                       walletConfirmDelete ? (
@@ -5062,6 +5346,73 @@ export function SheetModal({
   );
 }
 
+function WalletCardPreviewBox({
+  cardDesign,
+  palette,
+  borderColor,
+  children,
+}: {
+  cardDesign?: { source: ImageSourcePropType; ink: string; isDark: boolean };
+  palette: { from: string; to: string };
+  borderColor: string;
+  children: React.ReactNode;
+}) {
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  return (
+    <View
+      onLayout={(e) => {
+        const { width, height } = e.nativeEvent.layout;
+        if (
+          width > 0 &&
+          height > 0 &&
+          (Math.abs(width - size.width) > 1 ||
+            Math.abs(height - size.height) > 1)
+        ) {
+          setSize({ width, height });
+        }
+      }}
+      style={[
+        styles.walletCardPreviewShell,
+        {
+          borderColor,
+          backgroundColor: cardDesign
+            ? cardDesign.isDark
+              ? "#090e17"
+              : "#edf3ec"
+            : palette.to,
+        },
+      ]}
+    >
+      {cardDesign ? (
+        size.width > 0 && size.height > 0 ? (
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            <Svg width={size.width} height={size.height}>
+              <SvgImage
+                href={cardDesign.source}
+                x={0}
+                y={0}
+                width={size.width}
+                height={size.height}
+                preserveAspectRatio="xMaxYMid slice"
+              />
+            </Svg>
+          </View>
+        ) : null
+      ) : (
+        <LinearGradient
+          pointerEvents="none"
+          colors={[palette.from, palette.to]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
+      <View style={styles.walletCardPreviewInner}>{children}</View>
+    </View>
+  );
+}
+
 function PrimaryButton({
   label,
   disabled,
@@ -5420,6 +5771,102 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginHorizontal: 2,
   },
+  stitchedPresetBgRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    marginTop: 6,
+    marginBottom: 8,
+  },
+  presetBgToggleBtn: {
+    height: 32,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  presetBgToggleText: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 11.5,
+    includeFontPadding: false,
+  },
+  bgCustomizeTabsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  bgCustomizeTabBtn: {
+    height: 34,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bgCustomizeTabText: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 11.5,
+    includeFontPadding: false,
+  },
+  bgResetBtn: {
+    marginLeft: "auto",
+    height: 32,
+    borderRadius: 11,
+    borderWidth: 1,
+    paddingHorizontal: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bgResetText: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 11,
+    includeFontPadding: false,
+  },
+  bgPresetThumbStrip: {
+    gap: 9,
+    paddingVertical: 4,
+    paddingRight: 4,
+    marginBottom: 6,
+  },
+  bgPresetThumbCard: {
+    width: 96,
+    height: 60,
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  bgPresetThumbInner: {
+    flex: 1,
+    justifyContent: "flex-end",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  bgPresetThumbCheck: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bgPresetThumbLabel: {
+    color: "#ffffff",
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 10.5,
+    includeFontPadding: false,
+  },
   recommendedHint: {
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
@@ -5567,6 +6014,16 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     marginTop: 1.5,
     flexShrink: 1,
+  },
+  walletCardPreviewShell: {
+    borderRadius: 22,
+    borderWidth: 1.5,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  walletCardPreviewInner: {
+    paddingHorizontal: 18,
+    paddingVertical: 16,
   },
   walletHeroPanel: {
     borderRadius: 22,
