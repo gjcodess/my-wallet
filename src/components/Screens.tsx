@@ -2819,7 +2819,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
-    paddingHorizontal: 20,
+    paddingHorizontal: 26,
     borderBottomWidth: 0,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.24,
