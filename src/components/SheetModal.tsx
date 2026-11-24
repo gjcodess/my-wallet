@@ -2090,24 +2090,11 @@ export function SheetModal({
                         >
                           Opening balance
                         </Text>
-                        <View style={styles.entryAmountInputRow}>
-                          <Text style={[styles.entryCurrencySign, { color: cardInk }]}>
-                            ₱
-                          </Text>
-                          <Text
-                            style={[
-                              styles.entryBigInput,
-                              {
-                                color: cardInk,
-                                opacity: balance ? 1 : 0.8,
-                              },
-                            ]}
-                            numberOfLines={1}
-                            adjustsFontSizeToFit
-                          >
-                            {balance ? formatAmountInput(balance) : "0.00"}
-                          </Text>
-                        </View>
+                        <HeroAmountDisplay
+                          value={balance}
+                          color={cardInk}
+                          muted={!balance}
+                        />
                       </View>
 
                       <View style={styles.walletHeroBottomRow}>
@@ -2186,18 +2173,7 @@ export function SheetModal({
                         >
                           {isEdit ? "Current balance" : "Opening balance"}
                         </Text>
-                        <View style={styles.entryAmountInputRow}>
-                          <Text style={[styles.entryCurrencySign, { color: cardInk }]}>
-                            ₱
-                          </Text>
-                          <Text
-                            style={[styles.entryBigInput, { color: cardInk }]}
-                            numberOfLines={1}
-                            adjustsFontSizeToFit
-                          >
-                            {balance ? formatAmountInput(balance) : "0.00"}
-                          </Text>
-                        </View>
+                        <HeroAmountDisplay value={balance} color={cardInk} />
                       </View>
 
                       <View
@@ -3041,22 +3017,11 @@ export function SheetModal({
                             </Pressable>
                           ) : null}
                         </View>
-                        <View style={styles.entryAmountInputRow}>
-                          <Text style={styles.entryCurrencySign}>₱</Text>
-                          <Text
-                            style={[
-                              styles.entryBigInput,
-                              {
-                                color: "#ffffff",
-                                opacity: amount ? 1 : 0.8,
-                              },
-                            ]}
-                            numberOfLines={1}
-                            adjustsFontSizeToFit
-                          >
-                            {amount ? formatAmountInput(amount) : "0.00"}
-                          </Text>
-                        </View>
+                        <HeroAmountDisplay
+                          value={amount}
+                          color="#ffffff"
+                          muted={!amount}
+                        />
                       </View>
 
                       <View style={styles.walletHeroBottomRow}>
@@ -3314,16 +3279,7 @@ export function SheetModal({
                         >
                           Confirm transaction
                         </Text>
-                        <View style={styles.entryAmountInputRow}>
-                          <Text style={styles.entryCurrencySign}>₱</Text>
-                          <Text
-                            style={[styles.entryBigInput, { color: "#ffffff" }]}
-                            numberOfLines={1}
-                            adjustsFontSizeToFit
-                          >
-                            {formatAmountInput(amount)}
-                          </Text>
-                        </View>
+                        <HeroAmountDisplay value={amount} color="#ffffff" />
                       </View>
 
                       <View style={styles.confirmMetaList}>
@@ -5346,6 +5302,33 @@ export function SheetModal({
   );
 }
 
+function HeroAmountDisplay({
+  value,
+  color,
+  muted = false,
+}: {
+  value: string;
+  color: string;
+  muted?: boolean;
+}) {
+  return (
+    <Text
+      style={[
+        styles.entryBigInput,
+        {
+          color,
+          opacity: muted ? 0.82 : 1,
+        },
+      ]}
+      numberOfLines={1}
+      adjustsFontSizeToFit
+    >
+      <Text style={[styles.entryCurrencySign, { color }]}>₱{"\u2009"}</Text>
+      {value ? formatAmountInput(value) : "0.00"}
+    </Text>
+  );
+}
+
 function WalletCardPreviewBox({
   cardDesign,
   palette,
@@ -6107,26 +6090,20 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 11.5,
   },
-  entryAmountInputRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 5,
-    marginTop: 4,
-  },
   entryCurrencySign: {
-    color: "#ffffff",
     fontFamily: "Poppins_800ExtraBold",
-    fontWeight: "900",
-    fontSize: 24,
-    opacity: 0.8,
+    fontWeight: "800",
+    fontSize: 23,
+    opacity: 0.78,
   },
   entryBigInput: {
-    flex: 1,
     fontFamily: "Poppins_800ExtraBold",
-    fontWeight: "900",
+    fontWeight: "800",
     fontSize: 38,
+    lineHeight: 44,
     letterSpacing: 0.2,
-    paddingVertical: 0,
+    includeFontPadding: false,
+    marginTop: 4,
   },
   entrySection: {
     marginBottom: 16,

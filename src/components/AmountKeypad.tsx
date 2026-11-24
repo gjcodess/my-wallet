@@ -83,6 +83,8 @@ export const AmountKeypad = React.memo(function AmountKeypad({
   };
 
   const keyHeight = compact ? 43 : 49;
+  const dangerInk = theme.dark ? "#ff827e" : "#c04444";
+  const dangerBorder = hexToRgba(dangerInk, 0.28);
 
   return (
     <View style={styles.wrapper}>
@@ -116,17 +118,25 @@ export const AmountKeypad = React.memo(function AmountKeypad({
               style={({ pressed }) => [
                 styles.clearChip,
                 {
+                  overflow: "hidden",
+                  borderWidth: 1,
+                  borderColor: stitched ? dangerBorder : theme.line,
                   backgroundColor: stitched
-                    ? theme.leather.colors[1]
+                    ? theme.dark
+                      ? "#2c1719"
+                      : "#fdefee"
                     : theme.accentSoft,
                   transform: [{ scale: pressed ? 0.95 : 1 }],
                 },
               ]}
             >
+              {stitched ? (
+                <LightLeatherSurface theme={theme} radius={13} danger />
+              ) : null}
               <Text
                 style={[
                   styles.clearChipText,
-                  { color: stitched ? "#ffffff" : theme.accentText },
+                  { color: stitched ? dangerInk : theme.accentText },
                 ]}
               >
                 Clear
@@ -162,17 +172,19 @@ export const AmountKeypad = React.memo(function AmountKeypad({
                     stitched
                       ? {
                           borderWidth: 1,
-                          borderColor: hexToRgba(theme.leather.accent, 0.22),
+                          borderColor: isBack
+                            ? dangerBorder
+                            : hexToRgba(theme.leather.accent, 0.22),
                         }
                       : bevelStyle(theme.dark),
                     cardShadow(theme.dark),
                   ]}
                 >
                   {stitched ? (
-                    <LightLeatherSurface theme={theme} radius={15} />
+                    <LightLeatherSurface theme={theme} radius={15} danger={isBack} />
                   ) : null}
                   {isBack ? (
-                    <Icon name="backspace" size={20} color={theme.ink} />
+                    <Icon name="backspace" size={20} color={dangerInk} />
                   ) : (
                     <Text style={[styles.keyText, { color: theme.ink }]}>
                       {key}
