@@ -23,6 +23,8 @@ import {
 } from "@expo-google-fonts/poppins";
 import Svg, {
   Defs,
+  Path as SvgPath,
+  Pattern as SvgPattern,
   RadialGradient as SvgRadialGradient,
   Rect as SvgRect,
   Stop,
@@ -871,11 +873,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: theme.page }]}
-        edges={["left", "right", "bottom"]}
-      >
-        {/* Warm surfaces continue beneath the copper header. */}
+      <View style={[styles.container, { backgroundColor: theme.page }]}>
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
           {!dark && (
             <Svg width="100%" height="100%">
@@ -891,11 +889,23 @@ export default function App() {
                   <Stop offset="50%" stopColor={theme.surface} stopOpacity="1" />
                   <Stop offset="100%" stopColor={theme.page} stopOpacity="1" />
                 </SvgRadialGradient>
+                <SvgPattern id="saffianoGrain" width="10" height="10" patternUnits="userSpaceOnUse">
+                  <SvgPath d="M-2 2L2-2M0 10L10 0M8 12l4-4" stroke={theme.leather.accent} strokeWidth=".7" opacity=".04" />
+                  <SvgPath d="M-2 8L2 12M0 0l10 10M8-2l4 4" stroke={theme.leather.accent} strokeWidth=".55" opacity=".02" />
+                </SvgPattern>
               </Defs>
               <SvgRect x="0" y="0" width="100%" height="100%" fill="url(#bgRadial)" />
+              <SvgRect x="0" y="0" width="100%" height="100%" fill="url(#saffianoGrain)" />
             </Svg>
           )}
         </View>
+        <LinearGradient
+          pointerEvents="none"
+          colors={[`${theme.page}00`, theme.page]}
+          style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 110 }}
+        />
+
+      <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
 
         <StatusBar style={dark || (!isLocked && !selected && headerAtTop) ? "light" : "dark"} />
 
@@ -1239,6 +1249,7 @@ export default function App() {
           onFinish={handleFinishIntro}
         />
       )}
+      </View>
     </SafeAreaProvider>
   );
 }
