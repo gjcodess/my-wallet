@@ -4,7 +4,6 @@ import {
   Animated,
   BackHandler,
   Easing,
-  FlatList,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -244,14 +243,14 @@ export function SheetModal({
   const [balance, setBalance] = useState(
     editTarget ? String(editTarget.balance) : ""
   );
-  const [showOpeningKeypad, setShowOpeningKeypad] = useState(false);
+  const [walletStep, setWalletStep] = useState(type === "edit" ? 1 : 0);
   const [walletConfirmDelete, setWalletConfirmDelete] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
   const sheetScrollY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     sheetScrollY.setValue(0);
-    setShowOpeningKeypad(false);
+    setWalletStep(type === "edit" ? 1 : 0);
     setWalletConfirmDelete(false);
     setGlobalSearch("");
     setTransferFee(0);
@@ -559,6 +558,11 @@ export function SheetModal({
       scrollToTop();
       return;
     }
+    if ((type === "add" || type === "edit") && walletStep > 0) {
+      setWalletStep((prev) => Math.max(0, prev - 1));
+      scrollToTop();
+      return;
+    }
     onClose();
   }, [
     closeFavoriteEditor,
@@ -569,6 +573,7 @@ export function SheetModal({
     scheduledEntry,
     scrollToTop,
     type,
+    walletStep,
   ]);
 
   useEffect(() => {
@@ -1018,6 +1023,118 @@ export function SheetModal({
     );
   };
 
+  type StepFooterConfig = {
+    onBack?: () => void;
+    primaryLabel: string;
+    primaryIcon: "chevron" | "check";
+    primaryDisabled?: boolean;
+    onPrimary: () => void;
+  };
+
+  const stepFooterConfig: StepFooterConfig | null = (() => {
+    if (type === "add" || type === "edit") {
+      const isEdit = type === "edit";
+      const totalSteps = isEdit ? 3 : 4;
+      const currentWalletStep = Math.min(walletStep, totalSteps - 1);
+      const goWallet = (next: number) => {
+        Keyboard.dismiss();
+        scrollToTop();
+        setWalletStep(Math.max(0, Math.min(totalSteps - 1, next)));
+      };
+
+      if (currentWalletStep === 0) {
+        return {
+          primaryLabel: "Next: Wallet details",
+          primaryIcon: "chevron",
+          onPrimary: () => goWallet(1),
+        };
+      }
+      if (currentWalletStep === 1) {
+        return {
+          onBack: () => goWallet(0),
+          primaryLabel: isEdit ? "Next: Confirm" : "Next: Balance",
+          primaryIcon: "chevron",
+          primaryDisabled: !name.trim(),
+          onPrimary: () => goWallet(2),
+        };
+      }
+      if (!isEdit && currentWalletStep === 2) {
+        return {
+          onBack: () => goWallet(1),
+          primaryLabel: "Next: Confirm",
+          primaryIcon: "chevron",
+          onPrimary: () => goWallet(3),
+        };
+      }
+      return {
+        onBack: () => goWallet(isEdit ? 1 : 2),
+        primaryLabel: isEdit ? "Save changes" : "Save wallet",
+        primaryIcon: "check",
+        primaryDisabled: !name.trim(),
+        onPrimary: save,
+      };
+    }
+
+    if (type === "entry" && entryWallet && !managingFavorites && !favoriteDraft) {
+      const isTransferMode = entryType === "transfer";
+      const transferPossible =
+        wallets.length >= 2 && Boolean(sourceWallet && destWallet);
+      const totalSteps = isTransferMode ? 3 : 4;
+      const minStep = scheduledEntry ? 1 : 0;
+      const currentStep = Math.min(entryStep, totalSteps - 1);
+      const goEntry = (next: number) => {
+        Keyboard.dismiss();
+        scrollToTop();
+        setEntryStep(Math.max(minStep, Math.min(totalSteps - 1, next)));
+      };
+
+      if (currentStep === 0) {
+        return {
+          primaryLabel: "Next: Enter amount",
+          primaryIcon: "chevron",
+          primaryDisabled: isTransferMode && !transferPossible,
+          onPrimary: () => goEntry(1),
+        };
+      }
+      if (currentStep === 1) {
+        return {
+          onBack: !scheduledEntry ? () => goEntry(0) : undefined,
+          primaryLabel: isTransferMode ? "Next: Review" : "Next: Wallet",
+          primaryIcon: "chevron",
+          primaryDisabled: isTransferMode
+            ? transferInvalid
+            : !entryValue || entryValue <= 0,
+          onPrimary: () => goEntry(2),
+        };
+      }
+      if (!isTransferMode && currentStep === 2) {
+        return {
+          onBack: () => goEntry(1),
+          primaryLabel: "Next: Confirm",
+          primaryIcon: "chevron",
+          primaryDisabled: entryInvalid,
+          onPrimary: () => goEntry(3),
+        };
+      }
+      return {
+        onBack: () => goEntry(currentStep - 1),
+        primaryLabel: entrySaving
+          ? "Saving…"
+          : entryType === "expense"
+            ? "Save expense"
+            : entryType === "income"
+              ? "Add income"
+              : "Confirm transfer",
+        primaryIcon: "check",
+        primaryDisabled:
+          entrySaving || (isTransferMode ? transferInvalid : entryInvalid),
+        onPrimary: save,
+      };
+    }
+
+    return null;
+  })();
+
   return (
     <View style={[styles.overlayRoot, { paddingTop: insets.top }]}>
       <Animated.View
@@ -1066,10 +1183,11 @@ export function SheetModal({
             title={sheetTitle}
             onBack={handleHeaderBack}
             right={
-              type === "entry" &&
-              entryStep > (scheduledEntry ? 1 : 0) &&
-              !managingFavorites &&
-              !favoriteDraft ? (
+              (type === "entry" &&
+                entryStep > (scheduledEntry ? 1 : 0) &&
+                !managingFavorites &&
+                !favoriteDraft) ||
+              ((type === "add" || type === "edit") && walletStep > 0) ? (
                 <Pressable
                   onPress={onClose}
                   accessibilityRole="button"
@@ -1104,7 +1222,10 @@ export function SheetModal({
               ref={sheetScrollRef}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingTop: 6, paddingBottom: 32 }}
+              contentContainerStyle={{
+                paddingTop: 6,
+                paddingBottom: stepFooterConfig ? 20 : 32,
+              }}
               onScroll={Animated.event(
                 [{ nativeEvent: { contentOffset: { y: sheetScrollY } } }],
                 { useNativeDriver: true }
@@ -1125,323 +1246,472 @@ export function SheetModal({
                 onScrollToTop={scrollToTop} />
             )}
             {/* ==================== ADD / EDIT WALLET SHEET ==================== */}
-            {(type === "add" || type === "edit") && (
+            {(type === "add" || type === "edit") && (() => {
+              const isEdit = type === "edit";
+              const walletSteps = isEdit
+                ? (["Provider", "Details", "Confirm"] as const)
+                : (["Provider", "Details", "Balance", "Confirm"] as const);
+              const currentWalletStep = Math.min(walletStep, walletSteps.length - 1);
+              const goWalletStep = (next: number) => {
+                Keyboard.dismiss();
+                scrollToTop();
+                setWalletStep(Math.max(0, Math.min(walletSteps.length - 1, next)));
+              };
+              const isProviderStep = currentWalletStep === 0;
+              const isDetailsStep = currentWalletStep === 1;
+              const isBalanceStep = !isEdit && currentWalletStep === 2;
+              const isConfirmWalletStep =
+                (isEdit && currentWalletStep === 2) ||
+                (!isEdit && currentWalletStep === 3);
+              const hasBrandCardArt = Boolean(
+                resolveWalletCardDesign(logoKey, name)
+              );
+              const previewPalette = tonePalette[tone] || tonePalette.blue;
+              const presetEntries: (WalletPreset | "custom")[] = [
+                "custom",
+                ...filteredPresets,
+              ];
+              const presetRows: (WalletPreset | "custom")[][] = [];
+              for (let i = 0; i < presetEntries.length; i += 3) {
+                presetRows.push(presetEntries.slice(i, i + 3));
+              }
+
+              return (
               <View>
-                <WalletFolder wallet={preview} hidden={false} compact />
-
-                <View style={styles.presetHeaderRow}>
-                  <Text style={[styles.formTitle, { color: theme.ink, marginTop: 18, marginBottom: 8 }]}>
-                    Choose bank or e-wallet
-                  </Text>
-                </View>
-
-                {/* Search + Group Filter */}
-                <View
-                  style={[
-                    styles.presetSearchBox,
-                    { backgroundColor: theme.soft, borderColor: theme.line },
-                  ]}
-                >
-                  <Icon name="search" size={16} color={theme.muted} />
-                  <TextInput
-                    value={presetSearch}
-                    onChangeText={setPresetSearch}
-                    placeholder="Search GCash, BPI, MariBank..."
-                    placeholderTextColor={theme.muted}
-                    style={[styles.presetSearchInput, { color: theme.ink }]}
-                  />
-                  {presetSearch ? (
-                    <Pressable onPress={() => setPresetSearch("")} hitSlop={8}>
-                      <Icon name="close" size={14} color={theme.muted} />
-                    </Pressable>
-                  ) : null}
-                </View>
-
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 7, marginBottom: 10 }}
-                >
-                  {PRESET_GROUPS.map((grp) => {
-                    const active = presetGroup === grp;
-                    return (
-                      <Pressable
-                        key={grp}
-                        onPress={() => setPresetGroup(grp)}
+                {/* Slim Step Progress Indicator */}
+                <View pointerEvents="none" style={styles.entryProgressWrap}>
+                  <View style={styles.entryProgressMeta}>
+                    <Text style={[styles.entryProgressCount, { color: theme.muted }]}>
+                      Step {currentWalletStep + 1} of {walletSteps.length}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.entryProgressCurrent,
+                        { color: theme.leather.accent },
+                      ]}
+                    >
+                      {walletSteps[currentWalletStep]}
+                    </Text>
+                  </View>
+                  <View style={styles.entryProgressTrackRow}>
+                    {walletSteps.map((stepLabel, idx) => (
+                      <View
+                        key={stepLabel}
                         style={[
-                          styles.miniPill,
-                          {
-                            paddingHorizontal: 12,
-                            paddingVertical: 6,
-                            backgroundColor: active ? theme.accent : theme.soft,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.miniPillText,
-                            { color: active ? theme.accentInk : theme.ink },
-                          ]}
-                        >
-                          {grp}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-
-                {/* Horizontal Preset Cards + Custom Option */}
-                <View style={{ position: "relative" }}>
-                  <FlatList
-                    horizontal
-                    data={filteredPresets}
-                    keyExtractor={(item) => item.key}
-                    showsHorizontalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                    initialNumToRender={6}
-                    maxToRenderPerBatch={6}
-                    windowSize={3}
-                    removeClippedSubviews
-                    contentContainerStyle={{ gap: 9, paddingVertical: 2, paddingHorizontal: 4 }}
-                    ListHeaderComponent={
-                      <Pressable
-                        onPress={() => handleSelectPreset("custom")}
-                        style={[
-                          styles.presetCard,
+                          styles.entryProgressSegment,
                           {
                             backgroundColor:
-                              selectedPresetKey === "custom"
-                                ? theme.surface
-                                : theme.soft,
-                            borderColor:
-                              selectedPresetKey === "custom"
-                                ? theme.accent
-                                : theme.line,
+                              idx <= currentWalletStep
+                                ? theme.leather.colors[1]
+                                : hexToRgba(theme.leather.accent, 0.16),
                           },
                         ]}
-                      >
-                        <View
-                          style={[
-                            styles.presetCustomIcon,
-                            { backgroundColor: theme.accentSoft },
-                          ]}
-                        >
-                          <Icon name="plus" size={18} color={theme.accentText} />
-                        </View>
-                        <Text
-                          style={[styles.presetName, { color: theme.ink }]}
-                          numberOfLines={1}
-                        >
-                          Custom
-                        </Text>
-                        <Text
-                          style={[styles.presetSub, { color: theme.muted }]}
-                          numberOfLines={1}
-                        >
-                          Any name
-                        </Text>
-                      </Pressable>
-                    }
-                    renderItem={({ item: preset }) => {
-                      const active = selectedPresetKey === preset.key;
-                      const pPal = tonePalette[preset.recommendedTone];
-                      return (
-                        <Pressable
-                          onPress={() => handleSelectPreset(preset)}
-                          style={[
-                            styles.presetCard,
-                            {
-                              backgroundColor: active ? theme.surface : theme.soft,
-                              borderColor: active ? theme.accent : theme.line,
-                            },
-                          ]}
-                        >
-                          <WalletLogoBadge
-                            logoKey={preset.key}
-                            name={preset.name}
-                            mark={preset.mark}
-                            size={34}
-                            radius={11}
-                            ink={pPal.ink}
-                            fontSize={10}
-                          />
-                          <Text
-                            style={[styles.presetName, { color: theme.ink }]}
-                            numberOfLines={1}
-                          >
-                            {preset.name}
-                          </Text>
-                          <Text
-                            style={[styles.presetSub, { color: theme.muted }]}
-                            numberOfLines={1}
-                          >
-                            {preset.type}
-                          </Text>
+                      />
+                    ))}
+                  </View>
+                </View>
+
+                {/* ==================== STEP 0: CHOOSE BANK OR E-WALLET ==================== */}
+                {isProviderStep && (
+                  <View>
+                    <View style={styles.entrySectionHead}>
+                      <Text style={[styles.entrySectionTitle, { color: theme.ink }]}>
+                        Choose bank or e-wallet
+                      </Text>
+                      <Text style={[styles.entrySectionSub, { color: theme.muted }]}>
+                        {filteredPresets.length} presets
+                      </Text>
+                    </View>
+
+                    {/* Stitched Search Input */}
+                    <View
+                      style={[
+                        styles.presetSearchBox,
+                        {
+                          overflow: "hidden",
+                          backgroundColor: theme.card,
+                          borderColor: hexToRgba(theme.leather.accent, 0.24),
+                        },
+                      ]}
+                    >
+                      <LightLeatherSurface theme={theme} radius={16} />
+                      <Icon name="search" size={16} color={theme.leather.accent} />
+                      <TextInput
+                        value={presetSearch}
+                        onChangeText={setPresetSearch}
+                        placeholder="Search GCash, BPI, MariBank..."
+                        placeholderTextColor={theme.muted}
+                        style={[styles.presetSearchInput, { color: theme.ink }]}
+                      />
+                      {presetSearch ? (
+                        <Pressable onPress={() => setPresetSearch("")} hitSlop={8}>
+                          <Icon name="close" size={14} color={theme.muted} />
                         </Pressable>
-                      );
-                    }}
-                    ListEmptyComponent={
-                      <View
-                        style={[
-                          styles.presetEmptyNote,
-                          { backgroundColor: theme.soft, borderColor: theme.line },
-                        ]}
-                      >
-                        <Text style={[styles.presetSub, { color: theme.muted }]}>
-                          No matching preset — tap Custom
-                        </Text>
-                      </View>
-                    }
-                  />
-                  <EdgeFade position="left" color={theme.page} size={14} />
-                  <EdgeFade position="right" color={theme.page} size={14} />
-                </View>
+                      ) : null}
+                    </View>
 
-                <Text style={[styles.formTitle, { color: theme.ink }]}>
-                  Wallet detail
-                </Text>
-
-                <View
-                  style={[
-                    styles.softField,
-                    { backgroundColor: theme.soft, borderColor: theme.line },
-                  ]}
-                >
-                  <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                    Wallet name
-                  </Text>
-                  <TextInput
-                    value={name}
-                    onChangeText={setName}
-                    onFocus={() => setShowOpeningKeypad(false)}
-                    placeholder="e.g. UnionBank"
-                    placeholderTextColor={theme.muted}
-                    style={[styles.fieldInput, { color: theme.ink }]}
-                  />
-                </View>
-
-                <View
-                  style={[
-                    styles.softField,
-                    { backgroundColor: theme.soft, borderColor: theme.line },
-                  ]}
-                >
-                  <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                    Label (optional)
-                  </Text>
-                  <TextInput
-                    value={accountLabel}
-                    onChangeText={setAccountLabel}
-                    onFocus={() => setShowOpeningKeypad(false)}
-                    placeholder="e.g. Personal, Payroll, Savings"
-                    placeholderTextColor={theme.muted}
-                    style={[styles.fieldInput, { color: theme.ink }]}
-                  />
-                </View>
-
-                <View style={styles.fieldRow}>
-                  <View
-                    style={[
-                      styles.softField,
-                      {
-                        flex: 1,
-                        backgroundColor: theme.soft,
-                        borderColor: theme.line,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                      Category
-                    </Text>
+                    {/* Stitched Group Filter Pills */}
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={{ gap: 6, paddingTop: 4 }}
+                      contentContainerStyle={{ gap: 7, marginBottom: 12 }}
                     >
-                      {WALLET_CATEGORIES.map((cat) => {
-                        const active = category === cat;
+                      {PRESET_GROUPS.map((grp) => {
+                        const active = presetGroup === grp;
                         return (
                           <Pressable
-                            key={cat}
-                            onPress={() => setCategory(cat)}
+                            key={grp}
+                            onPress={() => setPresetGroup(grp)}
                             style={[
-                              styles.miniPill,
+                              styles.stitchedGroupPill,
                               {
+                                overflow: "hidden",
                                 backgroundColor: active
-                                  ? theme.accent
-                                  : theme.soft2,
+                                  ? theme.leather.edge
+                                  : theme.card,
+                                borderColor: active
+                                  ? theme.leather.edge
+                                  : hexToRgba(theme.leather.accent, 0.22),
                               },
                             ]}
                           >
+                            {active ? (
+                              <DarkLeatherSurface theme={theme} radius={13} />
+                            ) : (
+                              <LightLeatherSurface theme={theme} radius={13} />
+                            )}
                             <Text
                               style={[
-                                styles.miniPillText,
-                                {
-                                  color: active ? theme.accentInk : theme.ink,
-                                },
+                                styles.stitchedGroupPillText,
+                                { color: active ? "#ffffff" : theme.ink },
                               ]}
                             >
-                              {cat}
+                              {grp}
                             </Text>
                           </Pressable>
                         );
                       })}
                     </ScrollView>
-                  </View>
 
-                  {type === "add" ? (
-                    <Pressable
-                      onPress={() => {
-                        Keyboard.dismiss();
-                        setShowOpeningKeypad((prev) => !prev);
-                      }}
+                    {/* 3-Column Stitched Provider Grid */}
+                    <View style={styles.presetGrid}>
+                      {presetRows.map((row, rowIdx) => (
+                        <View key={rowIdx} style={styles.categoryGridRow}>
+                          {row.map((entry) => {
+                            if (entry === "custom") {
+                              const active = selectedPresetKey === "custom";
+                              return (
+                                <Pressable
+                                  key="custom"
+                                  onPress={() => handleSelectPreset("custom")}
+                                  style={[
+                                    styles.presetGridCard,
+                                    {
+                                      overflow: "hidden",
+                                      backgroundColor: active
+                                        ? theme.leather.edge
+                                        : theme.card,
+                                      borderColor: active
+                                        ? theme.leather.edge
+                                        : hexToRgba(theme.leather.accent, 0.22),
+                                    },
+                                  ]}
+                                >
+                                  {active ? (
+                                    <DarkLeatherSurface theme={theme} radius={16} />
+                                  ) : (
+                                    <LightLeatherSurface theme={theme} radius={16} />
+                                  )}
+                                  <View style={styles.presetGridIconSlot}>
+                                    <Icon
+                                      name="plus"
+                                      size={20}
+                                      color={active ? "#ffffff" : theme.leather.accent}
+                                    />
+                                  </View>
+                                  <Text
+                                    style={[
+                                      styles.presetName,
+                                      { color: active ? "#ffffff" : theme.ink },
+                                    ]}
+                                    numberOfLines={1}
+                                  >
+                                    Custom
+                                  </Text>
+                                  <Text
+                                    style={[
+                                      styles.presetSub,
+                                      {
+                                        color: active
+                                          ? theme.leather.thread
+                                          : theme.muted,
+                                      },
+                                    ]}
+                                    numberOfLines={1}
+                                  >
+                                    Any name
+                                  </Text>
+                                </Pressable>
+                              );
+                            }
+
+                            const active = selectedPresetKey === entry.key;
+                            const pPal = tonePalette[entry.recommendedTone];
+                            return (
+                              <Pressable
+                                key={entry.key}
+                                onPress={() => handleSelectPreset(entry)}
+                                style={[
+                                  styles.presetGridCard,
+                                  {
+                                    overflow: "hidden",
+                                    backgroundColor: active
+                                      ? theme.leather.edge
+                                      : theme.card,
+                                    borderColor: active
+                                      ? theme.leather.edge
+                                      : hexToRgba(theme.leather.accent, 0.22),
+                                  },
+                                ]}
+                              >
+                                {active ? (
+                                  <DarkLeatherSurface theme={theme} radius={16} />
+                                ) : (
+                                  <LightLeatherSurface theme={theme} radius={16} />
+                                )}
+                                <WalletLogoBadge
+                                  logoKey={entry.key}
+                                  name={entry.name}
+                                  mark={entry.mark}
+                                  size={32}
+                                  radius={10}
+                                  ink={pPal.ink}
+                                  fontSize={9}
+                                />
+                                <Text
+                                  style={[
+                                    styles.presetName,
+                                    { color: active ? "#ffffff" : theme.ink },
+                                  ]}
+                                  numberOfLines={1}
+                                  adjustsFontSizeToFit
+                                  minimumFontScale={0.82}
+                                >
+                                  {entry.name}
+                                </Text>
+                                <Text
+                                  style={[
+                                    styles.presetSub,
+                                    {
+                                      color: active
+                                        ? theme.leather.thread
+                                        : theme.muted,
+                                    },
+                                  ]}
+                                  numberOfLines={1}
+                                >
+                                  {entry.type}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                          {row.length < 3
+                            ? Array.from({ length: 3 - row.length }).map((_, emptyIdx) => (
+                                <View key={`empty-p-${emptyIdx}`} style={{ flex: 1 }} />
+                              ))
+                            : null}
+                        </View>
+                      ))}
+                    </View>
+
+                    {!filteredPresets.length ? (
+                      <View
+                        style={[
+                          styles.stitchedNotice,
+                          {
+                            overflow: "hidden",
+                            borderColor: hexToRgba(theme.leather.accent, 0.24),
+                            marginTop: 10,
+                          },
+                        ]}
+                      >
+                        <LightLeatherSurface theme={theme} radius={16} />
+                        <Icon name="info" size={15} color={theme.leather.accent} />
+                        <Text style={[styles.stitchedNoticeText, { color: theme.ink }]}>
+                          No matching preset — tap Custom above
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                )}
+
+                {/* ==================== STEP 1: WALLET DETAILS ==================== */}
+                {isDetailsStep && (
+                  <View>
+                    {/* Dark Stitched Wallet Preview Panel (replaces WalletFolder card) */}
+                    <View
                       style={[
-                        styles.softField,
+                        styles.walletHeroPanel,
                         {
-                          flex: 1,
-                          backgroundColor: showOpeningKeypad
-                            ? theme.surface
-                            : theme.soft,
-                          borderColor: showOpeningKeypad
-                            ? theme.accent
-                            : theme.line,
+                          overflow: "hidden",
+                          borderColor: theme.leather.edge,
                         },
                       ]}
                     >
+                      <DarkLeatherSurface theme={theme} radius={22} />
+                      <View style={styles.walletHeroTopRow}>
+                        <View style={styles.walletPreviewIdentity}>
+                          <WalletLogoBadge
+                            logoKey={preview.logoKey}
+                            name={preview.name}
+                            mark={preview.mark}
+                            size={30}
+                            radius={9}
+                            ink="#ffffff"
+                            fontSize={10}
+                          />
+                          <Text
+                            style={styles.walletPreviewName}
+                            numberOfLines={1}
+                          >
+                            {preview.name}
+                          </Text>
+                        </View>
+                        <View style={styles.walletHeroModeBadge}>
+                          <Text
+                            style={[
+                              styles.walletHeroModeText,
+                              { color: theme.leather.thread },
+                            ]}
+                          >
+                            {category.toUpperCase()}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={[styles.walletHeroBottomRow, { marginTop: 14 }]}>
+                        <View style={styles.confirmMetaRow}>
+                          <Text
+                            style={[
+                              styles.walletHeroSubText,
+                              { color: theme.leather.thread },
+                            ]}
+                          >
+                            {preview.account}
+                          </Text>
+                          <View style={styles.walletPreviewColorChip}>
+                            <View
+                              style={[
+                                styles.walletPreviewColorDot,
+                                { backgroundColor: previewPalette.from },
+                              ]}
+                            />
+                            <Text style={styles.walletPreviewColorText}>
+                              {previewPalette.label}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Stitched Wallet Name Input */}
+                    <View
+                      style={[
+                        styles.softField,
+                        {
+                          overflow: "hidden",
+                          backgroundColor: theme.card,
+                          borderColor: hexToRgba(theme.leather.accent, 0.24),
+                        },
+                      ]}
+                    >
+                      <LightLeatherSurface theme={theme} radius={19} />
                       <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                        Opening balance
+                        Wallet name
                       </Text>
+                      <TextInput
+                        value={name}
+                        onChangeText={setName}
+                        placeholder="e.g. UnionBank"
+                        placeholderTextColor={theme.muted}
+                        style={[styles.fieldInput, { color: theme.ink }]}
+                      />
+                    </View>
+
+                    {/* Stitched Label Input */}
+                    <View
+                      style={[
+                        styles.softField,
+                        {
+                          overflow: "hidden",
+                          backgroundColor: theme.card,
+                          borderColor: hexToRgba(theme.leather.accent, 0.24),
+                        },
+                      ]}
+                    >
+                      <LightLeatherSurface theme={theme} radius={19} />
+                      <Text style={[styles.fieldLabel, { color: theme.muted }]}>
+                        Label (optional)
+                      </Text>
+                      <TextInput
+                        value={accountLabel}
+                        onChangeText={setAccountLabel}
+                        placeholder="e.g. Personal, Payroll, Savings"
+                        placeholderTextColor={theme.muted}
+                        style={[styles.fieldInput, { color: theme.ink }]}
+                      />
+                    </View>
+
+                    {/* Stitched Category Pills */}
+                    <View style={{ marginTop: 4, marginBottom: 10 }}>
                       <Text
                         style={[
-                          styles.fieldInput,
-                          {
-                            color: balance ? theme.ink : theme.muted,
-                          },
+                          styles.fieldLabel,
+                          { color: theme.muted, marginLeft: 2, marginBottom: 6 },
                         ]}
-                        numberOfLines={1}
                       >
-                        {balance ? `₱${formatAmountInput(balance)}` : "₱0.00"}
+                        Category
                       </Text>
-                    </Pressable>
-                  ) : null}
-                </View>
+                      <View style={styles.walletCategoryRow}>
+                        {WALLET_CATEGORIES.map((cat) => {
+                          const active = category === cat;
+                          return (
+                            <Pressable
+                              key={cat}
+                              onPress={() => setCategory(cat)}
+                              style={[
+                                styles.walletCategoryChip,
+                                {
+                                  overflow: "hidden",
+                                  backgroundColor: active
+                                    ? theme.leather.edge
+                                    : theme.card,
+                                  borderColor: active
+                                    ? theme.leather.edge
+                                    : hexToRgba(theme.leather.accent, 0.22),
+                                },
+                              ]}
+                            >
+                              {active ? (
+                                <DarkLeatherSurface theme={theme} radius={13} />
+                              ) : (
+                                <LightLeatherSurface theme={theme} radius={13} />
+                              )}
+                              <Text
+                                style={[
+                                  styles.walletCategoryChipText,
+                                  { color: active ? "#ffffff" : theme.ink },
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {cat}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
 
-                {type === "add" && showOpeningKeypad ? (
-                  <AmountKeypad
-                    value={balance}
-                    onChange={setBalance}
-                    quickAmounts={[500, 1000, 5000]}
-                    compact
-                    theme={theme}
-                  />
-                ) : null}
-
-                {/* 12-Tone Color Picker */}
-                {(() => {
-                  const hasBrandCardArt = Boolean(
-                    resolveWalletCardDesign(logoKey, name)
-                  );
-                  return (
+                    {/* 12-Tone Color Picker */}
                     <View style={styles.colorHeaderRow}>
                       <Text style={[styles.fieldLabel, { color: theme.muted }]}>
                         {hasBrandCardArt ? "Accent & chart color" : "Card color"}
@@ -1450,7 +1720,7 @@ export function SheetModal({
                         <Text
                           style={[
                             styles.recommendedHint,
-                            { color: theme.accentText },
+                            { color: theme.leather.accent },
                           ]}
                         >
                           Uses brand card art
@@ -1459,7 +1729,7 @@ export function SheetModal({
                         <Text
                           style={[
                             styles.recommendedHint,
-                            { color: theme.accentText },
+                            { color: theme.leather.accent },
                           ]}
                         >
                           Recommended: {tonePalette[recommendedTone].label}
@@ -1467,125 +1737,330 @@ export function SheetModal({
                         </Text>
                       ) : null}
                     </View>
-                  );
-                })()}
-                <View style={styles.tonePicker}>
-                  {(Object.keys(tonePalette) as Tone[]).map((t) => {
-                    const pal = tonePalette[t];
-                    const active = tone === t;
-                    return (
-                      <Pressable
-                        key={t}
-                        onPress={() => setTone(t)}
-                        style={[
-                          styles.toneSwatchWrapper,
-                          {
-                            borderColor: active ? theme.accent : theme.page,
-                          },
-                        ]}
-                      >
-                        <LinearGradient
-                          colors={[pal.from, pal.to]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                          style={styles.toneSwatch}
-                        >
-                          {active && (
-                            <Icon name="check" size={15} color={pal.ink} />
-                          )}
-                        </LinearGradient>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                    <View style={styles.tonePicker}>
+                      {(Object.keys(tonePalette) as Tone[]).map((t) => {
+                        const pal = tonePalette[t];
+                        const active = tone === t;
+                        return (
+                          <Pressable
+                            key={t}
+                            onPress={() => setTone(t)}
+                            style={[
+                              styles.toneSwatchWrapper,
+                              {
+                                borderColor: active
+                                  ? theme.leather.accent
+                                  : theme.page,
+                              },
+                            ]}
+                          >
+                            <LinearGradient
+                              colors={[pal.from, pal.to]}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 1 }}
+                              style={styles.toneSwatch}
+                            >
+                              {active && (
+                                <Icon name="check" size={15} color={pal.ink} />
+                              )}
+                            </LinearGradient>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
 
-                <PrimaryButton
-                  label={type === "edit" ? "Save changes" : "Save wallet"}
-                  disabled={!name.trim()}
-                  onPress={save}
-                  theme={theme}
-                />
-
-                {type === "edit" && editTarget && onDeleteWallet ? (
-                  walletConfirmDelete ? (
+                {/* ==================== STEP 2 (ADD ONLY): OPENING BALANCE ==================== */}
+                {isBalanceStep && (
+                  <View>
                     <View
                       style={[
-                        styles.txConfirmDeleteBox,
+                        styles.walletHeroPanel,
                         {
-                          marginTop: 12,
-                          backgroundColor: theme.dark
-                            ? "rgba(192, 68, 68, 0.16)"
-                            : "#fdeaea",
-                          borderColor: "rgba(192, 68, 68, 0.35)",
+                          overflow: "hidden",
+                          borderColor: theme.leather.edge,
                         },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.txConfirmDeleteTitle,
-                          { color: theme.dark ? "#fca5a5" : "#991b1b" },
-                        ]}
-                      >
-                        Delete "{editTarget.name}"? Past activity logs will stay in Activity.
-                      </Text>
-                      <View style={styles.txActionPair}>
-                        <Pressable
-                          onPress={() => setWalletConfirmDelete(false)}
+                      <DarkLeatherSurface theme={theme} radius={22} />
+                      <View style={styles.walletHeroTopRow}>
+                        <View style={styles.walletHeroTag}>
+                          <WalletLogoBadge
+                            logoKey={preview.logoKey}
+                            name={preview.name}
+                            mark={preview.mark}
+                            size={18}
+                            radius={5}
+                            ink="#ffffff"
+                            fontSize={7}
+                          />
+                          <Text style={styles.walletHeroTagText} numberOfLines={1}>
+                            {preview.name}
+                          </Text>
+                        </View>
+                        <View style={styles.walletHeroModeBadge}>
+                          <Text
+                            style={[
+                              styles.walletHeroModeText,
+                              { color: theme.leather.thread },
+                            ]}
+                          >
+                            STARTING BALANCE
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.walletHeroAmountWrap}>
+                        <Text
                           style={[
-                            styles.txActionHalfBtn,
-                            { backgroundColor: theme.card },
+                            styles.walletHeroLabel,
+                            { color: theme.leather.thread },
                           ]}
                         >
+                          Opening balance
+                        </Text>
+                        <View style={styles.entryAmountInputRow}>
+                          <Text style={styles.entryCurrencySign}>₱</Text>
                           <Text
-                            style={[styles.secondaryButtonText, { color: theme.ink }]}
+                            style={[
+                              styles.entryBigInput,
+                              {
+                                color: "#ffffff",
+                                opacity: balance ? 1 : 0.8,
+                              },
+                            ]}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
                           >
-                            Cancel
+                            {balance ? formatAmountInput(balance) : "0.00"}
                           </Text>
-                        </Pressable>
-                        <Pressable
-                          onPress={() => {
-                            onDeleteWallet(editTarget);
-                            onDone(`${editTarget.name} deleted`);
-                          }}
+                        </View>
+                      </View>
+
+                      <View style={styles.walletHeroBottomRow}>
+                        <Text
                           style={[
-                            styles.txActionHalfBtn,
-                            { backgroundColor: "#c04444" },
+                            styles.walletHeroSubText,
+                            { color: theme.leather.thread },
                           ]}
+                          numberOfLines={1}
                         >
-                          <Text
-                            style={[styles.secondaryButtonText, { color: "#ffffff" }]}
-                          >
-                            Confirm delete
-                          </Text>
-                        </Pressable>
+                          {preview.type} · {preview.account}
+                        </Text>
                       </View>
                     </View>
-                  ) : (
-                    <Pressable
-                      onPress={() => setWalletConfirmDelete(true)}
+
+                    <AmountKeypad
+                      value={balance}
+                      onChange={setBalance}
+                      quickAmounts={[500, 1000, 5000]}
+                      compact
+                      stitched
+                      theme={theme}
+                    />
+                  </View>
+                )}
+
+                {/* ==================== CONFIRM WALLET STEP ==================== */}
+                {isConfirmWalletStep && (
+                  <View>
+                    <View
                       style={[
-                        styles.secondaryButton,
+                        styles.walletHeroPanel,
                         {
-                          marginTop: 10,
-                          backgroundColor: theme.dark
-                            ? "rgba(192, 68, 68, 0.16)"
-                            : "#fdeaea",
+                          overflow: "hidden",
+                          borderColor: theme.leather.edge,
                         },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.secondaryButtonText,
-                          { color: "#c04444" },
-                        ]}
-                      >
-                        Delete wallet
-                      </Text>
-                    </Pressable>
-                  )
-                ) : null}
+                      <DarkLeatherSurface theme={theme} radius={22} />
+                      <View style={styles.walletHeroTopRow}>
+                        <View style={styles.walletPreviewIdentity}>
+                          <WalletLogoBadge
+                            logoKey={preview.logoKey}
+                            name={preview.name}
+                            mark={preview.mark}
+                            size={30}
+                            radius={9}
+                            ink="#ffffff"
+                            fontSize={10}
+                          />
+                          <Text style={styles.walletPreviewName} numberOfLines={1}>
+                            {preview.name}
+                          </Text>
+                        </View>
+                        <View style={styles.walletHeroModeBadge}>
+                          <Text
+                            style={[
+                              styles.walletHeroModeText,
+                              { color: theme.leather.thread },
+                            ]}
+                          >
+                            {isEdit ? "EDIT WALLET" : "NEW WALLET"}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.walletHeroAmountWrap}>
+                        <Text
+                          style={[
+                            styles.walletHeroLabel,
+                            { color: theme.leather.thread },
+                          ]}
+                        >
+                          {isEdit ? "Current balance" : "Opening balance"}
+                        </Text>
+                        <View style={styles.entryAmountInputRow}>
+                          <Text style={styles.entryCurrencySign}>₱</Text>
+                          <Text
+                            style={[styles.entryBigInput, { color: "#ffffff" }]}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                          >
+                            {balance ? formatAmountInput(balance) : "0.00"}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.confirmMetaList}>
+                        <View style={styles.confirmMetaRow}>
+                          <Text
+                            style={[
+                              styles.confirmMetaKey,
+                              { color: theme.leather.thread },
+                            ]}
+                          >
+                            Category
+                          </Text>
+                          <Text style={styles.confirmMetaVal}>{preview.type}</Text>
+                        </View>
+                        <View style={styles.confirmMetaRow}>
+                          <Text
+                            style={[
+                              styles.confirmMetaKey,
+                              { color: theme.leather.thread },
+                            ]}
+                          >
+                            Label
+                          </Text>
+                          <Text style={styles.confirmMetaVal}>
+                            {preview.account}
+                          </Text>
+                        </View>
+                        <View style={styles.confirmMetaRow}>
+                          <Text
+                            style={[
+                              styles.confirmMetaKey,
+                              { color: theme.leather.thread },
+                            ]}
+                          >
+                            {hasBrandCardArt ? "Accent color" : "Card color"}
+                          </Text>
+                          <View style={styles.walletPreviewColorChip}>
+                            <View
+                              style={[
+                                styles.walletPreviewColorDot,
+                                { backgroundColor: previewPalette.from },
+                              ]}
+                            />
+                            <Text style={styles.confirmMetaVal}>
+                              {previewPalette.label}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+
+                    {isEdit && editTarget && onDeleteWallet ? (
+                      walletConfirmDelete ? (
+                        <View
+                          style={[
+                            styles.txConfirmDeleteBox,
+                            {
+                              marginTop: 6,
+                              backgroundColor: theme.dark
+                                ? "rgba(192, 68, 68, 0.16)"
+                                : "#fdeaea",
+                              borderColor: "rgba(192, 68, 68, 0.35)",
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.txConfirmDeleteTitle,
+                              { color: theme.dark ? "#fca5a5" : "#991b1b" },
+                            ]}
+                          >
+                            Delete "{editTarget.name}"? Past activity logs will stay in Activity.
+                          </Text>
+                          <View style={styles.txActionPair}>
+                            <Pressable
+                              onPress={() => setWalletConfirmDelete(false)}
+                              style={[
+                                styles.txActionHalfBtn,
+                                { backgroundColor: theme.card },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.secondaryButtonText,
+                                  { color: theme.ink },
+                                ]}
+                              >
+                                Cancel
+                              </Text>
+                            </Pressable>
+                            <Pressable
+                              onPress={() => {
+                                onDeleteWallet(editTarget);
+                                onDone(`${editTarget.name} deleted`);
+                              }}
+                              style={[
+                                styles.txActionHalfBtn,
+                                { backgroundColor: "#c04444" },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.secondaryButtonText,
+                                  { color: "#ffffff" },
+                                ]}
+                              >
+                                Confirm delete
+                              </Text>
+                            </Pressable>
+                          </View>
+                        </View>
+                      ) : (
+                        <Pressable
+                          onPress={() => setWalletConfirmDelete(true)}
+                          style={[
+                            styles.secondaryButton,
+                            {
+                              marginTop: 4,
+                              backgroundColor: theme.dark
+                                ? "rgba(192, 68, 68, 0.16)"
+                                : "#fdeaea",
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.secondaryButtonText,
+                              { color: "#c04444" },
+                            ]}
+                          >
+                            Delete wallet
+                          </Text>
+                        </Pressable>
+                      )
+                    ) : null}
+                  </View>
+                )}
               </View>
-            )}
+              );
+            })()}
 
             {/* ==================== ENTRY (ADD TRANSACTION) SHEET ==================== */}
             {type === "entry" && favoriteDraft && (
@@ -2181,27 +2656,6 @@ export function SheetModal({
                       </View>
                       );
                     })()}
-
-                    <Pressable
-                      disabled={isTransferMode && !transferPossible}
-                      onPress={() => goStep(1)}
-                      style={({ pressed }) => [
-                        styles.stitchedPrimaryBtn,
-                        {
-                          overflow: "hidden",
-                          borderColor: theme.leather.edge,
-                          opacity:
-                            isTransferMode && !transferPossible ? 0.45 : 1,
-                          transform: [{ scale: pressed ? 0.985 : 1 }],
-                        },
-                      ]}
-                    >
-                      <DarkLeatherSurface theme={theme} radius={18} />
-                      <Text style={styles.stitchedPrimaryBtnText}>
-                        Next: Enter amount
-                      </Text>
-                      <Icon name="chevron" size={17} color="#ffffff" />
-                    </Pressable>
                   </View>
                 )}
 
@@ -2400,58 +2854,6 @@ export function SheetModal({
                         Total exceeds {sourceWallet.name} balance ({money(sourceWallet.balance)}).
                       </Text>
                     ) : null}
-
-                    <View style={styles.stepFooterRow}>
-                      {!scheduledEntry && (
-                        <Pressable
-                          onPress={() => goStep(0)}
-                          style={({ pressed }) => [
-                            styles.stitchedBackBtn,
-                            {
-                              overflow: "hidden",
-                              borderColor: hexToRgba(theme.leather.accent, 0.26),
-                              transform: [{ scale: pressed ? 0.97 : 1 }],
-                            },
-                          ]}
-                        >
-                          <LightLeatherSurface theme={theme} radius={18} />
-                          <Icon name="back" size={16} color={theme.ink} />
-                          <Text style={[styles.stitchedBackBtnText, { color: theme.ink }]}>
-                            Back
-                          </Text>
-                        </Pressable>
-                      )}
-                      <Pressable
-                        disabled={
-                          isTransferMode
-                            ? transferInvalid
-                            : !entryValue || entryValue <= 0
-                        }
-                        onPress={() => goStep(2)}
-                        style={({ pressed }) => [
-                          styles.stitchedPrimaryBtn,
-                          {
-                            flex: 1,
-                            overflow: "hidden",
-                            borderColor: theme.leather.edge,
-                            opacity: (
-                              isTransferMode
-                                ? transferInvalid
-                                : !entryValue || entryValue <= 0
-                            )
-                              ? 0.45
-                              : 1,
-                            transform: [{ scale: pressed ? 0.985 : 1 }],
-                          },
-                        ]}
-                      >
-                        <DarkLeatherSurface theme={theme} radius={18} />
-                        <Text style={styles.stitchedPrimaryBtnText}>
-                          {isTransferMode ? "Next: Review" : "Next: Wallet"}
-                        </Text>
-                        <Icon name="chevron" size={17} color="#ffffff" />
-                      </Pressable>
-                    </View>
                   </View>
                 )}
 
@@ -2562,46 +2964,6 @@ export function SheetModal({
                         Amount exceeds {entryWallet.name} balance. Choose another wallet or adjust the amount.
                       </Text>
                     ) : null}
-
-                    <View style={styles.stepFooterRow}>
-                      <Pressable
-                        onPress={() => goStep(1)}
-                        style={({ pressed }) => [
-                          styles.stitchedBackBtn,
-                          {
-                            overflow: "hidden",
-                            borderColor: hexToRgba(theme.leather.accent, 0.26),
-                            transform: [{ scale: pressed ? 0.97 : 1 }],
-                          },
-                        ]}
-                      >
-                        <LightLeatherSurface theme={theme} radius={18} />
-                        <Icon name="back" size={16} color={theme.ink} />
-                        <Text style={[styles.stitchedBackBtnText, { color: theme.ink }]}>
-                          Back
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        disabled={entryInvalid}
-                        onPress={() => goStep(3)}
-                        style={({ pressed }) => [
-                          styles.stitchedPrimaryBtn,
-                          {
-                            flex: 1,
-                            overflow: "hidden",
-                            borderColor: theme.leather.edge,
-                            opacity: entryInvalid ? 0.45 : 1,
-                            transform: [{ scale: pressed ? 0.985 : 1 }],
-                          },
-                        ]}
-                      >
-                        <DarkLeatherSurface theme={theme} radius={18} />
-                        <Text style={styles.stitchedPrimaryBtnText}>
-                          Next: Confirm
-                        </Text>
-                        <Icon name="chevron" size={17} color="#ffffff" />
-                      </Pressable>
-                    </View>
                   </View>
                 )}
 
@@ -2810,59 +3172,6 @@ export function SheetModal({
                         {entryError}
                       </Text>
                     ) : null}
-
-                    <View style={styles.stepFooterRow}>
-                      <Pressable
-                        onPress={() => goStep(currentStep - 1)}
-                        style={({ pressed }) => [
-                          styles.stitchedBackBtn,
-                          {
-                            overflow: "hidden",
-                            borderColor: hexToRgba(theme.leather.accent, 0.26),
-                            transform: [{ scale: pressed ? 0.97 : 1 }],
-                          },
-                        ]}
-                      >
-                        <LightLeatherSurface theme={theme} radius={18} />
-                        <Icon name="back" size={16} color={theme.ink} />
-                        <Text style={[styles.stitchedBackBtnText, { color: theme.ink }]}>
-                          Back
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        disabled={
-                          entrySaving ||
-                          (isTransferMode ? transferInvalid : entryInvalid)
-                        }
-                        onPress={save}
-                        style={({ pressed }) => [
-                          styles.stitchedPrimaryBtn,
-                          {
-                            flex: 1,
-                            overflow: "hidden",
-                            borderColor: theme.leather.edge,
-                            opacity:
-                              entrySaving ||
-                              (isTransferMode ? transferInvalid : entryInvalid)
-                                ? 0.45
-                                : 1,
-                            transform: [{ scale: pressed ? 0.985 : 1 }],
-                          },
-                        ]}
-                      >
-                        <DarkLeatherSurface theme={theme} radius={18} />
-                        <Text style={styles.stitchedPrimaryBtnText}>
-                          {entrySaving
-                            ? "Saving…"
-                            : entryType === "expense"
-                              ? "Save expense"
-                              : entryType === "income"
-                                ? "Add income"
-                                : "Confirm transfer"}
-                        </Text>
-                        <Icon name="check" size={17} color="#ffffff" />
-                      </Pressable>
-                    </View>
                   </View>
                 )}
               </View>
@@ -4689,6 +4998,64 @@ export function SheetModal({
             />
             <EdgeFade position="bottom" color={theme.page} size={28} />
           </View>
+
+          {stepFooterConfig ? (
+            <View style={styles.floatingFooterWrap}>
+              <View style={styles.stepFooterRow}>
+                {stepFooterConfig.onBack ? (
+                  <View style={[{ borderRadius: 18 }, cardShadow(theme.dark)]}>
+                    <Pressable
+                      onPress={stepFooterConfig.onBack}
+                      style={({ pressed }) => [
+                        styles.stitchedBackBtn,
+                        {
+                          overflow: "hidden",
+                          borderColor: hexToRgba(theme.leather.accent, 0.26),
+                          transform: [{ scale: pressed ? 0.97 : 1 }],
+                        },
+                      ]}
+                    >
+                      <LightLeatherSurface theme={theme} radius={18} />
+                      <Icon name="back" size={16} color={theme.ink} />
+                      <Text style={[styles.stitchedBackBtnText, { color: theme.ink }]}>
+                        Back
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : null}
+                <View
+                  style={[
+                    { flex: 1, borderRadius: 18 },
+                    !stepFooterConfig.primaryDisabled && cardShadow(theme.dark),
+                  ]}
+                >
+                  <Pressable
+                    disabled={stepFooterConfig.primaryDisabled}
+                    onPress={stepFooterConfig.onPrimary}
+                    style={({ pressed }) => [
+                      styles.stitchedPrimaryBtn,
+                      {
+                        overflow: "hidden",
+                        borderColor: theme.leather.edge,
+                        opacity: stepFooterConfig.primaryDisabled ? 0.45 : 1,
+                        transform: [{ scale: pressed ? 0.985 : 1 }],
+                      },
+                    ]}
+                  >
+                    <DarkLeatherSurface theme={theme} radius={18} />
+                    <Text style={styles.stitchedPrimaryBtnText}>
+                      {stepFooterConfig.primaryLabel}
+                    </Text>
+                    <Icon
+                      name={stepFooterConfig.primaryIcon}
+                      size={17}
+                      color="#ffffff"
+                    />
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          ) : null}
         </Animated.View>
       </KeyboardAvoidingView>
     </View>
@@ -4898,16 +5265,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 11,
   },
-  presetHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
   presetSearchBox: {
-    height: 44,
-    borderRadius: 15,
+    height: 46,
+    borderRadius: 16,
     borderWidth: 1,
-    paddingHorizontal: 13,
+    paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -4918,21 +5280,43 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 13,
+    lineHeight: 17,
+    includeFontPadding: false,
     paddingVertical: 0,
   },
-  presetCard: {
-    width: 84,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    alignItems: "center",
-    gap: 5,
-  },
-  presetCustomIcon: {
-    width: 34,
+  stitchedGroupPill: {
     height: 34,
-    borderRadius: 11,
+    borderRadius: 13,
+    borderWidth: 1,
+    paddingHorizontal: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stitchedGroupPillText: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 11.5,
+    lineHeight: 15,
+    includeFontPadding: false,
+    marginTop: 1,
+  },
+  presetGrid: {
+    gap: 8,
+  },
+  presetGridCard: {
+    flex: 1,
+    minHeight: 88,
+    paddingVertical: 11,
+    paddingHorizontal: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+  },
+  presetGridIconSlot: {
+    width: 32,
+    height: 32,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -4940,17 +5324,75 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 11.5,
+    lineHeight: 15,
+    includeFontPadding: false,
+    marginTop: 1,
   },
   presetSub: {
     fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 9.5,
+    lineHeight: 13,
+    includeFontPadding: false,
   },
-  presetEmptyNote: {
-    justifyContent: "center",
-    paddingHorizontal: 14,
-    borderRadius: 18,
+  walletPreviewIdentity: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+    paddingRight: 8,
+  },
+  walletPreviewName: {
+    color: "#ffffff",
+    fontFamily: "Poppins_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 16,
+    lineHeight: 20,
+    includeFontPadding: false,
+    marginTop: 1.5,
+    flexShrink: 1,
+  },
+  walletPreviewColorChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  walletPreviewColorDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.45)",
+  },
+  walletPreviewColorText: {
+    color: "#ffffff",
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 11.5,
+    lineHeight: 15,
+    includeFontPadding: false,
+    marginTop: 1,
+  },
+  walletCategoryRow: {
+    flexDirection: "row",
+    gap: 7,
+  },
+  walletCategoryChip: {
+    flex: 1,
+    height: 40,
+    borderRadius: 13,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  walletCategoryChipText: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 11.5,
+    lineHeight: 15,
+    includeFontPadding: false,
+    marginTop: 1,
   },
   updateModeBar: {
     height: 44,
@@ -5278,11 +5720,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
   },
+  floatingFooterWrap: {
+    paddingTop: 10,
+  },
   stepFooterRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginTop: 12,
   },
   stitchedBackBtn: {
     height: 52,
