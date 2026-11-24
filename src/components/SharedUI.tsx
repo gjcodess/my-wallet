@@ -373,8 +373,10 @@ export const AccentSurfaceGlow = React.memo(function AccentSurfaceGlow({
 
 export const LightLeatherSurface = React.memo(function LightLeatherSurface({
   theme,
+  radius = 16,
 }: {
   theme: ThemeColors;
+  radius?: number;
 }) {
   const grainId = `lightLeather${React.useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   return (
@@ -388,8 +390,83 @@ export const LightLeatherSurface = React.memo(function LightLeatherSurface({
         </Defs>
         <Rect width="100%" height="100%" fill={`url(#${grainId})`} />
       </Svg>
-      <View style={[styles.lightLeatherStitch, { borderColor: hexToRgba(theme.leather.accent, 0.35) }]} />
-      <View style={[styles.lightLeatherStitch, styles.lightLeatherInnerStitch, { borderColor: hexToRgba(theme.leather.accent, 0.16) }]} />
+      <View
+        style={[
+          styles.lightLeatherStitch,
+          {
+            borderRadius: Math.max(6, radius - 3),
+            borderColor: hexToRgba(theme.leather.accent, 0.35),
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.lightLeatherStitch,
+          styles.lightLeatherInnerStitch,
+          {
+            borderRadius: Math.max(4, radius - 6),
+            borderColor: hexToRgba(theme.leather.accent, 0.16),
+          },
+        ]}
+      />
+    </View>
+  );
+});
+
+export const DarkLeatherSurface = React.memo(function DarkLeatherSurface({
+  theme,
+  radius = 20,
+}: {
+  theme: ThemeColors;
+  radius?: number;
+}) {
+  const grainId = `darkLeather${React.useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <LinearGradient
+        colors={theme.leather.colors}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
+        <Defs>
+          <Pattern id={grainId} width={6} height={6} patternUnits="userSpaceOnUse">
+            <SvgPath
+              d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3"
+              stroke="#071522"
+              strokeWidth=".7"
+              opacity=".45"
+            />
+            <SvgPath
+              d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3"
+              stroke={theme.leather.thread}
+              strokeWidth=".65"
+              opacity=".26"
+            />
+          </Pattern>
+        </Defs>
+        <Rect width="100%" height="100%" fill={`url(#${grainId})`} />
+      </Svg>
+      <View
+        style={[
+          styles.darkLeatherStitch,
+          {
+            borderRadius: Math.max(8, radius - 5),
+            borderColor: hexToRgba(theme.leather.thread, 0.72),
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.darkLeatherStitch,
+          styles.darkLeatherInnerStitch,
+          {
+            borderRadius: Math.max(6, radius - 9),
+            borderColor: hexToRgba(theme.leather.thread, 0.34),
+          },
+        ]}
+      />
     </View>
   );
 });
@@ -852,6 +929,24 @@ const styles = StyleSheet.create({
     bottom: 8,
     left: 8,
     borderRadius: 10,
+  },
+  darkLeatherStitch: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+    bottom: 5,
+    left: 5,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderRadius: 15,
+  },
+  darkLeatherInnerStitch: {
+    top: 9,
+    right: 9,
+    bottom: 9,
+    left: 9,
+    borderWidth: 0.75,
+    borderRadius: 11,
   },
   txRow: {
     minHeight: 68,

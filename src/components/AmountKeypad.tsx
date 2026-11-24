@@ -2,7 +2,13 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { money } from "../types/wallet";
 import { Icon } from "./Icon";
-import { bevelStyle, cardShadow, ThemeColors } from "./SharedUI";
+import {
+  bevelStyle,
+  cardShadow,
+  hexToRgba,
+  LightLeatherSurface,
+  ThemeColors,
+} from "./SharedUI";
 
 const KEYPAD_ROWS: string[][] = [
   ["1", "2", "3"],
@@ -59,6 +65,7 @@ export const AmountKeypad = React.memo(function AmountKeypad({
   quickAmounts,
   quickBase = 0,
   compact = false,
+  stitched = false,
   theme,
 }: {
   value: string;
@@ -66,6 +73,7 @@ export const AmountKeypad = React.memo(function AmountKeypad({
   quickAmounts?: number[];
   quickBase?: number;
   compact?: boolean;
+  stitched?: boolean;
   theme: ThemeColors;
 }) {
   const handleQuickAdd = (delta: number) => {
@@ -88,11 +96,15 @@ export const AmountKeypad = React.memo(function AmountKeypad({
                 styles.quickChip,
                 {
                   backgroundColor: theme.soft,
-                  borderColor: theme.line,
+                  borderColor: stitched
+                    ? hexToRgba(theme.leather.accent, 0.24)
+                    : theme.line,
+                  overflow: "hidden",
                   transform: [{ scale: pressed ? 0.96 : 1 }],
                 },
               ]}
             >
+              {stitched ? <LightLeatherSurface theme={theme} radius={12} /> : null}
               <Text style={[styles.quickChipText, { color: theme.ink }]}>
                 +{money(amt, true)}
               </Text>
@@ -104,12 +116,19 @@ export const AmountKeypad = React.memo(function AmountKeypad({
               style={({ pressed }) => [
                 styles.clearChip,
                 {
-                  backgroundColor: theme.accentSoft,
+                  backgroundColor: stitched
+                    ? theme.leather.colors[1]
+                    : theme.accentSoft,
                   transform: [{ scale: pressed ? 0.95 : 1 }],
                 },
               ]}
             >
-              <Text style={[styles.clearChipText, { color: theme.accentText }]}>
+              <Text
+                style={[
+                  styles.clearChipText,
+                  { color: stitched ? "#ffffff" : theme.accentText },
+                ]}
+              >
                 Clear
               </Text>
             </Pressable>
@@ -132,6 +151,7 @@ export const AmountKeypad = React.memo(function AmountKeypad({
                     styles.keyBtn,
                     {
                       height: keyHeight,
+                      overflow: "hidden",
                       backgroundColor: pressed
                         ? theme.soft2
                         : isBack
@@ -139,10 +159,18 @@ export const AmountKeypad = React.memo(function AmountKeypad({
                           : theme.card,
                       transform: [{ scale: pressed ? 0.95 : 1 }],
                     },
-                    bevelStyle(theme.dark),
+                    stitched
+                      ? {
+                          borderWidth: 1,
+                          borderColor: hexToRgba(theme.leather.accent, 0.22),
+                        }
+                      : bevelStyle(theme.dark),
                     cardShadow(theme.dark),
                   ]}
                 >
+                  {stitched ? (
+                    <LightLeatherSurface theme={theme} radius={15} />
+                  ) : null}
                   {isBack ? (
                     <Icon name="backspace" size={20} color={theme.ink} />
                   ) : (

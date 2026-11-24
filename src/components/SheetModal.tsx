@@ -34,13 +34,15 @@ import {
   UserProfile,
   Wallet,
 } from "../types/wallet";
-import { FolderSurface } from "./FolderSurface";
 import { Icon } from "./Icon";
 import {
   AccentSurfaceGlow,
   bevelStyle,
   cardShadow,
+  DarkLeatherSurface,
   EdgeFade,
+  hexToRgba,
+  LightLeatherSurface,
   ThemeColors,
   TopBar,
   TxRow,
@@ -254,6 +256,9 @@ export function SheetModal({
     setTransferFee(0);
     setPickingTransferSide(null);
     setUpdateMode("set");
+    setEntryStep(scheduledEntry ? 1 : 0);
+    setEntryType(scheduledEntry?.direction ?? "expense");
+    setEntryError("");
     if (type === "budget") {
       setAmount(monthlyBudget && monthlyBudget > 0 ? String(monthlyBudget) : "");
     }
@@ -278,7 +283,10 @@ export function SheetModal({
     wallets.find((w) => w.id !== fallback)?.id || fallback
   );
   const [walletId, setWalletId] = useState(fallback);
-  const [entryType, setEntryType] = useState<"expense" | "income">(scheduledEntry?.direction ?? "expense");
+  const [entryStep, setEntryStep] = useState(scheduledEntry ? 1 : 0);
+  const [entryType, setEntryType] = useState<"expense" | "income" | "transfer">(
+    scheduledEntry?.direction ?? "expense"
+  );
   const [entryCategory, setEntryCategory] = useState(scheduledEntry?.category ?? "Food");
   const [note, setNote] = useState(scheduledEntry?.title ?? "");
   const [entrySaving, setEntrySaving] = useState(false);
@@ -533,13 +541,42 @@ export function SheetModal({
     return () => cancelAnimationFrame(raf);
   }, [openAnim]);
 
+  const handleHeaderBack = useCallback(() => {
+    if (entrySavingRef.current) return;
+    if (type === "entry" && favoriteDraft) {
+      closeFavoriteEditor();
+      return;
+    }
+    if (type === "entry" && managingFavorites) {
+      scrollToTop();
+      setManagingFavorites(false);
+      return;
+    }
+    const minStep = scheduledEntry ? 1 : 0;
+    if (type === "entry" && entryStep > minStep) {
+      setEntryStep((prev) => Math.max(minStep, prev - 1));
+      scrollToTop();
+      return;
+    }
+    onClose();
+  }, [
+    closeFavoriteEditor,
+    entryStep,
+    favoriteDraft,
+    managingFavorites,
+    onClose,
+    scheduledEntry,
+    scrollToTop,
+    type,
+  ]);
+
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      onClose();
+      handleHeaderBack();
       return true;
     });
     return () => sub.remove();
-  }, [onClose]);
+  }, [handleHeaderBack]);
 
   const transferValue = Number(amount);
   const transferTotalDebit = Number(
@@ -588,6 +625,72 @@ export function SheetModal({
 
   const save = async () => {
     const now = new Date().toISOString();
+    if (type === "entry" && entryType === "transfer") {
+      if (
+        transferInvalid ||
+        !sourceWallet ||
+        !destWallet ||
+        entrySavingRef.current ||
+        closingRef.current
+      ) {
+        return;
+      }
+      entrySavingRef.current = true;
+      setEntrySaving(true);
+      setEntryError("");
+      const nextWallets = wallets.map((w) =>
+        w.id === source
+          ? {
+              ...w,
+              balance: Number((w.balance - transferTotalDebit).toFixed(2)),
+              updatedAt: now,
+              synced: false,
+            }
+          : w.id === destination
+            ? {
+                ...w,
+                balance: Number((w.balance + transferValue).toFixed(2)),
+                updatedAt: now,
+                synced: false,
+              }
+            : w
+      );
+      onSaveWallets(nextWallets);
+      onRecordActivity({
+        localId: `tx-${Date.now()}`,
+        walletLocalId: getWalletLocalId(sourceWallet),
+        destWalletLocalId: getWalletLocalId(destWallet),
+        title: note.trim() || `${sourceWallet.name} to ${destWallet.name}`,
+        wallet: sourceWallet.name,
+        amount: -transferValue,
+        icon: "swap",
+        kind: "Transfer",
+        occurredAt: now,
+        updatedAt: now,
+        synced: false,
+      });
+      if (transferFee > 0) {
+        onRecordActivity({
+          localId: `tx-${Date.now()}-fee`,
+          walletLocalId: getWalletLocalId(sourceWallet),
+          title: `Transfer fee (${sourceWallet.name} to ${destWallet.name})`,
+          wallet: sourceWallet.name,
+          amount: -transferFee,
+          icon: "bolt",
+          kind: "Other",
+          occurredAt: now,
+          updatedAt: now,
+          synced: false,
+        });
+      }
+      onDone(
+        transferFee > 0
+          ? `${money(transferValue)} transferred (+${money(transferFee)} fee)`
+          : `${money(transferValue)} transferred`
+      );
+      return;
+    }
+
     if (type === "entry" && entryWallet && !entryInvalid) {
       if (entrySavingRef.current || closingRef.current) return;
       entrySavingRef.current = true;
@@ -818,14 +921,11 @@ export function SheetModal({
                     ? "Search"
                     : type === "schedule" ? "Bills & paydays" : "Account & Cloud Sync";
 
-  const heroPal = entryType === "income"
-    ? { from: theme.incomeGradient[0], to: theme.incomeGradient[1], ink: theme.incomeInk }
-    : { from: theme.heroGlow, to: theme.heroGradient[2], ink: theme.heroInk };
-
   const renderCategoryGrid = (
     items: [string, string][],
     selectedLabel: string,
-    onSelect: (label: string) => void
+    onSelect: (label: string) => void,
+    stitched = false
   ) => {
     const rows: [string, string][][] = [];
     for (let i = 0; i < items.length; i += 3) {
@@ -843,28 +943,60 @@ export function SheetModal({
                   onPress={() => onSelect(label)}
                   style={[
                     styles.categoryChip,
+                    stitched && { paddingHorizontal: 12, gap: 7 },
                     {
-                      backgroundColor: active ? theme.surface : theme.soft,
-                      borderColor: active ? theme.accent : theme.line,
+                      overflow: "hidden",
+                      backgroundColor: stitched
+                        ? active
+                          ? theme.leather.edge
+                          : theme.card
+                        : active
+                          ? theme.surface
+                          : theme.soft,
+                      borderColor: stitched
+                        ? active
+                          ? theme.leather.edge
+                          : hexToRgba(theme.leather.accent, 0.22)
+                        : active
+                          ? theme.accent
+                          : theme.line,
                     },
                   ]}
                 >
-                  <LinearGradient
-                    colors={
-                      active
-                        ? theme.accentGradient
-                        : [theme.accentSoft, theme.accentSoft]
-                    }
-                    style={styles.categoryChipIcon}
-                  >
+                  {stitched ? (
+                    active ? (
+                      <DarkLeatherSurface theme={theme} radius={15} />
+                    ) : (
+                      <LightLeatherSurface theme={theme} radius={15} />
+                    )
+                  ) : null}
+                  {stitched ? (
                     <Icon
                       name={icon}
-                      size={14}
-                      color={active ? theme.accentInk : theme.accentText}
+                      size={15}
+                      color={active ? "#ffffff" : theme.leather.accent}
                     />
-                  </LinearGradient>
+                  ) : (
+                    <LinearGradient
+                      colors={
+                        active
+                          ? theme.accentGradient
+                          : [theme.accentSoft, theme.accentSoft]
+                      }
+                      style={styles.categoryChipIcon}
+                    >
+                      <Icon
+                        name={icon}
+                        size={14}
+                        color={active ? theme.accentInk : theme.accentText}
+                      />
+                    </LinearGradient>
+                  )}
                   <Text
-                    style={[styles.categoryChipText, { color: theme.ink }]}
+                    style={[
+                      styles.categoryChipText,
+                      { color: stitched && active ? "#ffffff" : theme.ink },
+                    ]}
                     numberOfLines={1}
                     adjustsFontSizeToFit
                     minimumFontScale={0.82}
@@ -887,14 +1019,14 @@ export function SheetModal({
 
   return (
     <View style={[styles.overlayRoot, { paddingTop: insets.top }]}>
+      <Animated.View
+        style={[styles.backdrop, { opacity: openAnim }]}
+        pointerEvents="none"
+      />
       <KeyboardAvoidingView
         style={styles.sheetLayer}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <Animated.View
-          style={[styles.backdrop, { opacity: openAnim }]}
-          pointerEvents="none"
-        />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <Animated.View
           style={[
@@ -923,7 +1055,32 @@ export function SheetModal({
           <View
             style={[styles.sheetHandle, { backgroundColor: theme.soft2 }]}
           />
-          <TopBar title={sheetTitle} onBack={onClose} theme={theme} />
+          <TopBar
+            title={sheetTitle}
+            onBack={handleHeaderBack}
+            right={
+              type === "entry" &&
+              entryStep > (scheduledEntry ? 1 : 0) &&
+              !managingFavorites &&
+              !favoriteDraft ? (
+                <Pressable
+                  onPress={onClose}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
+                  style={[
+                    styles.closeRoundBtn,
+                    { backgroundColor: theme.card, overflow: "hidden" },
+                    bevelStyle(theme.dark),
+                    cardShadow(theme.dark),
+                  ]}
+                >
+                  <AccentSurfaceGlow theme={theme} intensity="medium" />
+                  <Icon name="close" size={18} color={theme.accentText} />
+                </Pressable>
+              ) : undefined
+            }
+            theme={theme}
+          />
 
           <View style={{ flexShrink: 1, position: "relative" }}>
             <Animated.ScrollView
@@ -1424,161 +1581,719 @@ export function SheetModal({
                 setFavoriteDraft({ favorite: item, suggestedAmount: item.defaultAmount });
               }} />
             )}
-            {type === "entry" && entryWallet && !managingFavorites && !favoriteDraft && (
+            {type === "entry" && entryWallet && !managingFavorites && !favoriteDraft && (() => {
+              const isTransferMode = entryType === "transfer";
+              const transferPossible = wallets.length >= 2 && Boolean(sourceWallet && destWallet);
+              const steps = isTransferMode
+                ? (["Wallets", "Amount", "Confirm"] as const)
+                : (["Category", "Amount", "Wallet", "Confirm"] as const);
+              const minStep = scheduledEntry ? 1 : 0;
+              const currentStep = Math.min(entryStep, steps.length - 1);
+              const goStep = (next: number) => {
+                Keyboard.dismiss();
+                scrollToTop();
+                setEntryStep(Math.max(minStep, Math.min(steps.length - 1, next)));
+              };
+              const isAmountStep = currentStep === 1;
+              const isWalletPickStep = !isTransferMode && currentStep === 2;
+              const isConfirmStep =
+                (isTransferMode && currentStep === 2) ||
+                (!isTransferMode && currentStep === 3);
+              const entryAfterBalance =
+                entryWallet.balance +
+                (entryType === "expense" ? -1 : 1) * (entryValue || 0);
+              const transferAfterSource = sourceWallet
+                ? Number((sourceWallet.balance - transferTotalDebit).toFixed(2))
+                : 0;
+              const transferAfterDest = destWallet
+                ? Number((destWallet.balance + (transferValue || 0)).toFixed(2))
+                : 0;
+
+              return (
               <View>
-                {!scheduledEntry && (
-                  <FavoriteStrip favorites={favorites} wallets={wallets} hidden={hidden} theme={theme}
-                    onManage={() => { scrollToTop(); setManagingFavorites(true); }}
-                    onApply={(item) => {
-                      const wallet = wallets.find((wallet) => getWalletLocalId(wallet) === item.walletLocalId);
-                      if (!wallet) return;
-                      setWalletId(wallet.id);
-                      setEntryType(item.direction);
-                      setEntryCategory(item.category);
-                      setNote(item.name);
-                      setAmount(item.defaultAmount === null ? "" : String(item.defaultAmount));
-                    }} />
-                )}
-                {scheduledEntry && (
-                  <Text style={[styles.formTitle, { color: theme.accentText, marginBottom: 12 }]}>
-                    {scheduledEntry.title} · Due {displayDueDate(scheduledEntry.dueDate)}
-                  </Text>
-                )}
-                {/* Expense / Money in Toggle */}
-                <View
-                  style={[
-                    styles.entryToggle,
-                    { backgroundColor: theme.soft, borderColor: theme.line },
-                  ]}
-                >
-                  {(["expense", "income"] as const).map((kind) => {
-                    const active = entryType === kind;
-                    return (
-                      <Pressable
-                        key={kind}
-                        disabled={Boolean(scheduledEntry)}
-                        onPress={() => {
-                          setEntryType(kind);
-                          setEntryCategory(
-                            kind === "expense" ? "Food" : "Salary"
-                          );
-                        }}
-                        style={[
-                          styles.entryToggleBtn,
-                          active && { backgroundColor: theme.surface },
-                        ]}
-                      >
-                        <LinearGradient
-                          colors={
-                            active
-                              ? kind === "income"
-                                ? theme.incomeGradient
-                                : theme.accentGradient
-                              : [theme.soft2, theme.soft2]
-                          }
-                          style={styles.entryToggleIcon}
-                        >
-                          <Icon
-                            name={
-                              kind === "expense" ? "arrow-up" : "arrow-down"
-                            }
-                            size={14}
-                            color={
-                              active
-                                ? kind === "income"
-                                  ? theme.incomeInk
-                                  : theme.accentInk
-                                : theme.muted
-                            }
-                          />
-                        </LinearGradient>
-                        <Text
+                {/* Step Progress Indicator */}
+                <View pointerEvents="none" style={styles.entryProgressWrap}>
+                  <View style={styles.entryProgressMeta}>
+                    <Text
+                      style={[styles.entryProgressCount, { color: theme.muted }]}
+                    >
+                      Step {currentStep + 1} of {steps.length}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.entryProgressCurrent,
+                        { color: theme.leather.accent },
+                      ]}
+                    >
+                      {steps[currentStep]}
+                    </Text>
+                  </View>
+                  <View style={styles.entryProgressTrackRow}>
+                    {steps.map((stepLabel, idx) => {
+                      const filled = idx <= currentStep;
+                      return (
+                        <View
+                          key={stepLabel}
                           style={[
-                            styles.entryToggleText,
-                            { color: active ? theme.ink : theme.muted },
+                            styles.entryProgressSegment,
+                            {
+                              backgroundColor: filled
+                                ? theme.leather.colors[1]
+                                : hexToRgba(theme.leather.accent, 0.16),
+                            },
                           ]}
-                        >
-                          {kind === "expense" ? "Expense" : "Money in"}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
+                        />
+                      );
+                    })}
+                  </View>
                 </View>
 
-                {/* Folder Hero Card */}
-                <FolderSurface
-                  tab={0.58}
-                  tabHeight={42}
-                  radius={28}
-                  notch
-                  fromColor={heroPal.from}
-                  toColor={heroPal.to}
-                  minHeight={205}
-                >
-                  {({ notchX, notchHeight }) => (
-                    <View style={{ minHeight: 205 }}>
-                      <View style={[styles.entryHeroTab, { height: 42 }]}>
-                        <View style={styles.entryHeroIcon}>
-                          <Icon
-                            name={entryIcon}
-                            size={16}
-                            color={heroPal.ink}
-                          />
-                        </View>
-                        <Text
-                          style={[
-                            styles.entryHeroCat,
-                            { color: heroPal.ink },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {entryCategory}
-                        </Text>
-                      </View>
+                {scheduledEntry && (
+                  <View
+                    style={[
+                      styles.stitchedNotice,
+                      {
+                        overflow: "hidden",
+                        borderColor: hexToRgba(theme.leather.accent, 0.25),
+                      },
+                    ]}
+                  >
+                    <LightLeatherSurface theme={theme} radius={16} />
+                    <Icon name="info" size={15} color={theme.leather.accent} />
+                    <Text
+                      style={[styles.stitchedNoticeText, { color: theme.ink }]}
+                      numberOfLines={1}
+                    >
+                      {scheduledEntry.title} · Due {displayDueDate(scheduledEntry.dueDate)}
+                    </Text>
+                  </View>
+                )}
 
-                      <View
-                        style={[
-                          styles.entryHeroBadge,
-                          { left: notchX, height: notchHeight },
-                        ]}
+                {/* ==================== STEP 0: TYPE + CATEGORY / TRANSFER ROUTE ==================== */}
+                {currentStep === 0 && (
+                  <View>
+                    {!scheduledEntry && (
+                      <FavoriteStrip
+                        favorites={favorites}
+                        wallets={wallets}
+                        hidden={hidden}
+                        theme={theme}
+                        onManage={() => {
+                          scrollToTop();
+                          setManagingFavorites(true);
+                        }}
+                        onApply={(item) => {
+                          const wallet = wallets.find(
+                            (w) => getWalletLocalId(w) === item.walletLocalId
+                          );
+                          if (!wallet) return;
+                          setWalletId(wallet.id);
+                          setEntryType(item.direction);
+                          setEntryCategory(item.category);
+                          setNote(item.name);
+                          setAmount(
+                            item.defaultAmount === null
+                              ? ""
+                              : String(item.defaultAmount)
+                          );
+                          goStep(item.defaultAmount ? 3 : 1);
+                        }}
+                      />
+                    )}
+
+                    {/* 3-Way Expense / Income / Transfer Stitched Toggle */}
+                    <View style={styles.entrySectionHead}>
+                      <Text
+                        style={[styles.entrySectionTitle, { color: theme.ink }]}
                       >
-                        <Text
-                          style={[
-                            styles.entryHeroBadgeText,
-                            { color: heroPal.ink },
-                          ]}
-                        >
-                          {entryType === "expense" ? "SPEND" : "RECEIVE"}
-                        </Text>
-                      </View>
-
-                      <View style={styles.entryHeroBody}>
-                        <Text
-                          style={[
-                            styles.entryHeroLabel,
-                            { color: heroPal.ink },
-                          ]}
-                        >
-                          {entryType === "expense"
-                            ? "Amount spent"
-                            : "Amount received"}
-                        </Text>
-
-                        <View style={styles.entryAmountInputRow}>
-                          <Text
+                        Transaction type
+                      </Text>
+                      <Text
+                        style={[styles.entrySectionSub, { color: theme.muted }]}
+                      >
+                        Pick one
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.entryToggle,
+                        {
+                          overflow: "hidden",
+                          backgroundColor: theme.card,
+                          borderColor: hexToRgba(theme.leather.accent, 0.24),
+                        },
+                      ]}
+                    >
+                      <LightLeatherSurface theme={theme} radius={20} />
+                      {(["expense", "income", "transfer"] as const).map((kind) => {
+                        const active = entryType === kind;
+                        const disabledKind =
+                          Boolean(scheduledEntry) && kind !== scheduledEntry?.direction;
+                        const label =
+                          kind === "expense"
+                            ? "Expense"
+                            : kind === "income"
+                              ? "Income"
+                              : "Transfer";
+                        const iconName =
+                          kind === "expense"
+                            ? "arrow-up"
+                            : kind === "income"
+                              ? "arrow-down"
+                              : "swap";
+                        return (
+                          <Pressable
+                            key={kind}
+                            disabled={disabledKind}
+                            onPress={() => {
+                              setEntryType(kind);
+                              setEntryError("");
+                              if (kind === "expense") {
+                                setEntryCategory("Food");
+                              } else if (kind === "income") {
+                                setEntryCategory("Salary");
+                              } else {
+                                setPickingTransferSide("from");
+                                if (source === destination && wallets.length >= 2) {
+                                  const alt = wallets.find((w) => w.id !== source);
+                                  if (alt) setDestination(alt.id);
+                                }
+                              }
+                            }}
                             style={[
-                              styles.entryCurrencySign,
-                              { color: heroPal.ink },
+                              styles.entryToggleBtn,
+                              {
+                                overflow: "hidden",
+                                opacity: disabledKind ? 0.4 : 1,
+                              },
+                              active && {
+                                borderWidth: 1,
+                                borderColor: theme.leather.edge,
+                              },
                             ]}
                           >
-                            ₱
+                            {active ? (
+                              <DarkLeatherSurface theme={theme} radius={15} />
+                            ) : null}
+                            <Icon
+                              name={iconName}
+                              size={15}
+                              color={
+                                active
+                                  ? kind === "income"
+                                    ? "#6ee7b7"
+                                    : "#ffffff"
+                                  : theme.leather.accent
+                              }
+                            />
+                            <Text
+                              style={[
+                                styles.entryToggleText,
+                                {
+                                  color: active ? "#ffffff" : theme.ink,
+                                },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+
+                    {!isTransferMode ? (
+                      <View style={styles.entrySection}>
+                        <View style={styles.entrySectionHead}>
+                          <Text
+                            style={[styles.entrySectionTitle, { color: theme.ink }]}
+                          >
+                            Choose category
                           </Text>
+                          <Text
+                            style={[styles.entrySectionSub, { color: theme.muted }]}
+                          >
+                            {entryType === "expense" ? "Where it went" : "Source"}
+                          </Text>
+                        </View>
+                        {renderCategoryGrid(
+                          entryCategories,
+                          entryCategory,
+                          (cat) => setEntryCategory(cat),
+                          true
+                        )}
+                      </View>
+                    ) : !transferPossible ? (
+                      <View
+                        style={[
+                          styles.stitchedNotice,
+                          {
+                            overflow: "hidden",
+                            borderColor: hexToRgba(theme.leather.accent, 0.25),
+                            marginBottom: 16,
+                          },
+                        ]}
+                      >
+                        <LightLeatherSurface theme={theme} radius={16} />
+                        <Icon name="info" size={16} color={theme.leather.accent} />
+                        <Text style={[styles.stitchedNoticeText, { color: theme.ink }]}>
+                          Add at least 2 wallets to transfer funds between them.
+                        </Text>
+                      </View>
+                    ) : (() => {
+                      const activeSide = pickingTransferSide ?? "from";
+                      const selectableWallets = wallets.filter((w) =>
+                        activeSide === "from"
+                          ? w.id !== destination
+                          : w.id !== source
+                      );
+                      return (
+                      <View style={styles.entrySection}>
+                        <View style={styles.entrySectionHead}>
+                          <Text
+                            style={[styles.entrySectionTitle, { color: theme.ink }]}
+                          >
+                            Select wallets
+                          </Text>
+                          <Text
+                            style={[styles.entrySectionSub, { color: theme.muted }]}
+                          >
+                            Tap From or To to edit
+                          </Text>
+                        </View>
+
+                        <View style={styles.transferSideRow}>
+                          <Pressable
+                            onPress={() => setPickingTransferSide("from")}
+                            style={[
+                              styles.transferSideCard,
+                              {
+                                overflow: "hidden",
+                                borderColor:
+                                  activeSide === "from"
+                                    ? theme.leather.edge
+                                    : hexToRgba(theme.leather.accent, 0.25),
+                              },
+                            ]}
+                          >
+                            {activeSide === "from" ? (
+                              <DarkLeatherSurface theme={theme} radius={18} />
+                            ) : (
+                              <LightLeatherSurface theme={theme} radius={18} />
+                            )}
+                            <Text
+                              style={[
+                                styles.transferSideRole,
+                                {
+                                  color:
+                                    activeSide === "from"
+                                      ? theme.leather.thread
+                                      : theme.muted,
+                                },
+                              ]}
+                            >
+                              {activeSide === "from"
+                                ? "FROM · SELECTING"
+                                : "FROM · TAP TO EDIT"}
+                            </Text>
+                            <View style={styles.transferSideIdentity}>
+                              <WalletLogoBadge
+                                logoKey={sourceWallet.logoKey}
+                                name={sourceWallet.name}
+                                mark={sourceWallet.mark}
+                                size={28}
+                                radius={9}
+                                ink={
+                                  activeSide === "from"
+                                    ? "#ffffff"
+                                    : theme.ink
+                                }
+                                fontSize={9}
+                              />
+                              <Text
+                                style={[
+                                  styles.transferSideName,
+                                  {
+                                    color:
+                                      activeSide === "from"
+                                        ? "#ffffff"
+                                        : theme.ink,
+                                  },
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {sourceWallet.name}
+                              </Text>
+                            </View>
+                            <Text
+                              style={[
+                                styles.transferSideBal,
+                                {
+                                  color:
+                                    activeSide === "from"
+                                      ? theme.leather.thread
+                                      : theme.muted,
+                                },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {money(sourceWallet.balance)}
+                            </Text>
+                          </Pressable>
+
+                          <Pressable
+                            onPress={() => setPickingTransferSide("to")}
+                            style={[
+                              styles.transferSideCard,
+                              {
+                                overflow: "hidden",
+                                borderColor:
+                                  activeSide === "to"
+                                    ? theme.leather.edge
+                                    : hexToRgba(theme.leather.accent, 0.25),
+                              },
+                            ]}
+                          >
+                            {activeSide === "to" ? (
+                              <DarkLeatherSurface theme={theme} radius={18} />
+                            ) : (
+                              <LightLeatherSurface theme={theme} radius={18} />
+                            )}
+                            <Text
+                              style={[
+                                styles.transferSideRole,
+                                {
+                                  color:
+                                    activeSide === "to"
+                                      ? theme.leather.thread
+                                      : theme.muted,
+                                },
+                              ]}
+                            >
+                              {activeSide === "to"
+                                ? "TO · SELECTING"
+                                : "TO · TAP TO EDIT"}
+                            </Text>
+                            <View style={styles.transferSideIdentity}>
+                              <WalletLogoBadge
+                                logoKey={destWallet.logoKey}
+                                name={destWallet.name}
+                                mark={destWallet.mark}
+                                size={28}
+                                radius={9}
+                                ink={
+                                  activeSide === "to"
+                                    ? "#ffffff"
+                                    : theme.ink
+                                }
+                                fontSize={9}
+                              />
+                              <Text
+                                style={[
+                                  styles.transferSideName,
+                                  {
+                                    color:
+                                      activeSide === "to"
+                                        ? "#ffffff"
+                                        : theme.ink,
+                                  },
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {destWallet.name}
+                              </Text>
+                            </View>
+                            <Text
+                              style={[
+                                styles.transferSideBal,
+                                {
+                                  color:
+                                    activeSide === "to"
+                                      ? theme.leather.thread
+                                      : theme.muted,
+                                },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {money(destWallet.balance)}
+                            </Text>
+                          </Pressable>
+
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Swap source and destination wallets"
+                            onPress={() => {
+                              setSource(destination);
+                              setDestination(source);
+                            }}
+                            style={[
+                              styles.transferCenterSwapBtn,
+                              { borderColor: theme.page },
+                            ]}
+                          >
+                            <LinearGradient
+                              colors={[
+                                theme.leather.colors[0],
+                                theme.leather.colors[1],
+                              ]}
+                              style={styles.transferSwapInner}
+                            >
+                              <Icon name="swap" size={16} color="#ffffff" />
+                            </LinearGradient>
+                          </Pressable>
+                        </View>
+
+                        <View style={styles.walletVerticalList}>
+                          <View
+                            style={[
+                              styles.entrySectionHead,
+                              { marginTop: 12, marginBottom: 4 },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.fieldLabel,
+                                { color: theme.ink, marginBottom: 0 },
+                              ]}
+                            >
+                              {activeSide === "from"
+                                ? "Choose source wallet"
+                                : "Choose destination wallet"}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.entrySectionSub,
+                                { color: theme.muted },
+                              ]}
+                            >
+                              {activeSide === "from"
+                                ? `Excludes ${destWallet.name}`
+                                : `Excludes ${sourceWallet.name}`}
+                            </Text>
+                          </View>
+                          {selectableWallets.map((w) => {
+                            const active =
+                              activeSide === "from"
+                                ? w.id === source
+                                : w.id === destination;
+                            return (
+                              <Pressable
+                                key={w.id}
+                                onPress={() => {
+                                  if (activeSide === "from") {
+                                    setSource(w.id);
+                                    setPickingTransferSide("to");
+                                  } else {
+                                    setDestination(w.id);
+                                  }
+                                }}
+                                style={[
+                                  styles.stitchedWalletRow,
+                                  {
+                                    overflow: "hidden",
+                                    borderColor: active
+                                      ? theme.leather.edge
+                                      : hexToRgba(theme.leather.accent, 0.22),
+                                  },
+                                ]}
+                              >
+                                {active ? (
+                                  <DarkLeatherSurface theme={theme} radius={16} />
+                                ) : (
+                                  <LightLeatherSurface theme={theme} radius={16} />
+                                )}
+                                <WalletLogoBadge
+                                  logoKey={w.logoKey}
+                                  name={w.name}
+                                  mark={w.mark}
+                                  size={34}
+                                  radius={10}
+                                  ink={active ? "#ffffff" : theme.ink}
+                                  fontSize={9}
+                                />
+                                <View style={{ flex: 1 }}>
+                                  <Text
+                                    style={[
+                                      styles.entryWalletName,
+                                      { color: active ? "#ffffff" : theme.ink },
+                                    ]}
+                                    numberOfLines={1}
+                                  >
+                                    {w.name}
+                                  </Text>
+                                  <Text
+                                    style={[
+                                      styles.entryWalletBal,
+                                      {
+                                        color: active
+                                          ? theme.leather.thread
+                                          : theme.muted,
+                                      },
+                                    ]}
+                                    numberOfLines={1}
+                                  >
+                                    {w.type}
+                                  </Text>
+                                </View>
+                                <Text
+                                  style={[
+                                    styles.stitchedWalletAmount,
+                                    { color: active ? "#ffffff" : theme.ink },
+                                  ]}
+                                >
+                                  {money(w.balance)}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                          {wallets.length === 2 ? (
+                            <Text
+                              style={[
+                                styles.entryWalletBal,
+                                {
+                                  color: theme.muted,
+                                  textAlign: "center",
+                                  marginTop: 2,
+                                },
+                              ]}
+                            >
+                              Tap ⇄ above to swap source and destination
+                            </Text>
+                          ) : null}
+                        </View>
+                      </View>
+                      );
+                    })()}
+
+                    <Pressable
+                      disabled={isTransferMode && !transferPossible}
+                      onPress={() => goStep(1)}
+                      style={({ pressed }) => [
+                        styles.stitchedPrimaryBtn,
+                        {
+                          overflow: "hidden",
+                          borderColor: theme.leather.edge,
+                          opacity:
+                            isTransferMode && !transferPossible ? 0.45 : 1,
+                          transform: [{ scale: pressed ? 0.985 : 1 }],
+                        },
+                      ]}
+                    >
+                      <DarkLeatherSurface theme={theme} radius={18} />
+                      <Text style={styles.stitchedPrimaryBtnText}>
+                        Next: Enter amount
+                      </Text>
+                      <Icon name="chevron" size={17} color="#ffffff" />
+                    </Pressable>
+                  </View>
+                )}
+
+                {/* ==================== STEP 1: TEXTURED WALLET AMOUNT + KEYPAD ==================== */}
+                {isAmountStep && (
+                  <View>
+                    {/* Dark Stitched Leather Wallet Amount Panel (replaces FolderSurface card) */}
+                    <View
+                      style={[
+                        styles.walletHeroPanel,
+                        {
+                          overflow: "hidden",
+                          borderColor: theme.leather.edge,
+                        },
+                      ]}
+                    >
+                      <DarkLeatherSurface theme={theme} radius={22} />
+                      <View style={styles.walletHeroTopRow}>
+                        <View style={styles.walletHeroTag}>
+                          <Icon
+                            name={isTransferMode ? "swap" : entryIcon}
+                            size={14}
+                            color="#ffffff"
+                          />
+                          <Text
+                            style={styles.walletHeroTagText}
+                            numberOfLines={1}
+                          >
+                            {isTransferMode && sourceWallet && destWallet
+                              ? `${sourceWallet.name} → ${destWallet.name}`
+                              : entryCategory}
+                          </Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.walletHeroModeBadge,
+                            entryType === "income" && {
+                              backgroundColor: "rgba(52, 211, 153, 0.22)",
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.walletHeroModeText,
+                              {
+                                color:
+                                  entryType === "income"
+                                    ? "#6ee7b7"
+                                    : theme.leather.thread,
+                              },
+                            ]}
+                          >
+                            {entryType === "expense"
+                              ? "EXPENSE"
+                              : entryType === "income"
+                                ? "INCOME"
+                                : "TRANSFER"}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.walletHeroAmountWrap}>
+                        <View style={styles.walletHeroLabelRow}>
+                          <Text
+                            style={[
+                              styles.walletHeroLabel,
+                              { color: theme.leather.thread },
+                            ]}
+                          >
+                            {entryType === "expense"
+                              ? "Amount spent"
+                              : entryType === "income"
+                                ? "Amount received"
+                                : "Amount to transfer"}
+                          </Text>
+                          {isTransferMode &&
+                          sourceWallet &&
+                          sourceWallet.balance > transferFee ? (
+                            <Pressable
+                              onPress={() =>
+                                setAmount(
+                                  String(
+                                    Math.max(
+                                      0,
+                                      Number(
+                                        (
+                                          sourceWallet.balance - transferFee
+                                        ).toFixed(2)
+                                      )
+                                    )
+                                  )
+                                )
+                              }
+                              style={styles.walletHeroMaxChip}
+                            >
+                              <Text style={styles.walletHeroMaxText}>
+                                Send max
+                              </Text>
+                            </Pressable>
+                          ) : null}
+                        </View>
+                        <View style={styles.entryAmountInputRow}>
+                          <Text style={styles.entryCurrencySign}>₱</Text>
                           <Text
                             style={[
                               styles.entryBigInput,
                               {
-                                color: heroPal.ink,
-                                opacity: amount ? 1 : 0.84,
+                                color: "#ffffff",
+                                opacity: amount ? 1 : 0.8,
                               },
                             ]}
                             numberOfLines={1}
@@ -1587,248 +2302,555 @@ export function SheetModal({
                             {amount ? formatAmountInput(amount) : "0.00"}
                           </Text>
                         </View>
+                      </View>
 
-                        <View
+                      <View style={styles.walletHeroBottomRow}>
+                        <Text
                           style={[
-                            styles.entryBalanceRow,
-                            {
-                              borderTopColor:
-                                entryType === "income"
-                                  ? "rgba(36, 28, 3, 0.14)"
-                                  : "rgba(255, 255, 255, 0.24)",
-                            },
+                            styles.walletHeroSubText,
+                            { color: theme.leather.thread },
                           ]}
+                          numberOfLines={1}
                         >
-                          <Text
-                            style={[
-                              styles.entryBalanceLabel,
-                              { color: heroPal.ink },
-                            ]}
-                          >
-                            {entryWallet.name} after
-                          </Text>
-                          <Text
-                            style={[
-                              styles.entryBalanceVal,
-                              { color: heroPal.ink },
-                            ]}
-                          >
-                            {money(
-                              entryWallet.balance +
-                                (entryType === "expense" ? -1 : 1) *
-                                  (entryValue || 0)
-                            )}
-                          </Text>
-                        </View>
+                          {isTransferMode && sourceWallet
+                            ? transferFee > 0
+                              ? `Total debit: ${money(transferTotalDebit)} (incl. ${money(transferFee)} fee)`
+                              : `Available in ${sourceWallet.name}: ${money(sourceWallet.balance)}`
+                            : scheduledEntry
+                              ? `Wallet: ${entryWallet.name}`
+                              : "Next step: Choose wallet"}
+                        </Text>
                       </View>
                     </View>
-                  )}
-                </FolderSurface>
 
-                {/* Built-In Amount Keypad */}
-                <AmountKeypad
-                  value={amount}
-                  onChange={setAmount}
-                  quickAmounts={[100, 500, 1000, 5000]}
-                  compact
-                  theme={theme}
-                />
+                    {isTransferMode && (
+                      <View style={styles.feeRow}>
+                        <Text style={[styles.feeLabel, { color: theme.muted }]}>
+                          Fee
+                        </Text>
+                        {[0, 10, 15, 25].map((feeAmt) => {
+                          const active = transferFee === feeAmt;
+                          return (
+                            <Pressable
+                              key={feeAmt}
+                              onPress={() => setTransferFee(feeAmt)}
+                              style={[
+                                styles.feeChip,
+                                {
+                                  overflow: "hidden",
+                                  backgroundColor: active
+                                    ? theme.leather.edge
+                                    : theme.card,
+                                  borderColor: active
+                                    ? theme.leather.edge
+                                    : hexToRgba(theme.leather.accent, 0.24),
+                                },
+                              ]}
+                            >
+                              {active ? (
+                                <DarkLeatherSurface theme={theme} radius={12} />
+                              ) : (
+                                <LightLeatherSurface theme={theme} radius={12} />
+                              )}
+                              <Text
+                                style={[
+                                  styles.feeChipText,
+                                  { color: active ? "#ffffff" : theme.ink },
+                                ]}
+                              >
+                                {feeAmt === 0 ? "Free" : `₱${feeAmt}`}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    )}
 
-                {/* From Wallet Horizontal Scroll */}
-                <View style={styles.entrySection}>
-                  <View style={styles.entrySectionHead}>
-                    <Text
-                      style={[styles.entrySectionTitle, { color: theme.ink }]}
-                    >
-                      From wallet
-                    </Text>
-                    <Text
-                      style={[styles.entrySectionSub, { color: theme.muted }]}
-                    >
-                      {wallets.length} wallets
-                    </Text>
-                  </View>
-                  <View style={{ position: "relative" }}>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={{ gap: 9, paddingHorizontal: 4 }}
-                    >
-                    {wallets.map((w) => {
-                      const active = walletId === w.id;
-                      const wPal = tonePalette[w.tone] || tonePalette.blue;
-                      return (
+                    <AmountKeypad
+                      value={amount}
+                      onChange={setAmount}
+                      quickAmounts={[100, 500, 1000, 5000]}
+                      compact
+                      stitched
+                      theme={theme}
+                    />
+
+                    {isTransferMode &&
+                    sourceWallet &&
+                    transferValue > 0 &&
+                    transferTotalDebit > sourceWallet.balance ? (
+                      <Text style={styles.errorText}>
+                        Total exceeds {sourceWallet.name} balance ({money(sourceWallet.balance)}).
+                      </Text>
+                    ) : null}
+
+                    <View style={styles.stepFooterRow}>
+                      {!scheduledEntry && (
                         <Pressable
-                          key={w.id}
-                          onPress={() => setWalletId(w.id)}
-                          style={[
-                            styles.entryWalletCard,
+                          onPress={() => goStep(0)}
+                          style={({ pressed }) => [
+                            styles.stitchedBackBtn,
                             {
-                              backgroundColor: active
-                                ? theme.surface
-                                : theme.soft,
-                              borderColor: active
-                                ? theme.accent
-                                : theme.line,
+                              overflow: "hidden",
+                              borderColor: hexToRgba(theme.leather.accent, 0.26),
+                              transform: [{ scale: pressed ? 0.97 : 1 }],
                             },
                           ]}
                         >
-                          <LinearGradient
-                            colors={[wPal.from, wPal.to]}
-                            style={styles.entryWalletMark}
+                          <LightLeatherSurface theme={theme} radius={18} />
+                          <Icon name="back" size={16} color={theme.ink} />
+                          <Text style={[styles.stitchedBackBtnText, { color: theme.ink }]}>
+                            Back
+                          </Text>
+                        </Pressable>
+                      )}
+                      <Pressable
+                        disabled={
+                          isTransferMode
+                            ? transferInvalid
+                            : !entryValue || entryValue <= 0
+                        }
+                        onPress={() => goStep(2)}
+                        style={({ pressed }) => [
+                          styles.stitchedPrimaryBtn,
+                          {
+                            flex: 1,
+                            overflow: "hidden",
+                            borderColor: theme.leather.edge,
+                            opacity: (
+                              isTransferMode
+                                ? transferInvalid
+                                : !entryValue || entryValue <= 0
+                            )
+                              ? 0.45
+                              : 1,
+                            transform: [{ scale: pressed ? 0.985 : 1 }],
+                          },
+                        ]}
+                      >
+                        <DarkLeatherSurface theme={theme} radius={18} />
+                        <Text style={styles.stitchedPrimaryBtnText}>
+                          {isTransferMode ? "Next: Review" : "Next: Wallet"}
+                        </Text>
+                        <Icon name="chevron" size={17} color="#ffffff" />
+                      </Pressable>
+                    </View>
+                  </View>
+                )}
+
+                {/* ==================== STEP 2 (EXPENSE/INCOME): CHOOSE WALLET ==================== */}
+                {isWalletPickStep && (
+                  <View>
+                    <View style={styles.entrySectionHead}>
+                      <Text style={[styles.entrySectionTitle, { color: theme.ink }]}>
+                        {entryType === "expense" ? "Pay from wallet" : "Deposit to wallet"}
+                      </Text>
+                      <Text style={[styles.entrySectionSub, { color: theme.muted }]}>
+                        {money(entryValue)}
+                      </Text>
+                    </View>
+
+                    <View style={styles.walletVerticalList}>
+                      {wallets.map((w) => {
+                        const active = walletId === w.id;
+                        const insufficient =
+                          entryType === "expense" && entryValue > w.balance;
+                        const projected =
+                          w.balance +
+                          (entryType === "expense" ? -entryValue : entryValue);
+                        return (
+                          <Pressable
+                            key={w.id}
+                            onPress={() => setWalletId(w.id)}
+                            style={[
+                              styles.stitchedWalletRow,
+                              {
+                                overflow: "hidden",
+                                borderColor: active
+                                  ? theme.leather.edge
+                                  : hexToRgba(theme.leather.accent, 0.22),
+                                opacity: insufficient && !active ? 0.65 : 1,
+                              },
+                            ]}
                           >
+                            {active ? (
+                              <DarkLeatherSurface theme={theme} radius={16} />
+                            ) : (
+                              <LightLeatherSurface theme={theme} radius={16} />
+                            )}
                             <WalletLogoBadge
                               logoKey={w.logoKey}
                               name={w.name}
                               mark={w.mark}
-                              size={40}
-                              radius={14}
-                              ink={wPal.ink}
-                              fontSize={10}
+                              size={36}
+                              radius={11}
+                              ink={active ? "#ffffff" : theme.ink}
+                              fontSize={9}
                             />
-                          </LinearGradient>
-                          <View style={{ flex: 1 }}>
-                            <Text
-                              style={[
-                                styles.entryWalletName,
-                                { color: theme.ink },
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {w.name}
-                            </Text>
-                            <Text
-                              style={[
-                                styles.entryWalletBal,
-                                { color: theme.muted },
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {money(w.balance)}
-                            </Text>
-                          </View>
-                        </Pressable>
-                      );
+                            <View style={{ flex: 1 }}>
+                              <Text
+                                style={[
+                                  styles.entryWalletName,
+                                  { color: active ? "#ffffff" : theme.ink },
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {w.name}
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.entryWalletBal,
+                                  {
+                                    color: insufficient
+                                      ? active
+                                        ? "#fca5a5"
+                                        : "#c04444"
+                                      : active
+                                        ? theme.leather.thread
+                                        : theme.muted,
+                                  },
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {insufficient
+                                  ? "Insufficient balance"
+                                  : `After: ${money(projected)}`}
+                              </Text>
+                            </View>
+                            <View style={{ alignItems: "flex-end" }}>
+                              <Text
+                                style={[
+                                  styles.stitchedWalletAmount,
+                                  { color: active ? "#ffffff" : theme.ink },
+                                ]}
+                              >
+                                {money(w.balance)}
+                              </Text>
+                              {active ? (
+                                <Icon
+                                  name="check"
+                                  size={14}
+                                  color={theme.leather.thread}
+                                />
+                              ) : null}
+                            </View>
+                          </Pressable>
+                        );
                       })}
-                    </ScrollView>
-                    <EdgeFade position="left" color={theme.page} size={14} />
-                    <EdgeFade position="right" color={theme.page} size={14} />
+                    </View>
+
+                    {entryType === "expense" &&
+                    entryValue > entryWallet.balance ? (
+                      <Text style={styles.errorText}>
+                        Amount exceeds {entryWallet.name} balance. Choose another wallet or adjust the amount.
+                      </Text>
+                    ) : null}
+
+                    <View style={styles.stepFooterRow}>
+                      <Pressable
+                        onPress={() => goStep(1)}
+                        style={({ pressed }) => [
+                          styles.stitchedBackBtn,
+                          {
+                            overflow: "hidden",
+                            borderColor: hexToRgba(theme.leather.accent, 0.26),
+                            transform: [{ scale: pressed ? 0.97 : 1 }],
+                          },
+                        ]}
+                      >
+                        <LightLeatherSurface theme={theme} radius={18} />
+                        <Icon name="back" size={16} color={theme.ink} />
+                        <Text style={[styles.stitchedBackBtnText, { color: theme.ink }]}>
+                          Back
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        disabled={entryInvalid}
+                        onPress={() => goStep(3)}
+                        style={({ pressed }) => [
+                          styles.stitchedPrimaryBtn,
+                          {
+                            flex: 1,
+                            overflow: "hidden",
+                            borderColor: theme.leather.edge,
+                            opacity: entryInvalid ? 0.45 : 1,
+                            transform: [{ scale: pressed ? 0.985 : 1 }],
+                          },
+                        ]}
+                      >
+                        <DarkLeatherSurface theme={theme} radius={18} />
+                        <Text style={styles.stitchedPrimaryBtnText}>
+                          Next: Confirm
+                        </Text>
+                        <Icon name="chevron" size={17} color="#ffffff" />
+                      </Pressable>
+                    </View>
                   </View>
-                </View>
-
-                {/* Category Grid */}
-                <View style={styles.entrySection}>
-                  <View style={styles.entrySectionHead}>
-                    <Text
-                      style={[styles.entrySectionTitle, { color: theme.ink }]}
-                    >
-                      Category
-                    </Text>
-                    <Text
-                      style={[styles.entrySectionSub, { color: theme.muted }]}
-                    >
-                      {entryType === "expense" ? "Where it went" : "Source"}
-                    </Text>
-                  </View>
-                  {renderCategoryGrid(
-                    entryCategories,
-                    entryCategory,
-                    setEntryCategory
-                  )}
-                </View>
-
-                {/* Note Input */}
-                <View
-                  style={[
-                    styles.entryNoteBox,
-                    { backgroundColor: theme.soft, borderColor: theme.line },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.entryNoteIcon,
-                      { backgroundColor: theme.accentSoft },
-                    ]}
-                  >
-                    <Icon name="edit" size={16} color={theme.accentText} />
-                  </View>
-                  <TextInput
-                    value={note}
-                    onChangeText={setNote}
-                    placeholder={
-                      entryType === "expense"
-                        ? "Add a note, e.g. lunch with team"
-                        : "Add a note, e.g. client payout"
-                    }
-                    placeholderTextColor={theme.muted}
-                    style={[styles.entryNoteInput, { color: theme.ink }]}
-                  />
-                </View>
-
-                {entryType === "expense" &&
-                  entryValue > entryWallet.balance && (
-                    <Text style={styles.errorText}>
-                      This is higher than the wallet balance.
-                    </Text>
-                  )}
-
-                {!scheduledEntry && (
-                  <Pressable accessibilityRole="button"
-                    onPress={() => {
-                      Keyboard.dismiss();
-                      scrollToTop();
-                      setFavoriteDraft(createFavoriteDraft({
-                        name: (note.trim() || entryCategory).slice(0, 70),
-                        direction: entryType,
-                        category: entryCategory,
-                        walletLocalId: getWalletLocalId(entryWallet),
-                      }, entryValue > 0 ? entryValue : null));
-                    }}
-                    style={[styles.secondaryButton, { backgroundColor: theme.soft, marginTop: 10 }]}>
-                    <Icon name="star" size={16} color={theme.accentText} />
-                    <Text style={[styles.secondaryButtonText, { color: theme.accentText }]}>Save as favorite</Text>
-                  </Pressable>
                 )}
 
-                {/* Entry Footer */}
-                {entryError ? (
-                  <Text accessibilityRole="alert" style={[styles.formTitle, { color: theme.ink }]}>{entryError}</Text>
-                ) : null}
-                <View
-                  style={[
-                    styles.entryFooter,
-                    { borderTopColor: theme.line },
-                  ]}
-                >
-                  <View style={{ minWidth: 90 }}>
-                    <Text
+                {/* ==================== CONFIRMATION STEP ==================== */}
+                {isConfirmStep && (
+                  <View>
+                    <View
                       style={[
-                        styles.entryFooterLabel,
-                        { color: theme.muted },
+                        styles.walletHeroPanel,
+                        {
+                          overflow: "hidden",
+                          borderColor: theme.leather.edge,
+                        },
                       ]}
                     >
-                      {entryType === "expense" ? "Expense" : "Money in"}
-                    </Text>
-                    <Text
-                      style={[styles.entryFooterVal, { color: theme.ink }]}
+                      <DarkLeatherSurface theme={theme} radius={22} />
+                      <View style={styles.walletHeroTopRow}>
+                        <View style={styles.walletHeroTag}>
+                          <Icon
+                            name={isTransferMode ? "swap" : entryIcon}
+                            size={14}
+                            color="#ffffff"
+                          />
+                          <Text style={styles.walletHeroTagText} numberOfLines={1}>
+                            {isTransferMode && sourceWallet && destWallet
+                              ? `${sourceWallet.name} → ${destWallet.name}`
+                              : entryCategory}
+                          </Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.walletHeroModeBadge,
+                            entryType === "income" && {
+                              backgroundColor: "rgba(52, 211, 153, 0.22)",
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.walletHeroModeText,
+                              {
+                                color:
+                                  entryType === "income"
+                                    ? "#6ee7b7"
+                                    : theme.leather.thread,
+                              },
+                            ]}
+                          >
+                            {entryType === "expense"
+                              ? "EXPENSE"
+                              : entryType === "income"
+                                ? "INCOME"
+                                : "TRANSFER"}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.walletHeroAmountWrap}>
+                        <Text
+                          style={[
+                            styles.walletHeroLabel,
+                            { color: theme.leather.thread },
+                          ]}
+                        >
+                          Confirm transaction
+                        </Text>
+                        <View style={styles.entryAmountInputRow}>
+                          <Text style={styles.entryCurrencySign}>₱</Text>
+                          <Text
+                            style={[styles.entryBigInput, { color: "#ffffff" }]}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                          >
+                            {formatAmountInput(amount)}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.confirmMetaList}>
+                        {isTransferMode && sourceWallet && destWallet ? (
+                          <>
+                            <View style={styles.confirmMetaRow}>
+                              <Text style={[styles.confirmMetaKey, { color: theme.leather.thread }]}>
+                                From ({sourceWallet.name})
+                              </Text>
+                              <Text style={styles.confirmMetaVal}>
+                                {money(sourceWallet.balance)} → {money(transferAfterSource)}
+                              </Text>
+                            </View>
+                            <View style={styles.confirmMetaRow}>
+                              <Text style={[styles.confirmMetaKey, { color: theme.leather.thread }]}>
+                                To ({destWallet.name})
+                              </Text>
+                              <Text style={styles.confirmMetaVal}>
+                                {money(destWallet.balance)} → {money(transferAfterDest)}
+                              </Text>
+                            </View>
+                            {transferFee > 0 ? (
+                              <View style={styles.confirmMetaRow}>
+                                <Text style={[styles.confirmMetaKey, { color: theme.leather.thread }]}>
+                                  Transfer fee
+                                </Text>
+                                <Text style={styles.confirmMetaVal}>
+                                  {money(transferFee)} (Total {money(transferTotalDebit)})
+                                </Text>
+                              </View>
+                            ) : null}
+                          </>
+                        ) : (
+                          <>
+                            <View style={styles.confirmMetaRow}>
+                              <Text style={[styles.confirmMetaKey, { color: theme.leather.thread }]}>
+                                Wallet
+                              </Text>
+                              <Text style={styles.confirmMetaVal}>
+                                {entryWallet.name}
+                              </Text>
+                            </View>
+                            <View style={styles.confirmMetaRow}>
+                              <Text style={[styles.confirmMetaKey, { color: theme.leather.thread }]}>
+                                Balance after
+                              </Text>
+                              <Text style={styles.confirmMetaVal}>
+                                {money(entryWallet.balance)} → {money(entryAfterBalance)}
+                              </Text>
+                            </View>
+                          </>
+                        )}
+                      </View>
+                    </View>
+
+                    {/* Stitched Note Input */}
+                    <View
+                      style={[
+                        styles.entryNoteBox,
+                        {
+                          overflow: "hidden",
+                          backgroundColor: theme.card,
+                          borderColor: hexToRgba(theme.leather.accent, 0.24),
+                          marginTop: 12,
+                          paddingHorizontal: 14,
+                        },
+                      ]}
                     >
-                      {entryValue ? money(entryValue) : "₱0.00"}
-                    </Text>
+                      <LightLeatherSurface theme={theme} radius={18} />
+                      <Icon name="edit" size={16} color={theme.leather.accent} />
+                      <TextInput
+                        value={note}
+                        onChangeText={setNote}
+                        placeholder={
+                          isTransferMode
+                            ? "Add a transfer note (optional)"
+                            : entryType === "expense"
+                              ? "Add a note, e.g. lunch with team"
+                              : "Add a note, e.g. client payout"
+                        }
+                        placeholderTextColor={theme.muted}
+                        style={[styles.entryNoteInput, { color: theme.ink }]}
+                      />
+                    </View>
+
+                    {!scheduledEntry && !isTransferMode && (
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => {
+                          Keyboard.dismiss();
+                          scrollToTop();
+                          setFavoriteDraft(
+                            createFavoriteDraft(
+                              {
+                                name: (note.trim() || entryCategory).slice(0, 70),
+                                direction: entryType,
+                                category: entryCategory,
+                                walletLocalId: getWalletLocalId(entryWallet),
+                              },
+                              entryValue > 0 ? entryValue : null
+                            )
+                          );
+                        }}
+                        style={[
+                          styles.secondaryButton,
+                          {
+                            overflow: "hidden",
+                            backgroundColor: theme.card,
+                            borderWidth: 1,
+                            borderColor: hexToRgba(theme.leather.accent, 0.24),
+                            marginTop: 4,
+                          },
+                        ]}
+                      >
+                        <LightLeatherSurface theme={theme} radius={16} />
+                        <Icon name="star" size={16} color={theme.leather.accent} />
+                        <Text
+                          style={[
+                            styles.secondaryButtonText,
+                            { color: theme.leather.accent },
+                          ]}
+                        >
+                          Save as favorite
+                        </Text>
+                      </Pressable>
+                    )}
+
+                    {entryError ? (
+                      <Text accessibilityRole="alert" style={styles.errorText}>
+                        {entryError}
+                      </Text>
+                    ) : null}
+
+                    <View style={styles.stepFooterRow}>
+                      <Pressable
+                        onPress={() => goStep(currentStep - 1)}
+                        style={({ pressed }) => [
+                          styles.stitchedBackBtn,
+                          {
+                            overflow: "hidden",
+                            borderColor: hexToRgba(theme.leather.accent, 0.26),
+                            transform: [{ scale: pressed ? 0.97 : 1 }],
+                          },
+                        ]}
+                      >
+                        <LightLeatherSurface theme={theme} radius={18} />
+                        <Icon name="back" size={16} color={theme.ink} />
+                        <Text style={[styles.stitchedBackBtnText, { color: theme.ink }]}>
+                          Back
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        disabled={
+                          entrySaving ||
+                          (isTransferMode ? transferInvalid : entryInvalid)
+                        }
+                        onPress={save}
+                        style={({ pressed }) => [
+                          styles.stitchedPrimaryBtn,
+                          {
+                            flex: 1,
+                            overflow: "hidden",
+                            borderColor: theme.leather.edge,
+                            opacity:
+                              entrySaving ||
+                              (isTransferMode ? transferInvalid : entryInvalid)
+                                ? 0.45
+                                : 1,
+                            transform: [{ scale: pressed ? 0.985 : 1 }],
+                          },
+                        ]}
+                      >
+                        <DarkLeatherSurface theme={theme} radius={18} />
+                        <Text style={styles.stitchedPrimaryBtnText}>
+                          {entrySaving
+                            ? "Saving…"
+                            : entryType === "expense"
+                              ? "Save expense"
+                              : entryType === "income"
+                                ? "Add income"
+                                : "Confirm transfer"}
+                        </Text>
+                        <Icon name="check" size={17} color="#ffffff" />
+                      </Pressable>
+                    </View>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <PrimaryButton
-                      label={
-                        entrySaving ? "Saving…" : entryType === "expense" ? "Save expense" : "Add money"
-                      }
-                      disabled={entryInvalid || entrySaving}
-                      onPress={save}
-                      incomeStyle={entryType === "income"}
-                      theme={theme}
-                    />
-                  </View>
-                </View>
+                )}
               </View>
-            )}
+              );
+            })()}
 
             {/* ==================== UPDATE BALANCE SHEET ==================== */}
             {type === "update" && current && (
@@ -2257,7 +3279,13 @@ export function SheetModal({
                       showsHorizontalScrollIndicator={false}
                       contentContainerStyle={{ gap: 8 }}
                     >
-                      {wallets.map((w) => {
+                      {wallets
+                        .filter((w) =>
+                          pickingTransferSide === "from"
+                            ? w.id !== destination
+                            : w.id !== source
+                        )
+                        .map((w) => {
                         const active =
                           pickingTransferSide === "from"
                             ? w.id === source
@@ -2267,14 +3295,8 @@ export function SheetModal({
                             key={w.id}
                             onPress={() => {
                               if (pickingTransferSide === "from") {
-                                if (w.id === destination) {
-                                  setDestination(source);
-                                }
                                 setSource(w.id);
                               } else {
-                                if (w.id === source) {
-                                  setSource(destination);
-                                }
                                 setDestination(w.id);
                               }
                               setPickingTransferSide(null);
@@ -3987,151 +5009,193 @@ const styles = StyleSheet.create({
   secondaryButton: {
     height: 46,
     borderRadius: 16,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 8,
   },
   secondaryButtonText: {
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 13,
   },
-  entryToggle: {
-    height: 56,
-    padding: 5,
-    borderRadius: 22,
-    borderWidth: 1,
+  closeRoundBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  entryProgressWrap: {
+    marginBottom: 16,
+    gap: 7,
+  },
+  entryProgressMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  entryProgressCount: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 11.5,
+  },
+  entryProgressCurrent: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  entryProgressTrackRow: {
     flexDirection: "row",
     gap: 6,
-    marginBottom: 16,
+  },
+  entryProgressSegment: {
+    flex: 1,
+    height: 4.5,
+    borderRadius: 3,
+  },
+  stitchedNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  stitchedNoticeText: {
+    flex: 1,
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 12,
+  },
+  entryToggle: {
+    height: 54,
+    padding: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 5,
+    marginBottom: 18,
   },
   entryToggleBtn: {
     flex: 1,
-    borderRadius: 17,
+    borderRadius: 15,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-  },
-  entryToggleIcon: {
-    width: 25,
-    height: 25,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 6,
   },
   entryToggleText: {
-    fontFamily: "Poppins_800ExtraBold",
-    fontWeight: "800",
-    fontSize: 13,
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12.5,
+    flexShrink: 1,
   },
-  entryHeroTab: {
-    position: "absolute",
-    left: 20,
-    top: 0,
-    maxWidth: "54%",
+  walletHeroPanel: {
+    borderRadius: 22,
+    borderWidth: 1.5,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    marginBottom: 12,
+  },
+  walletHeroTopRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: 10,
-    paddingTop: 3,
   },
-  entryHeroIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 11,
-    backgroundColor: "rgba(255, 255, 255, 0.24)",
+  walletHeroTag: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.16)",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    maxWidth: "68%",
   },
-  entryHeroCat: {
-    fontFamily: "Poppins_800ExtraBold",
-    fontWeight: "900",
-    fontStyle: "italic",
-    fontSize: 17,
+  walletHeroTagText: {
+    color: "#ffffff",
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12,
   },
-  entryHeroBadge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingLeft: 6,
+  walletHeroModeBadge: {
+    backgroundColor: "rgba(255, 255, 255, 0.10)",
+    borderRadius: 10,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
   },
-  entryHeroBadgeText: {
-    fontFamily: "Poppins_800ExtraBold",
-    fontWeight: "900",
-    fontSize: 10.5,
-    letterSpacing: 1,
-  },
-  entryHeroBody: {
-    paddingTop: 66,
-    paddingHorizontal: 22,
-    paddingBottom: 20,
-  },
-  entryHeroLabel: {
+  walletHeroModeText: {
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
+    fontSize: 10,
+    letterSpacing: 0.9,
+  },
+  walletHeroAmountWrap: {
+    marginTop: 14,
+    marginBottom: 10,
+  },
+  walletHeroLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  walletHeroLabel: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
     fontSize: 11,
-    opacity: 0.68,
+  },
+  walletHeroMaxChip: {
+    backgroundColor: "rgba(255, 255, 255, 0.14)",
+    borderRadius: 9,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
+  walletHeroMaxText: {
+    color: "#ffffff",
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 10.5,
+  },
+  walletHeroBottomRow: {
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.14)",
+  },
+  walletHeroSubText: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 11.5,
   },
   entryAmountInputRow: {
     flexDirection: "row",
     alignItems: "baseline",
     gap: 5,
-    marginVertical: 6,
+    marginTop: 4,
   },
   entryCurrencySign: {
+    color: "#ffffff",
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "900",
-    fontSize: 25,
-    opacity: 0.75,
+    fontSize: 24,
+    opacity: 0.8,
   },
   entryBigInput: {
     flex: 1,
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "900",
-    fontSize: 42,
-    letterSpacing: 0.3,
+    fontSize: 38,
+    letterSpacing: 0.2,
     paddingVertical: 0,
   },
-  entryBalanceRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 12,
-    borderTopWidth: 1,
-  },
-  entryBalanceLabel: {
-    fontFamily: "Poppins_700Bold",
-    fontWeight: "700",
-    fontSize: 11,
-    opacity: 0.7,
-  },
-  entryBalanceVal: {
-    fontFamily: "Poppins_800ExtraBold",
-    fontWeight: "800",
-    fontSize: 13,
-  },
-  entryQuickRow: {
-    flexDirection: "row",
-    gap: 7,
-    marginTop: 12,
-    marginBottom: 22,
-  },
-  entryQuickBtn: {
-    flex: 1,
-    height: 38,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  entryQuickText: {
-    fontFamily: "Poppins_800ExtraBold",
-    fontWeight: "800",
-    fontSize: 11,
-  },
   entrySection: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   entrySectionHead: {
     flexDirection: "row",
@@ -4142,34 +5206,31 @@ const styles = StyleSheet.create({
   entrySectionTitle: {
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
-    fontSize: 17,
+    fontSize: 16,
   },
   entrySectionSub: {
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 11,
   },
-  entryWalletCard: {
-    width: 158,
-    minHeight: 66,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    padding: 10,
+  walletVerticalList: {
+    gap: 9,
+    marginBottom: 14,
+  },
+  stitchedWalletRow: {
+    minHeight: 62,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
   },
-  entryWalletMark: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  entryWalletMarkText: {
+  stitchedWalletAmount: {
     fontFamily: "Poppins_800ExtraBold",
-    fontWeight: "900",
-    fontSize: 10,
+    fontWeight: "800",
+    fontSize: 13.5,
   },
   entryWalletName: {
     fontFamily: "Poppins_700Bold",
@@ -4177,10 +5238,70 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   entryWalletBal: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 11,
+    marginTop: 2,
+  },
+  stepFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 12,
+  },
+  stitchedBackBtn: {
+    height: 52,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  stitchedBackBtnText: {
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
-    fontSize: 10.5,
-    marginTop: 2,
+    fontSize: 13.5,
+  },
+  stitchedPrimaryBtn: {
+    height: 52,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  stitchedPrimaryBtnText: {
+    color: "#ffffff",
+    fontFamily: "Poppins_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 14.5,
+  },
+  confirmMetaList: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.14)",
+    gap: 8,
+  },
+  confirmMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  confirmMetaKey: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 11.5,
+  },
+  confirmMetaVal: {
+    color: "#ffffff",
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12.5,
   },
   categoryPickerGrid: {
     gap: 8,
@@ -4223,13 +5344,6 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 10,
   },
-  entryNoteIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   entryNoteInput: {
     flex: 1,
     fontFamily: "Poppins_700Bold",
@@ -4243,24 +5357,6 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     marginVertical: 4,
     marginLeft: 4,
-  },
-  entryFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingTop: 14,
-    marginTop: 8,
-    borderTopWidth: 1,
-  },
-  entryFooterLabel: {
-    fontFamily: "Poppins_800ExtraBold",
-    fontWeight: "800",
-    fontSize: 10.5,
-  },
-  entryFooterVal: {
-    fontFamily: "Poppins_800ExtraBold",
-    fontWeight: "800",
-    fontSize: 16,
   },
   walletSelectChip: {
     paddingHorizontal: 14,
