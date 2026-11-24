@@ -4,6 +4,7 @@ import {
   AppState,
   Easing,
   Image,
+  LayoutAnimation,
   PanResponder,
   Platform,
   Pressable,
@@ -574,9 +575,9 @@ export const HomeScreen = React.memo(function HomeScreen({
   );
 });
 
-const WALLET_TILE_HEIGHT = 90;
-const WALLET_TILE_GAP = 9;
-const WALLET_SLOT_HEIGHT = WALLET_TILE_HEIGHT + WALLET_TILE_GAP;
+const WALLET_FULL_HEIGHT = 130;
+const WALLET_COMPACT_HEIGHT = 58;
+const WALLET_TILE_GAP = 10;
 
 export const WalletsScreen = React.memo(function WalletsScreen({
   wallets,
@@ -649,7 +650,15 @@ export const WalletsScreen = React.memo(function WalletsScreen({
         walletFlows: flows,
       };
     }, [wallets, activities]);
+  const { width: windowWidth } = useWindowDimensions();
+  const [walletListWidth, setWalletListWidth] = useState(() =>
+    Math.max(260, windowWidth - 40)
+  );
   const [reordering, setReordering] = useState(false);
+  const tileHeight = reordering ? WALLET_COMPACT_HEIGHT : WALLET_FULL_HEIGHT;
+  const slotHeight = tileHeight + WALLET_TILE_GAP;
+  const slotHeightRef = useRef(slotHeight);
+  slotHeightRef.current = slotHeight;
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
@@ -692,9 +701,9 @@ export const WalletsScreen = React.memo(function WalletsScreen({
       if (idx === dragIndex) return;
       let targetShift = 0;
       if (dragIndex < hoverIndex && idx > dragIndex && idx <= hoverIndex) {
-        targetShift = -WALLET_SLOT_HEIGHT;
+        targetShift = -slotHeight;
       } else if (dragIndex > hoverIndex && idx >= hoverIndex && idx < dragIndex) {
-        targetShift = WALLET_SLOT_HEIGHT;
+        targetShift = slotHeight;
       }
       Animated.spring(getShiftAnim(w.id), {
         toValue: targetShift,
@@ -703,7 +712,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
         bounciness: 4,
       }).start();
     });
-  }, [dragIndex, hoverIndex, wallets]);
+  }, [dragIndex, hoverIndex, wallets, slotHeight]);
 
   const startDrag = (index: number) => {
     if (isDroppingRef.current || !onReorderWallets || walletsRef.current.length <= 1) {
@@ -727,8 +736,9 @@ export const WalletsScreen = React.memo(function WalletsScreen({
     const startIdx = dragIndexRef.current;
     if (startIdx === null || isDroppingRef.current) return;
     const list = walletsRef.current;
-    const minDy = -startIdx * WALLET_SLOT_HEIGHT;
-    const maxDy = (list.length - 1 - startIdx) * WALLET_SLOT_HEIGHT;
+    const step = slotHeightRef.current;
+    const minDy = -startIdx * step;
+    const maxDy = (list.length - 1 - startIdx) * step;
     const clampedDy = Math.max(minDy, Math.min(maxDy, dy));
     dragOffsetY.setValue(clampedDy);
 
@@ -736,7 +746,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
       0,
       Math.min(
         list.length - 1,
-        Math.round(startIdx + clampedDy / WALLET_SLOT_HEIGHT)
+        Math.round(startIdx + clampedDy / step)
       )
     );
     if (nextHover !== hoverIndexRef.current) {
@@ -752,7 +762,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
     if (startIdx === null || endIdx === null || isDroppingRef.current) return;
     isDroppingRef.current = true;
 
-    const snapDelta = (endIdx - startIdx) * WALLET_SLOT_HEIGHT;
+    const snapDelta = (endIdx - startIdx) * slotHeightRef.current;
     Animated.parallel([
       Animated.spring(dragOffsetY, {
         toValue: snapDelta,
@@ -895,6 +905,9 @@ export const WalletsScreen = React.memo(function WalletsScreen({
             <Pressable
               onPress={() => {
                 if (dragIndexRef.current !== null) return;
+                LayoutAnimation.configureNext(
+                  LayoutAnimation.Presets.easeInEaseOut
+                );
                 setReordering((prev) => !prev);
               }}
               style={({ pressed }) => [
@@ -1000,12 +1013,34 @@ export const WalletsScreen = React.memo(function WalletsScreen({
           ) : null}
         </View>
       ) : (
-        <View style={styles.walletList}>
+        <View
+          onLayout={(e) => {
+            const w = Math.round(e.nativeEvent.layout.width);
+            if (w > 0 && Math.abs(w - walletListWidth) > 1) {
+              setWalletListWidth(w);
+            }
+          }}
+          style={styles.walletList}
+        >
           {wallets.map((wallet, idx) => {
             const pal = tonePalette[wallet.tone] || tonePalette.blue;
             const cardDesign = resolveWalletCardDesign(wallet.logoKey, wallet.name);
-            const badgeInk = cardDesign ? cardDesign.ink : pal.ink;
+            const cardInk = cardDesign ? cardDesign.ink : pal.ink;
+            const isLightCardInk = cardInk === "#ffffff";
             const isDragged = dragIndex === idx;
+            const cardSubInk = isLightCardInk
+              ? "rgba(255, 255, 255, 0.8)"
+              : "rgba(20, 32, 26, 0.72)";
+            const cardBorder = isDragged
+              ? theme.leather.accent
+              : isLightCardInk
+                ? "rgba(255, 255, 255, 0.2)"
+                : "rgba(20, 32, 26, 0.14)";
+            const flowPillBg = isLightCardInk
+              ? "rgba(8, 12, 20, 0.34)"
+              : "rgba(255, 255, 255, 0.65)";
+            const inColor = isLightCardInk ? "#6ee7b7" : "#047857";
+            const outColor = isLightCardInk ? "#fda4af" : "#be123c";
             const shiftAnim = getShiftAnim(wallet.id);
             const rowPan = rowPanResponders[idx];
             const flow = walletFlows.get(wallet.id) ?? { earned: 0, spent: 0 };
@@ -1035,12 +1070,15 @@ export const WalletsScreen = React.memo(function WalletsScreen({
                   style={({ pressed }) => [
                     styles.walletTile,
                     {
-                      height: WALLET_TILE_HEIGHT,
-                      backgroundColor: theme.card,
+                      height: tileHeight,
+                      borderRadius: reordering ? 17 : 22,
+                      backgroundColor: cardDesign
+                        ? cardDesign.isDark
+                          ? "#090e17"
+                          : "#edf3ec"
+                        : pal.to,
                       overflow: "hidden",
-                      borderColor: isDragged
-                        ? theme.leather.accent
-                        : hexToRgba(theme.leather.accent, 0.24),
+                      borderColor: cardBorder,
                       transform: [
                         { scale: !reordering && pressed ? 0.985 : 1 },
                       ],
@@ -1053,149 +1091,197 @@ export const WalletsScreen = React.memo(function WalletsScreen({
                     },
                   ]}
                 >
-                  <LightLeatherSurface theme={theme} radius={20} />
-                  <View
-                    style={[
-                      styles.tileBadge,
-                      {
-                        overflow: "hidden",
-                        borderWidth: 1,
-                        borderColor: hexToRgba(theme.leather.accent, 0.2),
-                      },
-                    ]}
-                  >
-                    {cardDesign ? (
+                  {cardDesign ? (
+                    <>
                       <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-                        <Svg width={48} height={48}>
+                        <Svg width={walletListWidth} height={tileHeight}>
                           <SvgImage
                             href={cardDesign.source}
                             x={0}
                             y={0}
-                            width={48}
-                            height={48}
+                            width={walletListWidth}
+                            height={tileHeight}
                             preserveAspectRatio="xMaxYMid slice"
                           />
                         </Svg>
                       </View>
-                    ) : (
-                      <TexturedGradientSurface
-                        fromColor={pal.from}
-                        toColor={pal.to}
-                        subtle
+                      <LinearGradient
+                        pointerEvents="none"
+                        colors={
+                          reordering
+                            ? cardDesign.isDark
+                              ? ["rgba(8, 12, 20, 0.36)", "rgba(8, 12, 20, 0.42)"]
+                              : ["rgba(244, 248, 243, 0.48)", "rgba(232, 238, 230, 0.52)"]
+                            : cardDesign.isDark
+                              ? ["rgba(8, 12, 20, 0.08)", "rgba(8, 12, 20, 0.42)", "rgba(8, 12, 20, 0.72)"]
+                              : ["rgba(244, 248, 243, 0.08)", "rgba(232, 238, 230, 0.52)", "rgba(224, 232, 222, 0.8)"]
+                        }
+                        locations={reordering ? [0, 1] : [0.22, 0.65, 1]}
+                        style={StyleSheet.absoluteFill}
                       />
-                    )}
-                    <WalletLogoBadge
-                      logoKey={wallet.logoKey}
-                      name={wallet.name}
-                      mark={wallet.mark}
-                      size={48}
-                      radius={15}
-                      ink={badgeInk}
-                      fontSize={11}
+                    </>
+                  ) : (
+                    <TexturedGradientSurface
+                      fromColor={pal.from}
+                      toColor={pal.to}
+                      subtle={reordering}
                     />
-                  </View>
-
-                  <View style={styles.tileMain}>
-                    <Text
-                      style={[styles.tileName, { color: theme.ink }]}
-                      numberOfLines={1}
-                    >
-                      {wallet.name}
-                    </Text>
-                    <Text
-                      style={[styles.tileSub, { color: theme.muted }]}
-                      numberOfLines={1}
-                    >
-                      {wallet.type} · {wallet.account}
-                    </Text>
-                    <View style={styles.tileFlowRow}>
-                      <Text
-                        style={[styles.tileFlowMonth, { color: theme.muted }]}
-                      >
-                        {monthLabel}
-                      </Text>
-                      <View style={styles.tileFlowStat}>
-                        <Icon
-                          name="arrow-down"
-                          size={11}
-                          strokeWidth={2.5}
-                          color={theme.dark ? "#34d399" : "#059669"}
-                        />
-                        <Text
-                          style={[
-                            styles.tileFlowVal,
-                            { color: theme.dark ? "#34d399" : "#059669" },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {hidden ? "••" : money(flow.earned, true)}
-                        </Text>
-                      </View>
-                      <View style={styles.tileFlowStat}>
-                        <Icon
-                          name="arrow-up"
-                          size={11}
-                          strokeWidth={2.5}
-                          color={theme.dark ? "#fb7185" : "#e11d48"}
-                        />
-                        <Text
-                          style={[
-                            styles.tileFlowVal,
-                            { color: theme.dark ? "#fb7185" : "#e11d48" },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {hidden ? "••" : money(flow.spent, true)}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
+                  )}
 
                   {reordering ? (
-                    <View
-                      {...(rowPan ? rowPan.panHandlers : {})}
-                      style={styles.dragHandleHitArea}
-                    >
-                      <View
+                    <View style={styles.walletCompactRow}>
+                      <WalletLogoBadge
+                        logoKey={wallet.logoKey}
+                        name={wallet.name}
+                        mark={wallet.mark}
+                        size={30}
+                        radius={9}
+                        ink={cardInk}
+                        fontSize={10}
+                      />
+                      <Text
                         style={[
-                          styles.dragHandleBox,
-                          {
-                            overflow: "hidden",
-                            borderWidth: 1,
-                            borderColor: isDragged
-                              ? theme.leather.edge
-                              : hexToRgba(theme.leather.accent, 0.24),
-                            backgroundColor: isDragged
-                              ? theme.leather.edge
-                              : theme.page,
-                          },
+                          styles.tileName,
+                          { color: cardInk, flex: 1, fontSize: 14.5 },
                         ]}
+                        numberOfLines={1}
                       >
-                        {isDragged ? (
-                          <DarkLeatherSurface theme={theme} radius={13} />
-                        ) : (
-                          <LightLeatherSurface theme={theme} radius={13} />
-                        )}
-                        <Icon
-                          name="grip"
-                          size={18}
-                          color={isDragged ? "#ffffff" : theme.leather.accent}
-                        />
+                        {wallet.name}
+                      </Text>
+                      <Text
+                        style={[styles.walletCompactBalance, { color: cardSubInk }]}
+                        numberOfLines={1}
+                      >
+                        {hidden ? "₱ ••••" : money(wallet.balance)}
+                      </Text>
+                      <View
+                        {...(rowPan ? rowPan.panHandlers : {})}
+                        style={styles.dragHandleHitArea}
+                      >
+                        <View
+                          style={[
+                            styles.dragHandleBox,
+                            {
+                              overflow: "hidden",
+                              borderWidth: 1,
+                              borderColor: isDragged
+                                ? theme.leather.edge
+                                : isLightCardInk
+                                  ? "rgba(255,255,255,0.28)"
+                                  : "rgba(20,32,26,0.2)",
+                              backgroundColor: isDragged
+                                ? theme.leather.edge
+                                : isLightCardInk
+                                  ? "rgba(0,0,0,0.34)"
+                                  : "rgba(255,255,255,0.68)",
+                            },
+                          ]}
+                        >
+                          <Icon
+                            name="grip"
+                            size={17}
+                            color={
+                              isDragged
+                                ? "#ffffff"
+                                : isLightCardInk
+                                  ? "#ffffff"
+                                  : theme.ink
+                            }
+                          />
+                        </View>
                       </View>
                     </View>
                   ) : (
-                    <View style={styles.tileValueRow}>
-                      <Amount
-                        value={wallet.balance}
-                        hidden={hidden}
-                        size="sm"
-                        color={theme.ink}
-                      />
-                      <Icon
-                        name="chevron"
-                        size={15}
-                        color={hexToRgba(theme.leather.accent, 0.65)}
-                      />
+                    <View style={styles.walletCardFullInner}>
+                      <View style={styles.walletCardFullTopRow}>
+                        <View style={styles.walletCardIdentity}>
+                          <WalletLogoBadge
+                            logoKey={wallet.logoKey}
+                            name={wallet.name}
+                            mark={wallet.mark}
+                            size={34}
+                            radius={10}
+                            ink={cardInk}
+                            fontSize={11}
+                          />
+                          <Text
+                            style={[
+                              styles.tileName,
+                              { color: cardInk, fontSize: 15.5, flexShrink: 1 },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {wallet.name}
+                          </Text>
+                        </View>
+                        <View style={styles.tileValueRow}>
+                          <Text
+                            style={[
+                              styles.tileSub,
+                              { color: cardSubInk, maxWidth: 132 },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {wallet.type} · {wallet.account}
+                          </Text>
+                          <Icon
+                            name="chevron"
+                            size={15}
+                            color={cardSubInk}
+                          />
+                        </View>
+                      </View>
+
+                      <View style={styles.walletCardFullBottomRow}>
+                        <View style={{ flex: 1 }}>
+                          <Amount
+                            value={wallet.balance}
+                            hidden={hidden}
+                            size="sm"
+                            color={cardInk}
+                          />
+                        </View>
+                        <View
+                          style={[
+                            styles.walletCardFlowPill,
+                            { backgroundColor: flowPillBg },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.tileFlowMonth, { color: cardSubInk }]}
+                          >
+                            {monthLabel}
+                          </Text>
+                          <View style={styles.tileFlowStat}>
+                            <Icon
+                              name="arrow-down"
+                              size={10.5}
+                              strokeWidth={2.5}
+                              color={inColor}
+                            />
+                            <Text
+                              style={[styles.tileFlowVal, { color: inColor }]}
+                              numberOfLines={1}
+                            >
+                              {hidden ? "••" : money(flow.earned, true)}
+                            </Text>
+                          </View>
+                          <View style={styles.tileFlowStat}>
+                            <Icon
+                              name="arrow-up"
+                              size={10.5}
+                              strokeWidth={2.5}
+                              color={outColor}
+                            />
+                            <Text
+                              style={[styles.tileFlowVal, { color: outColor }]}
+                              numberOfLines={1}
+                            >
+                              {hidden ? "••" : money(flow.spent, true)}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
                     </View>
                   )}
                 </Pressable>
@@ -3175,19 +3261,58 @@ const styles = StyleSheet.create({
     marginTop: 1.5,
   },
   walletTile: {
-    minHeight: 78,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 20,
-    borderWidth: 1,
+    borderRadius: 22,
+    borderWidth: 1.5,
     shadowColor: "#121a2d",
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.14,
     shadowRadius: 14,
     elevation: 4,
+  },
+  walletCardFullInner: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    justifyContent: "space-between",
+  },
+  walletCardFullTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  walletCardIdentity: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  walletCardFullBottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  walletCardFlowPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  walletCompactRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  walletCompactBalance: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12.5,
+    includeFontPadding: false,
   },
   tileBadge: {
     width: 48,
