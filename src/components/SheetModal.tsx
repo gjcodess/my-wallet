@@ -45,6 +45,7 @@ import {
   hexToRgba,
   LightLeatherSurface,
   SaffianoSheetSurface,
+  TexturedGradientSurface,
   ThemeColors,
   TopBar,
   TxRow,
@@ -2018,16 +2019,16 @@ export function SheetModal({
                                     },
                                   ]}
                                 >
-                                  <LinearGradient
-                                    colors={[pal.from, pal.to]}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={styles.toneSwatch}
-                                  >
+                                  <View style={styles.toneSwatch}>
+                                    <TexturedGradientSurface
+                                      fromColor={pal.from}
+                                      toColor={pal.to}
+                                      subtle
+                                    />
                                     {active && (
                                       <Icon name="check" size={15} color={pal.ink} />
                                     )}
-                                  </LinearGradient>
+                                  </View>
                                 </Pressable>
                               );
                             })}
@@ -5383,12 +5384,9 @@ function WalletCardPreviewBox({
           </View>
         ) : null
       ) : (
-        <LinearGradient
-          pointerEvents="none"
-          colors={[palette.from, palette.to]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
+        <TexturedGradientSurface
+          fromColor={palette.from}
+          toColor={palette.to}
         />
       )}
       <View style={styles.walletCardPreviewInner}>{children}</View>

@@ -473,6 +473,80 @@ export const DarkLeatherSurface = React.memo(function DarkLeatherSurface({
   );
 });
 
+export const TexturedGradientSurface = React.memo(function TexturedGradientSurface({
+  fromColor,
+  toColor,
+  subtle = false,
+}: {
+  fromColor: string;
+  toColor: string;
+  subtle?: boolean;
+}) {
+  const uid = React.useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const weaveId = `cardWeave${uid}`;
+  const sheenId = `cardSheen${uid}`;
+  const shadeId = `cardShade${uid}`;
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <LinearGradient
+        colors={[fromColor, toColor]}
+        start={{ x: 0.05, y: 0 }}
+        end={{ x: 0.95, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
+        <Defs>
+          <Pattern id={weaveId} width="7" height="7" patternUnits="userSpaceOnUse">
+            <SvgPath
+              d="M-1 8L8-1M0 7L7 0"
+              stroke="#ffffff"
+              strokeWidth="0.6"
+              opacity={subtle ? "0.1" : "0.08"}
+            />
+            <SvgPath
+              d="M-1 -1L8 8M0 0L7 7"
+              stroke="#000000"
+              strokeWidth="0.55"
+              opacity={subtle ? "0.08" : "0.07"}
+            />
+          </Pattern>
+          <SvgRadialGradient id={sheenId} cx="18%" cy="12%" rx="68%" ry="70%">
+            <Stop offset="0%" stopColor="#ffffff" stopOpacity={subtle ? "0.2" : "0.16"} />
+            <Stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+          </SvgRadialGradient>
+          <SvgRadialGradient id={shadeId} cx="90%" cy="94%" rx="68%" ry="68%">
+            <Stop offset="0%" stopColor="#000000" stopOpacity={subtle ? "0.22" : "0.24"} />
+            <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
+          </SvgRadialGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${sheenId})`} />
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${shadeId})`} />
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${weaveId})`} />
+        {!subtle && (
+          <>
+            <SvgCircle
+              cx="94%"
+              cy="54%"
+              r="58%"
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="22"
+              strokeOpacity="0.065"
+            />
+            <SvgCircle
+              cx="94%"
+              cy="54%"
+              r="34%"
+              fill="#ffffff"
+              fillOpacity="0.04"
+            />
+          </>
+        )}
+      </Svg>
+    </View>
+  );
+});
+
 export const SaffianoSheetSurface = React.memo(function SaffianoSheetSurface({
   theme,
   radius = 32,

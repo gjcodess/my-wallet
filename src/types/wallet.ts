@@ -100,18 +100,18 @@ export const tonePalette: Record<
   Tone,
   { label: string; from: string; to: string; ink: string }
 > = {
-  blue: { label: "Blue", from: "#8fd0ff", to: "#2563eb", ink: "#ffffff" },
-  lime: { label: "Lime", from: "#e3ff86", to: "#8fdd32", ink: "#14201a" },
-  yellow: { label: "Sun", from: "#fff58a", to: "#f2c715", ink: "#211b07" },
-  mint: { label: "Mint", from: "#d8fff0", to: "#6fd6a8", ink: "#102b22" },
-  lilac: { label: "Lilac", from: "#f3edff", to: "#b8a0f2", ink: "#211938" },
-  navy: { label: "Navy", from: "#3c5c9a", to: "#111b34", ink: "#ffffff" },
-  coral: { label: "Coral", from: "#ffd0bf", to: "#f06f5f", ink: "#341611" },
-  ocean: { label: "Ocean", from: "#79efff", to: "#2477d8", ink: "#ffffff" },
-  plum: { label: "Plum", from: "#c29aff", to: "#4c2ca8", ink: "#ffffff" },
-  sunset: { label: "Sunset", from: "#ffe682", to: "#ff875f", ink: "#30170d" },
-  graphite: { label: "Graphite", from: "#788396", to: "#222833", ink: "#ffffff" },
-  rose: { label: "Rose", from: "#ffe0ec", to: "#e66b9f", ink: "#35111f" },
+  blue: { label: "Cobalt", from: "#2d5a9e", to: "#13294d", ink: "#ffffff" },
+  lime: { label: "Olive", from: "#74804a", to: "#394220", ink: "#ffffff" },
+  yellow: { label: "Gold", from: "#e2c37c", to: "#a67d33", ink: "#1e1606" },
+  mint: { label: "Evergreen", from: "#446a56", to: "#1b3025", ink: "#ffffff" },
+  lilac: { label: "Slate", from: "#676c8e", to: "#2a2d43", ink: "#ffffff" },
+  navy: { label: "Midnight", from: "#3b5269", to: "#142230", ink: "#ffffff" },
+  coral: { label: "Saddle", from: "#9e6346", to: "#472718", ink: "#ffffff" },
+  ocean: { label: "Teal", from: "#246e78", to: "#10353d", ink: "#ffffff" },
+  plum: { label: "Plum", from: "#644478", to: "#2b1938", ink: "#ffffff" },
+  sunset: { label: "Cognac", from: "#c2925b", to: "#694322", ink: "#ffffff" },
+  graphite: { label: "Onyx", from: "#4a4e53", to: "#141619", ink: "#ffffff" },
+  rose: { label: "Oxblood", from: "#8f3b43", to: "#3f1419", ink: "#ffffff" },
 };
 
 export const initialWallets: Wallet[] = [

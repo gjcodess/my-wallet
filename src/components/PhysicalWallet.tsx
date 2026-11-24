@@ -34,7 +34,7 @@ import Svg, {
 import { resolveWalletCardDesign } from "../data/walletPresets";
 import { money, tonePalette, type Wallet } from "../types/wallet";
 import { Icon } from "./Icon";
-import type { ThemeColors } from "./SharedUI";
+import { TexturedGradientSurface, type ThemeColors } from "./SharedUI";
 import { Amount, WalletLogoBadge } from "./WalletFolder";
 
 export const WALLET_WIDTH = 350;
@@ -234,15 +234,10 @@ const AccountCard = React.memo(function AccountCard({
             <SvgImage href={design.source} width="100%" height="100%" preserveAspectRatio="xMaxYMid slice" />
           </Svg>
         ) : (
-          <>
-            <CardGradient
-              style={StyleSheet.absoluteFill}
-              colors={["#ffffff25", "#ffffff00", "#00000015"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            />
-            <View style={styles.cardWatermark} />
-          </>
+          <TexturedGradientSurface
+            fromColor={palette.from}
+            toColor={palette.to}
+          />
         )}
         <Svg pointerEvents="none" width="100%" height={tabHeight * 2} style={styles.cardAmountFade}>
           <Defs>
@@ -860,16 +855,6 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 255, 255, 0.16)",
   },
   cardTouch: { position: "absolute", top: 0, left: 0, right: 0 },
-  cardWatermark: {
-    position: "absolute",
-    top: 30,
-    right: -76,
-    width: 195,
-    height: 195,
-    borderRadius: 98,
-    borderWidth: 22,
-    borderColor: "#ffffff1a",
-  },
   cardRow: {
     flexDirection: "row",
     alignItems: "center",

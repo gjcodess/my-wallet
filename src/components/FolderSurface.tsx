@@ -14,6 +14,7 @@ import Svg, {
   Image as SvgImage,
   LinearGradient,
   Path,
+  Pattern,
   Stop,
 } from "react-native-svg";
 
@@ -121,6 +122,7 @@ export const FolderSurface = React.memo(function FolderSurface({
   const folderClipId = `folderClip-${uid}`;
   const notchClipId = `notchClip-${uid}`;
   const imageClipId = `imageClip-${uid}`;
+  const textureId = `folderTex-${uid}`;
   const [size, setSize] = useState({ width: 350, height: minHeight });
 
   const onLayout = useCallback((e: LayoutChangeEvent) => {
@@ -187,6 +189,10 @@ export const FolderSurface = React.memo(function FolderSurface({
               <Stop offset="0%" stopColor={fromColor} />
               <Stop offset="100%" stopColor={toColor} />
             </LinearGradient>
+            <Pattern id={textureId} width="7" height="7" patternUnits="userSpaceOnUse">
+              <Path d="M-1 8L8-1M0 7L7 0" stroke="#ffffff" strokeWidth="0.6" opacity="0.075" />
+              <Path d="M-1 -1L8 8M0 0L7 7" stroke="#000000" strokeWidth="0.55" opacity="0.065" />
+            </Pattern>
             <ClipPath id={folderClipId}>
               <Path d={geometry.folder} />
             </ClipPath>
@@ -224,6 +230,12 @@ export const FolderSurface = React.memo(function FolderSurface({
           ))}
           <Path d={geometry.folder} fill={`url(#${gradId})`} />
           {notch && <Path d={geometry.notch} fill={`url(#${gradId})`} />}
+          {!backgroundImage && (
+            <>
+              <Path d={geometry.folder} fill={`url(#${textureId})`} />
+              {notch && <Path d={geometry.notch} fill={`url(#${textureId})`} />}
+            </>
+          )}
           {backgroundImage && (
             <SvgImage
               href={backgroundImage}
