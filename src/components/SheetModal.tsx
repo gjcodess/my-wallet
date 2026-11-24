@@ -170,6 +170,10 @@ export function SheetModal({
   const { height: windowHeight } = useWindowDimensions();
   const sheetStartY = Math.min(Math.max(windowHeight, 560), 760);
   const openAnim = useRef(new Animated.Value(0)).current;
+  const contentAnim = useRef(new Animated.Value(1)).current;
+  const transitionDirAnim = useRef(new Animated.Value(1)).current;
+  const transitionDirRef = useRef<-1 | 0 | 1>(0);
+  const prevTypeRef = useRef<Sheet>(type);
   const closingRef = useRef(false);
   const entrySavingRef = useRef(false);
   const sheetScrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
@@ -263,6 +267,9 @@ export function SheetModal({
   const sheetScrollY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    const typeChanged = prevTypeRef.current !== type;
+    prevTypeRef.current = type;
+
     sheetScrollY.setValue(0);
     setWalletStep(type === "edit" ? 1 : 0);
     if (type !== "edit") {
@@ -299,6 +306,23 @@ export function SheetModal({
       setCategory(editTarget.type);
       setAccountLabel(editTarget.account);
       setTone(editTarget.tone);
+    }
+
+    if (typeChanged) {
+      const dir = transitionDirRef.current || 1;
+      transitionDirRef.current = 0;
+      transitionDirAnim.setValue(dir);
+      contentAnim.setValue(0);
+      scrollToTop();
+      const raf = requestAnimationFrame(() => {
+        Animated.timing(contentAnim, {
+          toValue: 1,
+          duration: 210,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }).start();
+      });
+      return () => cancelAnimationFrame(raf);
     }
   }, [type, editTarget?.id]);
   const [amount, setAmount] = useState(scheduledEntry ? String(scheduledEntry.amount) : "");
@@ -592,6 +616,7 @@ export function SheetModal({
       onSwitchSheet
     ) {
       const target = editReturnTarget;
+      transitionDirRef.current = -1;
       setEditReturnTarget(null);
       setAmount("");
       onSwitchSheet("update", target);
@@ -1095,6 +1120,7 @@ export function SheetModal({
           onBack: () => {
             if (isEdit && editReturnTarget && onSwitchSheet) {
               const target = editReturnTarget;
+              transitionDirRef.current = -1;
               setEditReturnTarget(null);
               setAmount("");
               onSwitchSheet("update", target);
@@ -1242,6 +1268,26 @@ export function SheetModal({
               { backgroundColor: hexToRgba(theme.leather.accent, 0.25) },
             ]}
           />
+          <Animated.View
+            style={{
+              flexShrink: 1,
+              opacity: contentAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.35, 1],
+              }),
+              transform: [
+                {
+                  translateX: Animated.multiply(
+                    transitionDirAnim,
+                    contentAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [20, 0],
+                    })
+                  ),
+                },
+              ],
+            }}
+          >
           <TopBar
             title={sheetTitle}
             onBack={handleHeaderBack}
@@ -3585,6 +3631,7 @@ export function SheetModal({
                       {onSwitchSheet ? (
                         <Pressable
                           onPress={() => {
+                            transitionDirRef.current = 1;
                             setEditReturnTarget(current);
                             onSwitchSheet("edit", current);
                           }}
@@ -5349,6 +5396,7 @@ export function SheetModal({
               </View>
             </View>
           ) : null}
+          </Animated.View>
         </Animated.View>
       </KeyboardAvoidingView>
     </View>
@@ -5398,7 +5446,11 @@ function WalletCardPreviewBox({
   borderColor: string;
   children: React.ReactNode;
 }) {
-  const [size, setSize] = useState({ width: 0, height: 0 });
+  const { width: windowWidth } = useWindowDimensions();
+  const [size, setSize] = useState({
+    width: Math.max(260, windowWidth - 47),
+    height: 154,
+  });
 
   return (
     <View
@@ -5417,11 +5469,7 @@ function WalletCardPreviewBox({
         styles.walletCardPreviewShell,
         {
           borderColor,
-          backgroundColor: cardDesign
-            ? cardDesign.isDark
-              ? "#090e17"
-              : "#edf3ec"
-            : palette.to,
+          backgroundColor: palette.to,
         },
       ]}
     >
