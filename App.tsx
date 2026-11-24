@@ -189,6 +189,7 @@ export default function App() {
   const navVisibleRef = useRef(true);
   const [navVisible, setNavVisible] = useState(true);
   const [headerAtTop, setHeaderAtTop] = useState(true);
+  const [walletInteractive, setWalletInteractive] = useState(true);
   const [heroHeights, setHeroHeights] = useState<Record<Tab, number>>({
     home: 290,
     wallets: 220,
@@ -244,11 +245,17 @@ export default function App() {
       );
       lastScrollY.current = 0;
       setHeaderAtTop(true);
+      setWalletInteractive(true);
       scrollY.setValue(0);
       scrollRef.current?.scrollTo({ y: 0, animated: false });
       setNavbarVisible(true);
     },
     [setNavbarVisible, scrollY]
+  );
+
+  const handleOpenSettings = useCallback(
+    () => handleTabChange("settings"),
+    [handleTabChange]
   );
 
   const showingTabs = fontsLoaded && dbReady && !isLocked && !selected;
@@ -315,6 +322,7 @@ export default function App() {
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       const y = e.nativeEvent.contentOffset.y;
       setHeaderAtTop(y < 30);
+      setWalletInteractive(y < 140);
       if (y <= 12) {
         lastScrollY.current = y;
         setNavbarVisible(true);
@@ -981,9 +989,10 @@ export default function App() {
                       schedules={dueSchedules}
                       onRecordScheduled={handleOpenScheduledEntry}
                       setTab={handleTabChange}
-                      onSettings={() => handleTabChange("settings")}
+                      onSettings={handleOpenSettings}
                       onStackDragChange={handleStackDragChange}
-                      walletOpen={headerAtTop}
+                      walletOpen={walletInteractive}
+                      walletScrollY={scrollY}
                       onHeroHeight={handleHomeHeroHeight}
                       theme={theme}
                     />

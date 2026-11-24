@@ -16,6 +16,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { LinearGradient as CardGradient } from "expo-linear-gradient";
@@ -36,16 +37,27 @@ import { Icon } from "./Icon";
 import type { ThemeColors } from "./SharedUI";
 import { Amount, WalletLogoBadge } from "./WalletFolder";
 
-const WIDTH = 350;
+export const WALLET_WIDTH = 350;
+const WIDTH = WALLET_WIDTH;
 const HEIGHT = 410;
-const HINGE_Y = 153;
+export const WALLET_HINGE_Y = 153;
+const HINGE_Y = WALLET_HINGE_Y;
 const POCKET_Y = 245;
 const BOTTOM_Y = 403;
 const CARD_HEIGHT = 166;
 const CARD_STEP = 32;
+export const WALLET_CLOSE_SCROLL_DISTANCE = 160;
+const CLOSE_SCROLL_DISTANCE = WALLET_CLOSE_SCROLL_DISTANCE;
+const STOW_SCROLL_DISTANCE = 96;
+export const WALLET_FLAP_SCROLL_START = 40;
+const FLAP_SCROLL_START = WALLET_FLAP_SCROLL_START;
 const STOWED_Y = 210;
 const TARGET_Y = 7;
 const VISIBLE_CARDS = 6;
+
+export function getWalletScale(windowWidth: number, horizontalPadding = 36) {
+  return Math.min(Math.max(windowWidth - horizontalPadding, 1), 440) / WIDTH;
+}
 
 const leather = {
   shell: {
@@ -181,7 +193,7 @@ const AccountCard = React.memo(function AccountCard({
   tabHeight,
   cardHeight,
   focused = false,
-  onPress,
+  onSelect,
 }: {
   wallet: Wallet;
   hidden: boolean;
@@ -190,13 +202,14 @@ const AccountCard = React.memo(function AccountCard({
   tabHeight: number;
   cardHeight: number;
   focused?: boolean;
-  onPress: () => void;
+  onSelect: (wallet: Wallet) => void;
 }) {
   const fadeId = "balanceFade" + useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const palette = tonePalette[wallet.tone] || tonePalette.blue;
   const design = resolveWalletCardDesign(wallet.logoKey, wallet.name);
   const ink = design?.ink ?? palette.ink;
   const balance = hidden ? "Balance hidden" : money(wallet.balance);
+  const handlePress = useCallback(() => onSelect(wallet), [onSelect, wallet]);
 
   return (
     <>
@@ -289,7 +302,7 @@ const AccountCard = React.memo(function AccountCard({
         }
         accessibilityState={{ selected: lifted, disabled }}
         disabled={disabled}
-        onPress={onPress}
+        onPress={handlePress}
         style={[styles.cardTouch, focused ? { bottom: 0 } : { height: lifted ? cardHeight : tabHeight }]}
       />
     </>
@@ -298,6 +311,7 @@ const AccountCard = React.memo(function AccountCard({
 
 export const PhysicalWallet = React.memo(function PhysicalWallet({
   shouldOpen,
+  scrollY,
   wallets,
   total,
   hidden,
@@ -308,8 +322,10 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
   onOpenMenu,
   onFrontChange,
   onStackDragChange,
+  onHingeOffset,
 }: {
   shouldOpen: boolean;
+  scrollY: Animated.Value;
   wallets: Wallet[];
   total: number;
   hidden: boolean;
@@ -320,16 +336,42 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
   onOpenMenu: (wallet: Wallet) => void;
   onFrontChange: (index: number) => void;
   onStackDragChange?: (dragging: boolean) => void;
+  onHingeOffset?: (offset: number) => void;
 }) {
-  const [scale, setScale] = useState(1);
-  const [open, setOpen] = useState(true);
+  const { width: windowWidth } = useWindowDimensions();
+  const [scale, setScale] = useState(() => getWalletScale(windowWidth));
+  const open = shouldOpen;
   const [busy, setBusy] = useState(false);
   const [activeId, setActiveId] = useState<Wallet["id"] | null>(null);
   const [liftedId, setLiftedId] = useState<Wallet["id"] | null>(null);
-  const stow = useRef(new Animated.Value(0)).current;
-  const flap = useRef(new Animated.Value(1)).current;
+  const stow = useMemo(
+    () =>
+      scrollY.interpolate({
+        inputRange: [0, STOW_SCROLL_DISTANCE],
+        outputRange: [0, 1],
+        extrapolate: "clamp",
+      }),
+    [scrollY],
+  );
+  const flap = useMemo(
+    () =>
+      scrollY.interpolate({
+        inputRange: [FLAP_SCROLL_START, CLOSE_SCROLL_DISTANCE],
+        outputRange: [1, 0],
+        extrapolate: "clamp",
+      }),
+    [scrollY],
+  );
+  const compactY = useMemo(
+    () =>
+      scrollY.interpolate({
+        inputRange: [FLAP_SCROLL_START, CLOSE_SCROLL_DISTANCE],
+        outputRange: [0, -HINGE_Y * scale],
+        extrapolate: "clamp",
+      }),
+    [scrollY, scale],
+  );
   const lift = useRef(new Animated.Value(0)).current;
-  const compact = useRef(new Animated.Value(0)).current;
   const running = useRef<Animated.CompositeAnimation | null>(null);
   const moving = useRef(false);
   const mounted = useRef(false);
@@ -379,30 +421,18 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
   }, [activeIndex, onFrontChange]);
 
   const play = useCallback(
-    (value: Animated.Value, toValue: number, duration: number) => {
+    (toValue: number, duration: number) => {
       if (reduceMotion.current) {
-        value.setValue(toValue);
-        if (value === flap) compact.setValue(1 - toValue);
+        lift.setValue(toValue);
         return Promise.resolve(true);
       }
       return new Promise<boolean>((resolve) => {
-        const motion = Animated.timing(value, {
+        const animation = Animated.timing(lift, {
           toValue,
           duration,
-          easing: value === lift ? (toValue === 1 ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic)) : Easing.inOut(Easing.cubic),
+          easing: toValue === 1 ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
           useNativeDriver: Platform.OS !== "web",
         });
-        const animation = value === flap
-          ? Animated.parallel([
-              motion,
-              Animated.timing(compact, {
-                toValue: 1 - toValue,
-                duration,
-                easing: Easing.inOut(Easing.cubic),
-                useNativeDriver: false,
-              }),
-            ])
-          : motion;
         running.current = animation;
         animation.start(({ finished }) => {
           running.current = null;
@@ -410,7 +440,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
         });
       });
     },
-    [compact, flap, lift],
+    [lift],
   );
 
   const move = useCallback(async (action: () => Promise<void>) => {
@@ -429,37 +459,18 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
     (wallet: Wallet) => {
       if (!open) return;
       void move(async () => {
-        if (liftedId !== null && !(await play(lift, 0, 260))) return;
+        if (liftedId !== null && !(await play(0, 260))) return;
         if (liftedId === wallet.id) {
           setLiftedId(null);
           return;
         }
         setActiveId(wallet.id);
         setLiftedId(wallet.id);
-        await play(lift, 1, 400);
+        await play(1, 400);
       });
     },
-    [lift, liftedId, move, open, play],
+    [liftedId, move, open, play],
   );
-
-  const toggle = useCallback(() => {
-    void move(async () => {
-      if (open) {
-        if (liftedId !== null && !(await play(lift, 0, 260))) return;
-        setLiftedId(null);
-        if (!(await play(stow, 1, 500))) return;
-        if (!(await play(flap, 0, 440))) return;
-      } else {
-        if (!(await play(flap, 1, 440))) return;
-        if (!(await play(stow, 0, 500))) return;
-      }
-      setOpen(!open);
-    });
-  }, [flap, lift, liftedId, move, open, play, stow]);
-
-  useEffect(() => {
-    if (!busy && open !== shouldOpen) toggle();
-  }, [busy, open, shouldOpen, toggle]);
 
   const cycle = useCallback(
     (direction: number) => {
@@ -510,6 +521,18 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
     [cycle, onStackDragChange, open, wallets.length],
   );
 
+  const handleFocusOpen = useCallback(
+    (wallet: Wallet) => {
+      void move(async () => {
+        if (await play(0, 260)) {
+          setLiftedId(null);
+          onWallet(wallet);
+        }
+      });
+    },
+    [move, onWallet, play],
+  );
+
   const flapHeight = leather.flap.height * scale;
   // Put the hinge at the native rotation center so perspective cannot shift the fold.
   const flapMotion = {
@@ -527,14 +550,26 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
   };
 
   return (
-    <View style={styles.wallet}>
-      <Animated.View style={{ height: compact.interpolate({ inputRange: [0, 1], outputRange: [HEIGHT * scale, (HEIGHT - HINGE_Y) * scale] }) }}>
+    <View pointerEvents="box-none" style={styles.wallet}>
       <Animated.View
+        pointerEvents={open ? "box-none" : "none"}
         onLayout={(event) => {
           const width = event.nativeEvent.layout.width;
-          if (width > 0) setScale(width / WIDTH);
+          if (width > 0) {
+            const nextScale = width / WIDTH;
+            setScale((prev) =>
+              Math.abs(nextScale - prev) > 0.002 ? nextScale : prev,
+            );
+            onHingeOffset?.(HINGE_Y * nextScale);
+          }
         }}
-        style={[styles.stage, { height: HEIGHT * scale, marginTop: compact.interpolate({ inputRange: [0, 1], outputRange: [0, -HINGE_Y * scale] }) }]}
+        style={[
+          styles.stage,
+          {
+            height: HEIGHT * scale,
+            transform: [{ translateY: compactY }],
+          },
+        ]}
         {...pan.panHandlers}
       >
         <View
@@ -549,13 +584,14 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
 
         <Animated.View
           pointerEvents="none"
+          renderToHardwareTextureAndroid
           style={[
             styles.flap,
             flapMotion,
             {
               zIndex: 2,
               opacity: flap.interpolate({
-                inputRange: [0, 0.499, 0.5, 1],
+                inputRange: [0, 0.505, 0.506, 1],
                 outputRange: [0, 0, 1, 1],
               }),
             },
@@ -581,21 +617,21 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
           {page.map((wallet, slot) => {
             const restY = (200 - (page.length - 1 - slot) * CARD_STEP) * scale;
             const lifted = wallet.id === liftedId;
-            const delay = slot * 0.04;
             const translateY = lifted
               ? lift.interpolate({
                   inputRange: [0, 1],
                   outputRange: [restY, TARGET_Y * scale],
                 })
               : stow.interpolate({
-                  inputRange: [delay, delay + 0.8],
+                  inputRange: [0, 1],
                   outputRange: [restY, STOWED_Y * scale],
                   extrapolate: "clamp",
                 });
             return (
               <Animated.View
-                key={`${wallet.id}-${scale}`}
+                key={wallet.id}
                 pointerEvents="box-none"
+                renderToHardwareTextureAndroid
                 style={[
                   styles.card,
                   {
@@ -613,7 +649,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
                   disabled={busy}
                   tabHeight={CARD_STEP * scale}
                   cardHeight={CARD_HEIGHT * scale}
-                  onPress={() => pull(wallet)}
+                  onSelect={pull}
                 />
               </Animated.View>
             );
@@ -656,6 +692,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
 
         <Animated.View
           pointerEvents="none"
+          renderToHardwareTextureAndroid
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
           style={[
@@ -664,7 +701,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
             {
               zIndex: 7,
               opacity: flap.interpolate({
-                inputRange: [0, 0.499, 0.5, 1],
+                inputRange: [0, 0.505, 0.506, 1],
                 outputRange: [1, 1, 0, 0],
               }),
             },
@@ -679,10 +716,9 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
           </View>
         </Animated.View>
       </Animated.View>
-      </Animated.View>
 
       {!wallets.length && (
-      <View style={styles.controls}>
+      <Animated.View style={[styles.controls, { transform: [{ translateY: compactY }] }]}>
           <Pressable
             accessibilityRole="button"
             onPress={onOpenAdd}
@@ -695,7 +731,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
               Add wallet
             </Text>
           </Pressable>
-      </View>
+      </Animated.View>
       )}
 
       <Modal transparent visible={!!liftedWallet} animationType="none" statusBarTranslucent onRequestClose={() => liftedWallet && pull(liftedWallet)}>
@@ -704,8 +740,8 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
             <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: "#000000", opacity: lift.interpolate({ inputRange: [0, 1], outputRange: [0, 0.7] }) }]} />
             <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel="Close selected card" onPress={() => pull(liftedWallet)} />
             <Animated.View style={[styles.focusCard, { opacity: lift, transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [65, 0] }) }, { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}>
-              <AccountCard wallet={liftedWallet} hidden={hidden} lifted focused disabled={busy} tabHeight={38} cardHeight={190} onPress={() => { const wallet = liftedWallet; void move(async () => { if (await play(lift, 0, 260)) { setLiftedId(null); onWallet(wallet); } }); }} />
-              <Pressable accessibilityRole="button" accessibilityLabel={"Update " + liftedWallet.name} disabled={busy} style={styles.focusMenu} onPress={() => { const wallet = liftedWallet; void move(async () => { if (await play(lift, 0, 260)) { setLiftedId(null); onOpenMenu(wallet); } }); }}>
+              <AccountCard wallet={liftedWallet} hidden={hidden} lifted focused disabled={busy} tabHeight={38} cardHeight={190} onSelect={handleFocusOpen} />
+              <Pressable accessibilityRole="button" accessibilityLabel={"Update " + liftedWallet.name} disabled={busy} style={styles.focusMenu} onPress={() => { const wallet = liftedWallet; void move(async () => { if (await play(0, 260)) { setLiftedId(null); onOpenMenu(wallet); } }); }}>
                 <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
                   <Defs>
                     <LinearGradient id="updateLeather" x1="0%" y1="0%" x2="100%" y2="100%"><Stop offset="0" stopColor={theme.leather.colors[0]} /><Stop offset=".42" stopColor={theme.leather.colors[1]} /><Stop offset="1" stopColor={theme.leather.colors[2]} /></LinearGradient>

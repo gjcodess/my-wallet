@@ -12,6 +12,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
   ViewStyle,
 } from "react-native";
@@ -37,7 +38,13 @@ import {
 } from "../types/wallet";
 import { FolderSurface } from "./FolderSurface";
 import { Icon } from "./Icon";
-import { PhysicalWallet } from "./PhysicalWallet";
+import {
+  getWalletScale,
+  PhysicalWallet,
+  WALLET_CLOSE_SCROLL_DISTANCE,
+  WALLET_FLAP_SCROLL_START,
+  WALLET_HINGE_Y,
+} from "./PhysicalWallet";
 import {
   LEATHER_FINISHES,
   LeatherFinishId,
@@ -223,6 +230,7 @@ export const HomeScreen = React.memo(function HomeScreen({
   setTab,
   onStackDragChange,
   walletOpen,
+  walletScrollY,
   onHeroHeight,
   theme,
 }: {
@@ -240,15 +248,33 @@ export const HomeScreen = React.memo(function HomeScreen({
   setTab: (t: Tab) => void;
   onStackDragChange?: (dragging: boolean) => void;
   walletOpen: boolean;
+  walletScrollY: Animated.Value;
   onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
 }) {
+  const { width: windowWidth } = useWindowDimensions();
+  const [hingeOffset, setHingeOffset] = useState(
+    () => WALLET_HINGE_Y * getWalletScale(windowWidth)
+  );
+  const handleHingeOffset = useCallback((offset: number) => {
+    setHingeOffset((prev) => (Math.abs(offset - prev) > 0.5 ? offset : prev));
+  }, []);
+  const belowWalletTranslateY = useMemo(
+    () =>
+      walletScrollY.interpolate({
+        inputRange: [WALLET_FLAP_SCROLL_START, WALLET_CLOSE_SCROLL_DISTANCE],
+        outputRange: [0, -hingeOffset],
+        extrapolate: "clamp",
+      }),
+    [walletScrollY, hingeOffset]
+  );
   const [frontIndex, setFrontIndex] = useState(0);
   const safeFront = wallets.length ? frontIndex % wallets.length : 0;
   const featured = wallets.length ? wallets[safeFront] : undefined;
 
   const handleOpenAdd = useCallback(() => onSheet("add"), [onSheet]);
   const handleOpenSearch = useCallback(() => onSheet("search"), [onSheet]);
+  const handleOpenSchedules = useCallback(() => onSheet("schedule"), [onSheet]);
   const handleOpenMenu = useCallback(
     (w: Wallet) => onSheet("update", w),
     [onSheet]
@@ -299,7 +325,7 @@ export const HomeScreen = React.memo(function HomeScreen({
       <HeroHeaderSurface
         theme={theme}
         onHeight={onHeroHeight}
-        style={{ marginBottom: 18 }}
+        style={{ marginBottom: 18, zIndex: 2 }}
       >
         <View style={styles.heroTopRow}>
           <View
@@ -375,6 +401,7 @@ export const HomeScreen = React.memo(function HomeScreen({
 
       <PhysicalWallet
         shouldOpen={walletOpen}
+        scrollY={walletScrollY}
         wallets={wallets}
         total={total}
         hidden={hidden}
@@ -384,55 +411,58 @@ export const HomeScreen = React.memo(function HomeScreen({
         onOpenMenu={handleOpenMenu}
         onFrontChange={setFrontIndex}
         onStackDragChange={onStackDragChange}
+        onHingeOffset={handleHingeOffset}
         theme={theme}
       />
 
-      <Upcoming schedules={schedules} wallets={wallets} hidden={hidden} theme={theme}
-        onRecord={onRecordScheduled} onManage={() => onSheet("schedule")} />
+      <Animated.View style={{ transform: [{ translateY: belowWalletTranslateY }] }}>
+        <Upcoming schedules={schedules} wallets={wallets} hidden={hidden} theme={theme}
+          onRecord={onRecordScheduled} onManage={handleOpenSchedules} />
 
-      {/* Recent Transactions */}
-      <View style={[styles.section, { marginTop: 10 }]}>
-        <SectionTitle
-          title="Recent Transactions"
-          action="View all"
-          actionIcon="chevron"
-          actionColor={theme.accentText}
-          onPress={handleGoActivity}
-          theme={theme}
-        />
-        <View style={styles.txList}>
-          {recentActivities.map((item) => (
-            <TxRow
-              key={item.id}
-              item={item}
-              hidden={hidden}
-              onPress={onTransaction ? () => onTransaction(item) : undefined}
-              theme={theme}
-            />
-          ))}
-        </View>
-        {activities.length > 10 ? (
-          <Pressable
+        {/* Recent Transactions */}
+        <View style={[styles.section, { marginTop: 10 }]}>
+          <SectionTitle
+            title="Recent Transactions"
+            action="View all"
+            actionIcon="chevron"
+            actionColor={theme.accentText}
             onPress={handleGoActivity}
-            style={({ pressed }) => [
-              styles.viewAllBtn,
-              {
-                backgroundColor: theme.card,
-                overflow: "hidden",
-                transform: [{ scale: pressed ? 0.985 : 1 }],
-              },
-              bevelStyle(theme.dark),
-              cardShadow(theme.dark),
-            ]}
-          >
-            <AccentSurfaceGlow theme={theme} intensity="medium" />
-            <Text style={[styles.viewAllText, { color: theme.accentText }]}>
-              View all transactions ({activities.length})
-            </Text>
-            <Icon name="chevron" size={15} color={theme.accentText} />
-          </Pressable>
-        ) : null}
-      </View>
+            theme={theme}
+          />
+          <View style={styles.txList}>
+            {recentActivities.map((item) => (
+              <TxRow
+                key={item.id}
+                item={item}
+                hidden={hidden}
+                onPress={onTransaction ? () => onTransaction(item) : undefined}
+                theme={theme}
+              />
+            ))}
+          </View>
+          {activities.length > 10 ? (
+            <Pressable
+              onPress={handleGoActivity}
+              style={({ pressed }) => [
+                styles.viewAllBtn,
+                {
+                  backgroundColor: theme.card,
+                  overflow: "hidden",
+                  transform: [{ scale: pressed ? 0.985 : 1 }],
+                },
+                bevelStyle(theme.dark),
+                cardShadow(theme.dark),
+              ]}
+            >
+              <AccentSurfaceGlow theme={theme} intensity="medium" />
+              <Text style={[styles.viewAllText, { color: theme.accentText }]}>
+                View all transactions ({activities.length})
+              </Text>
+              <Icon name="chevron" size={15} color={theme.accentText} />
+            </Pressable>
+          ) : null}
+        </View>
+      </Animated.View>
     </View>
   );
 });
