@@ -788,17 +788,17 @@ export function TopBar({
           style={({ pressed }) => [
             styles.roundButton,
             {
-              backgroundColor: theme.card,
+              backgroundColor: theme.leather.edge,
               overflow: "hidden",
               borderWidth: 1,
-              borderColor: hexToRgba(theme.leather.accent, 0.28),
+              borderColor: theme.leather.edge,
               transform: [{ scale: pressed ? 0.94 : 1 }],
             },
             cardShadow(theme.dark),
           ]}
         >
-          <LightLeatherSurface theme={theme} radius={21} />
-          <Icon name="back" size={18} strokeWidth={2.3} color={theme.leather.accent} />
+          <DarkLeatherSurface theme={theme} radius={21} />
+          <Icon name="back" size={18} strokeWidth={2.3} color="#ffffff" />
         </Pressable>
       ) : (
         <View style={{ width: 42 }} />
