@@ -371,6 +371,29 @@ export const AccentSurfaceGlow = React.memo(function AccentSurfaceGlow({
   );
 });
 
+export const LightLeatherSurface = React.memo(function LightLeatherSurface({
+  theme,
+}: {
+  theme: ThemeColors;
+}) {
+  const grainId = `lightLeather${React.useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <LinearGradient colors={[theme.leather.soft, "#f7f7f4", theme.leather.soft]} style={StyleSheet.absoluteFill} />
+      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
+        <Defs>
+          <Pattern id={grainId} width={6} height={6} patternUnits="userSpaceOnUse">
+            <SvgPath d="M1 1l.8 .3M4 4l.6 -.2" stroke={theme.leather.accent} strokeWidth=".55" opacity=".13" />
+          </Pattern>
+        </Defs>
+        <Rect width="100%" height="100%" fill={`url(#${grainId})`} />
+      </Svg>
+      <View style={[styles.lightLeatherStitch, { borderColor: hexToRgba(theme.leather.accent, 0.35) }]} />
+      <View style={[styles.lightLeatherStitch, styles.lightLeatherInnerStitch, { borderColor: hexToRgba(theme.leather.accent, 0.16) }]} />
+    </View>
+  );
+});
+
 export function EdgeFade({
   position,
   color,
@@ -478,9 +501,10 @@ export function TxRow({
           transform: [{ scale: pressed && onPress ? 0.985 : 1 }],
         },
         theme.dark ? bevelStyle(true) : styles.lightTxLift,
+        { borderWidth: 1, borderColor: hexToRgba(theme.leather.accent, 0.18) },
       ]}
     >
-      <AccentSurfaceGlow theme={theme} />
+      <LightLeatherSurface theme={theme} />
       <View style={[styles.txIcon, { backgroundColor: theme.soft }]}>
         <Icon name={item.icon} size={25} strokeWidth={2.05} color={iconColor} />
       </View>
@@ -812,6 +836,23 @@ export function BottomNav({
 }
 
 const styles = StyleSheet.create({
+  lightLeatherStitch: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    bottom: 4,
+    left: 4,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderRadius: 13,
+  },
+  lightLeatherInnerStitch: {
+    top: 8,
+    right: 8,
+    bottom: 8,
+    left: 8,
+    borderRadius: 10,
+  },
   txRow: {
     minHeight: 68,
     flexDirection: "row",

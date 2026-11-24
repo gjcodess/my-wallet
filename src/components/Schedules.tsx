@@ -6,7 +6,7 @@ import type { DueSchedule, Schedule } from "../types/schedule";
 import { EXPENSE_CATEGORIES, getWalletLocalId, INCOME_CATEGORIES, money } from "../types/wallet";
 import type { Wallet } from "../types/wallet";
 import { Icon } from "./Icon";
-import { SectionTitle, ThemeColors } from "./SharedUI";
+import { LightLeatherSurface, SectionTitle, ThemeColors } from "./SharedUI";
 
 type ScheduleListProps = {
   schedules: DueSchedule[];
@@ -30,7 +30,8 @@ export function Upcoming({ schedules, wallets, hidden, theme, onRecord, onManage
         onPress={onManage}
         theme={theme}
       />
-      <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.line }]}>
+      <View style={[styles.panel, { backgroundColor: theme.leather.soft, borderColor: theme.leather.accent + "33" }]}>
+        <LightLeatherSurface theme={theme} />
         {upcoming.length ? upcoming.map((item) => (
           <ScheduleRow key={item.id} item={item} wallets={wallets} hidden={hidden} theme={theme} onPress={() => onRecord(item)} />
         )) : (
