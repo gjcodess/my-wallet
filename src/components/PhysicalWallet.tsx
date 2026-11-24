@@ -213,9 +213,19 @@ const AccountCard = React.memo(function AccountCard({
 
   return (
     <>
+      {!focused && (
+        <View
+          pointerEvents="none"
+          style={styles.cardShadow}
+        />
+      )}
       <View
         pointerEvents="none"
-        style={[styles.cardFace, { backgroundColor: palette.to }]}
+        renderToHardwareTextureAndroid
+        style={[
+          styles.cardFace,
+          { backgroundColor: design?.isDark ? "#090e17" : palette.to },
+        ]}
       >
         {design ? (
           <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
@@ -631,7 +641,6 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
               <Animated.View
                 key={wallet.id}
                 pointerEvents="box-none"
-                renderToHardwareTextureAndroid
                 style={[
                   styles.card,
                   {
@@ -793,13 +802,22 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 26,
   },
   card: { position: "absolute", top: 0, left: "5%", right: "5%" },
+  cardShadow: {
+    position: "absolute",
+    top: 1,
+    left: 1,
+    right: 1,
+    bottom: 1,
+    borderRadius: 13,
+    backgroundColor: "#000000",
+    boxShadow: "0px -5px 12px rgba(0, 0, 0, 0.65), 0px -1px 4px rgba(0, 0, 0, 0.4)",
+  },
   cardFace: {
     ...StyleSheet.absoluteFill,
     overflow: "hidden",
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#ffffff61",
-    boxShadow: "0px 2px 5px #101e3040",
+    borderColor: "rgba(255, 255, 255, 0.16)",
   },
   cardTouch: { position: "absolute", top: 0, left: 0, right: 0 },
   cardWatermark: {
