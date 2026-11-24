@@ -193,6 +193,15 @@ export function Icon({
             <Path d="m12 7 5 5" />
           </>
         );
+      case "trash":
+        return (
+          <>
+            <Path d="M4.5 7h15" />
+            <Path d="M9 7V4.8c0-.4.4-.8.8-.8h4.4c.4 0 .8.4.8.8V7" />
+            <Path d="M6.8 7l.9 11.4c.1.9.8 1.6 1.7 1.6h5.2c.9 0 1.6-.7 1.7-1.6L17.2 7" />
+            <Path d="M10.2 11.2v5M13.8 11.2v5" />
+          </>
+        );
       case "grid":
         return (
           <>
