@@ -20,6 +20,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, {
   Defs,
+  Image as SvgImage,
   LinearGradient as SvgLinearGradient,
   Pattern,
   Path,
@@ -59,13 +60,18 @@ import {
   AccentSurfaceGlow,
   bevelStyle,
   cardShadow,
+  DarkLeatherSurface,
   EdgeFade,
   heroControlStyle,
+  hexToRgba,
+  LightLeatherSurface,
   SectionTitle,
   SwitchControl,
+  TexturedGradientSurface,
   ThemeColors,
   TxRow,
 } from "./SharedUI";
+import { resolveWalletCardDesign } from "../data/walletPresets";
 import { Amount, WalletFolder, WalletLogoBadge } from "./WalletFolder";
 import { Upcoming } from "./Schedules";
 import type { DueSchedule } from "../types/schedule";
@@ -875,37 +881,76 @@ export const WalletsScreen = React.memo(function WalletsScreen({
         />
       </HeroHeaderSurface>
 
-      {wallets.length > 1 && onReorderWallets ? (
-        <SectionTitle
-          title={reordering ? "Drag to reorder" : "Your wallets"}
-          action={reordering ? "Done" : "Reorder"}
-          actionIcon={reordering ? "check" : "grip"}
-          actionColor={theme.accentText}
-          onPress={() => {
-            if (dragIndexRef.current !== null) return;
-            setReordering((prev) => !prev);
-          }}
-          theme={theme}
-        />
+      {wallets.length > 0 ? (
+        <View style={styles.walletsSectionHead}>
+          <View style={styles.walletsSectionTitleGroup}>
+            <Text style={[styles.walletsSectionTitle, { color: theme.ink }]}>
+              {reordering ? "Drag to reorder" : "Your wallets"}
+            </Text>
+            <Text style={[styles.walletsSectionCount, { color: theme.muted }]}>
+              {wallets.length} {wallets.length === 1 ? "card" : "cards"}
+            </Text>
+          </View>
+          {wallets.length > 1 && onReorderWallets ? (
+            <Pressable
+              onPress={() => {
+                if (dragIndexRef.current !== null) return;
+                setReordering((prev) => !prev);
+              }}
+              style={({ pressed }) => [
+                styles.stitchedReorderBtn,
+                {
+                  overflow: "hidden",
+                  backgroundColor: reordering
+                    ? theme.leather.edge
+                    : theme.card,
+                  borderColor: reordering
+                    ? theme.leather.edge
+                    : hexToRgba(theme.leather.accent, 0.28),
+                  transform: [{ scale: pressed ? 0.96 : 1 }],
+                },
+                cardShadow(theme.dark),
+              ]}
+            >
+              {reordering ? (
+                <DarkLeatherSurface theme={theme} radius={13} />
+              ) : (
+                <LightLeatherSurface theme={theme} radius={13} />
+              )}
+              <Icon
+                name={reordering ? "check" : "grip"}
+                size={13.5}
+                color={reordering ? "#ffffff" : theme.leather.accent}
+              />
+              <Text
+                style={[
+                  styles.stitchedReorderText,
+                  { color: reordering ? "#ffffff" : theme.ink },
+                ]}
+              >
+                {reordering ? "Done" : "Reorder"}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
       ) : null}
 
       {wallets.length === 0 ? (
         <View
           style={[
             styles.emptyState,
-            { backgroundColor: theme.card, overflow: "hidden" },
-            bevelStyle(theme.dark),
+            {
+              backgroundColor: theme.card,
+              overflow: "hidden",
+              borderWidth: 1,
+              borderColor: hexToRgba(theme.leather.accent, 0.24),
+            },
             cardShadow(theme.dark),
           ]}
         >
-          <AccentSurfaceGlow theme={theme} />
-          <LinearGradient
-            colors={theme.accentGradient}
-            style={styles.emptyStateIcon}
-          >
-            <Icon name="wallet" size={22} color={theme.accentInk} />
-          </LinearGradient>
-          <Text style={[styles.emptyStateTitle, { color: theme.ink }]}>
+          <LightLeatherSurface theme={theme} radius={22} />
+          <Icon name="wallet" size={28} color={theme.leather.accent} />
+          <Text style={[styles.emptyStateTitle, { color: theme.ink, marginTop: 10 }]}>
             No wallets yet
           </Text>
           <Text style={[styles.emptyStateSub, { color: theme.muted }]}>
@@ -914,19 +959,19 @@ export const WalletsScreen = React.memo(function WalletsScreen({
           {onAddWallet ? (
             <Pressable
               onPress={onAddWallet}
-              style={[
-                styles.viewAllBtn,
+              style={({ pressed }) => [
+                styles.stitchedEmptyCta,
                 {
-                  backgroundColor: theme.accentSoft,
-                  paddingHorizontal: 18,
-                  marginTop: 14,
+                  overflow: "hidden",
+                  borderColor: theme.leather.edge,
+                  transform: [{ scale: pressed ? 0.97 : 1 }],
                 },
+                cardShadow(theme.dark),
               ]}
             >
-              <Icon name="plus" size={15} color={theme.accentText} />
-              <Text style={[styles.viewAllText, { color: theme.accentText }]}>
-                Add wallet
-              </Text>
+              <DarkLeatherSurface theme={theme} radius={16} />
+              <Icon name="plus" size={15} color="#ffffff" />
+              <Text style={styles.stitchedEmptyCtaText}>Add wallet</Text>
             </Pressable>
           ) : null}
         </View>
@@ -934,6 +979,8 @@ export const WalletsScreen = React.memo(function WalletsScreen({
         <View style={styles.walletList}>
           {wallets.map((wallet, idx) => {
             const pal = tonePalette[wallet.tone] || tonePalette.blue;
+            const cardDesign = resolveWalletCardDesign(wallet.logoKey, wallet.name);
+            const badgeInk = cardDesign ? cardDesign.ink : pal.ink;
             const isDragged = dragIndex === idx;
             const shiftAnim = getShiftAnim(wallet.id);
             const rowPan = rowPanResponders[idx];
@@ -967,37 +1014,62 @@ export const WalletsScreen = React.memo(function WalletsScreen({
                       height: WALLET_TILE_HEIGHT,
                       backgroundColor: theme.card,
                       overflow: "hidden",
+                      borderColor: isDragged
+                        ? theme.leather.accent
+                        : hexToRgba(theme.leather.accent, 0.24),
                       transform: [
                         { scale: !reordering && pressed ? 0.985 : 1 },
                       ],
                     },
-                    bevelStyle(theme.dark),
                     cardShadow(theme.dark),
                     isDragged && {
-                      borderColor: theme.accent,
                       shadowOpacity: theme.dark ? 0.55 : 0.24,
                       shadowRadius: 20,
                       elevation: 12,
                     },
                   ]}
                 >
-                  <AccentSurfaceGlow theme={theme} />
-                  <LinearGradient
-                    colors={[pal.from, pal.to]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.tileBadge}
+                  <LightLeatherSurface theme={theme} radius={20} />
+                  <View
+                    style={[
+                      styles.tileBadge,
+                      {
+                        overflow: "hidden",
+                        borderWidth: 1,
+                        borderColor: hexToRgba(theme.leather.accent, 0.2),
+                      },
+                    ]}
                   >
+                    {cardDesign ? (
+                      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                        <Svg width={48} height={48}>
+                          <SvgImage
+                            href={cardDesign.source}
+                            x={0}
+                            y={0}
+                            width={48}
+                            height={48}
+                            preserveAspectRatio="xMaxYMid slice"
+                          />
+                        </Svg>
+                      </View>
+                    ) : (
+                      <TexturedGradientSurface
+                        fromColor={pal.from}
+                        toColor={pal.to}
+                        subtle
+                      />
+                    )}
                     <WalletLogoBadge
                       logoKey={wallet.logoKey}
                       name={wallet.name}
                       mark={wallet.mark}
                       size={48}
-                      radius={16}
-                      ink={pal.ink}
+                      radius={15}
+                      ink={badgeInk}
                       fontSize={11}
                     />
-                  </LinearGradient>
+                  </View>
 
                   <View style={styles.tileMain}>
                     <Text
@@ -1064,16 +1136,26 @@ export const WalletsScreen = React.memo(function WalletsScreen({
                         style={[
                           styles.dragHandleBox,
                           {
+                            overflow: "hidden",
+                            borderWidth: 1,
+                            borderColor: isDragged
+                              ? theme.leather.edge
+                              : hexToRgba(theme.leather.accent, 0.24),
                             backgroundColor: isDragged
-                              ? theme.accentSoft
-                              : theme.soft,
+                              ? theme.leather.edge
+                              : theme.page,
                           },
                         ]}
                       >
+                        {isDragged ? (
+                          <DarkLeatherSurface theme={theme} radius={13} />
+                        ) : (
+                          <LightLeatherSurface theme={theme} radius={13} />
+                        )}
                         <Icon
                           name="grip"
                           size={18}
-                          color={isDragged ? theme.accentText : theme.muted}
+                          color={isDragged ? "#ffffff" : theme.leather.accent}
                         />
                       </View>
                     </View>
@@ -1085,7 +1167,11 @@ export const WalletsScreen = React.memo(function WalletsScreen({
                         size="sm"
                         color={theme.ink}
                       />
-                      <Icon name="chevron" size={16} color={theme.muted} />
+                      <Icon
+                        name="chevron"
+                        size={15}
+                        color={hexToRgba(theme.leather.accent, 0.65)}
+                      />
                     </View>
                   )}
                 </Pressable>
@@ -2987,12 +3073,71 @@ const styles = StyleSheet.create({
   walletList: {
     gap: 9,
   },
+  walletsSectionHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    paddingHorizontal: 2,
+  },
+  walletsSectionTitleGroup: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
+  },
+  walletsSectionTitle: {
+    fontFamily: "Poppins_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 17,
+  },
+  walletsSectionCount: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 12,
+  },
+  stitchedReorderBtn: {
+    height: 34,
+    borderRadius: 13,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  stitchedReorderText: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12,
+    lineHeight: 15,
+    includeFontPadding: false,
+    marginTop: 1,
+  },
+  stitchedEmptyCta: {
+    marginTop: 16,
+    height: 44,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  stitchedEmptyCtaText: {
+    color: "#ffffff",
+    fontFamily: "Poppins_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 13.5,
+    lineHeight: 17,
+    includeFontPadding: false,
+    marginTop: 1.5,
+  },
   walletTile: {
     minHeight: 78,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    padding: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderRadius: 20,
     borderWidth: 1,
     shadowColor: "#121a2d",
@@ -3004,7 +3149,7 @@ const styles = StyleSheet.create({
   tileBadge: {
     width: 48,
     height: 48,
-    borderRadius: 16,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
   },
