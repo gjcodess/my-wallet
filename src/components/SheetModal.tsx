@@ -50,7 +50,7 @@ import {
   TopBar,
   TxRow,
 } from "./SharedUI";
-import { WalletFolder, WalletLogoBadge } from "./WalletFolder";
+import { WalletLogoBadge } from "./WalletFolder";
 import { ScheduleManager } from "./Schedules";
 import { FavoriteEditor, FavoriteList, FavoriteStrip } from "./Favorites";
 import { createFavoriteDraft, favoriteFromActivity } from "../types/favorite";
@@ -257,6 +257,7 @@ export function SheetModal({
     editTarget ? String(editTarget.balance) : ""
   );
   const [walletStep, setWalletStep] = useState(type === "edit" ? 1 : 0);
+  const [editReturnTarget, setEditReturnTarget] = useState<Wallet | null>(null);
   const [walletConfirmDelete, setWalletConfirmDelete] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
   const sheetScrollY = useRef(new Animated.Value(0)).current;
@@ -264,6 +265,9 @@ export function SheetModal({
   useEffect(() => {
     sheetScrollY.setValue(0);
     setWalletStep(type === "edit" ? 1 : 0);
+    if (type !== "edit") {
+      setEditReturnTarget(null);
+    }
     setWalletConfirmDelete(false);
     setShowCustomTone(false);
     setGlobalSearch("");
@@ -581,6 +585,18 @@ export function SheetModal({
       scrollToTop();
       return;
     }
+    if (
+      type === "edit" &&
+      walletStep <= 1 &&
+      editReturnTarget &&
+      onSwitchSheet
+    ) {
+      const target = editReturnTarget;
+      setEditReturnTarget(null);
+      setAmount("");
+      onSwitchSheet("update", target);
+      return;
+    }
     if ((type === "add" || type === "edit") && walletStep > 0) {
       setWalletStep((prev) => Math.max(0, prev - 1));
       scrollToTop();
@@ -589,10 +605,12 @@ export function SheetModal({
     onClose();
   }, [
     closeFavoriteEditor,
+    editReturnTarget,
     entryStep,
     favoriteDraft,
     managingFavorites,
     onClose,
+    onSwitchSheet,
     scheduledEntry,
     scrollToTop,
     type,
@@ -1074,7 +1092,16 @@ export function SheetModal({
       }
       if (currentWalletStep === 1) {
         return {
-          onBack: () => goWallet(0),
+          onBack: () => {
+            if (isEdit && editReturnTarget && onSwitchSheet) {
+              const target = editReturnTarget;
+              setEditReturnTarget(null);
+              setAmount("");
+              onSwitchSheet("update", target);
+              return;
+            }
+            goWallet(0);
+          },
           primaryLabel: isEdit ? "Next: Confirm" : "Next: Balance",
           primaryIcon: "chevron",
           primaryDisabled: !name.trim(),
@@ -1155,6 +1182,17 @@ export function SheetModal({
       };
     }
 
+    if (type === "update" && current) {
+      return {
+        primaryLabel: hasUpdateInput
+          ? `Save ${money(Math.max(0, updateProjectedBalance))}`
+          : "Save new balance",
+        primaryIcon: "check",
+        primaryDisabled: updateInvalid,
+        onPrimary: save,
+      };
+    }
+
     return null;
   })();
 
@@ -1177,7 +1215,9 @@ export function SheetModal({
               paddingBottom: Math.max(20, insets.bottom + 8),
               maxHeight:
                 type === "add" ||
+                type === "edit" ||
                 type === "entry" ||
+                type === "update" ||
                 type === "auth" ||
                 type === "search"
                   ? "92%"
@@ -1271,21 +1311,32 @@ export function SheetModal({
             {/* ==================== ADD / EDIT WALLET SHEET ==================== */}
             {(type === "add" || type === "edit") && (() => {
               const isEdit = type === "edit";
-              const walletSteps = isEdit
-                ? (["Provider", "Details", "Confirm"] as const)
-                : (["Provider", "Details", "Balance", "Confirm"] as const);
-              const currentWalletStep = Math.min(walletStep, walletSteps.length - 1);
+              const isEditFromUpdate = isEdit && Boolean(editReturnTarget);
+              const walletSteps = isEditFromUpdate
+                ? (["Details", "Confirm"] as const)
+                : isEdit
+                  ? (["Provider", "Details", "Confirm"] as const)
+                  : (["Provider", "Details", "Balance", "Confirm"] as const);
+              const rawWalletStep = Math.min(walletStep, isEdit ? 2 : 3);
+              const currentWalletStep = isEditFromUpdate
+                ? Math.max(0, rawWalletStep - 1)
+                : rawWalletStep;
               const goWalletStep = (next: number) => {
                 Keyboard.dismiss();
                 scrollToTop();
-                setWalletStep(Math.max(0, Math.min(walletSteps.length - 1, next)));
+                setWalletStep(
+                  Math.max(
+                    isEditFromUpdate ? 1 : 0,
+                    Math.min(isEdit ? 2 : 3, next)
+                  )
+                );
               };
-              const isProviderStep = currentWalletStep === 0;
-              const isDetailsStep = currentWalletStep === 1;
-              const isBalanceStep = !isEdit && currentWalletStep === 2;
+              const isProviderStep = !isEditFromUpdate && rawWalletStep === 0;
+              const isDetailsStep = rawWalletStep === 1;
+              const isBalanceStep = !isEdit && rawWalletStep === 2;
               const isConfirmWalletStep =
-                (isEdit && currentWalletStep === 2) ||
-                (!isEdit && currentWalletStep === 3);
+                (isEdit && rawWalletStep === 2) ||
+                (!isEdit && rawWalletStep === 3);
               const brandCardDesign = resolveWalletCardDesign(logoKey, name);
               const hasBrandCardArt = Boolean(brandCardDesign);
               const parsedWalletLogoBg = parseWalletLogoAndBg(logoKey);
@@ -3428,254 +3479,247 @@ export function SheetModal({
             })()}
 
             {/* ==================== UPDATE BALANCE SHEET ==================== */}
-            {type === "update" && current && (
-              <View>
-                <WalletFolder
-                  wallet={
-                    hasUpdateInput
-                      ? {
-                          ...current,
-                          balance: Math.max(0, updateProjectedBalance),
-                        }
-                      : current
-                  }
-                  hidden={false}
-                  compact
-                />
+            {type === "update" && current && (() => {
+              const pal = tonePalette[current.tone] || tonePalette.blue;
+              const cardDesign = resolveWalletCardDesign(
+                current.logoKey,
+                current.name
+              );
+              const cardInk = cardDesign ? cardDesign.ink : pal.ink;
+              const isLightInk = cardInk === "#ffffff";
+              const cardSubInk = isLightInk
+                ? "rgba(255, 255, 255, 0.78)"
+                : "rgba(20, 32, 26, 0.68)";
+              const cardBadgeBg = isLightInk
+                ? "rgba(0, 0, 0, 0.28)"
+                : "rgba(20, 32, 26, 0.10)";
+              const cardBorder = isLightInk
+                ? "rgba(255, 255, 255, 0.2)"
+                : "rgba(20, 32, 26, 0.14)";
 
-                {onSwitchSheet ? (
-                  <Pressable
-                    onPress={() => onSwitchSheet("edit", current)}
-                    style={[
-                      styles.editCardLinkBtn,
-                      { backgroundColor: theme.soft, borderColor: theme.line },
-                    ]}
+              return (
+                <View>
+                  {/* Live Textured Wallet Card Hero + Amount Display */}
+                  <WalletCardPreviewBox
+                    cardDesign={cardDesign}
+                    palette={pal}
+                    borderColor={cardBorder}
                   >
-                    <Icon name="edit" size={15} color={theme.accentText} />
-                    <Text
-                      style={[
-                        styles.editCardLinkText,
-                        { color: theme.accentText },
-                      ]}
-                    >
-                      Edit card name, logo & color
-                    </Text>
-                  </Pressable>
-                ) : null}
-
-                {/* Wallet Selector */}
-                <View style={{ marginTop: 14, marginBottom: 10 }}>
-                  <Text
-                    style={[
-                      styles.fieldLabel,
-                      { color: theme.muted, marginLeft: 4, marginBottom: 6 },
-                    ]}
-                  >
-                    Select Wallet
-                  </Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ gap: 8 }}
-                  >
-                    {wallets.map((w) => {
-                      const active = w.id === walletId;
-                      return (
-                        <Pressable
-                          key={w.id}
-                          onPress={() => {
-                            setWalletId(w.id);
-                            setAmount("");
-                          }}
+                    <View style={styles.walletHeroTopRow}>
+                      <View style={styles.walletPreviewIdentity}>
+                        <WalletLogoBadge
+                          logoKey={current.logoKey}
+                          name={current.name}
+                          mark={current.mark}
+                          size={30}
+                          radius={9}
+                          ink={cardInk}
+                          fontSize={10}
+                        />
+                        <Text
+                          style={[styles.walletPreviewName, { color: cardInk }]}
+                          numberOfLines={1}
+                        >
+                          {current.name}
+                        </Text>
+                      </View>
+                        <View
                           style={[
-                            styles.walletSelectChip,
-                            {
-                              backgroundColor: active
-                                ? theme.accent
-                                : theme.soft,
-                              borderColor: active
-                                ? theme.accent
-                                : theme.line,
-                              flexDirection: "row",
-                              alignItems: "center",
-                              gap: 6,
-                            },
+                            styles.walletHeroModeBadge,
+                            { backgroundColor: cardBadgeBg },
                           ]}
                         >
-                          <WalletLogoBadge
-                            logoKey={w.logoKey}
-                            name={w.name}
-                            mark={w.mark}
-                            size={18}
-                            radius={6}
-                            ink={active ? theme.accentInk : theme.ink}
-                            fontSize={7}
+                          <Text
+                            style={[styles.walletHeroModeText, { color: cardInk }]}
+                          >
+                            {current.type.toUpperCase()}
+                          </Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.walletHeroAmountWrap}>
+                      <Text
+                        style={[styles.walletHeroLabel, { color: cardSubInk }]}
+                      >
+                        {updateMode === "set"
+                          ? "New exact balance"
+                          : updateMode === "add"
+                            ? "Amount to add"
+                            : "Amount to subtract"}
+                      </Text>
+                      <HeroAmountDisplay
+                        prefix={
+                          updateMode === "add"
+                            ? "+₱"
+                            : updateMode === "sub"
+                              ? "-₱"
+                              : "₱"
+                        }
+                        value={amount}
+                        color={cardInk}
+                        muted={!amount}
+                      />
+                    </View>
+
+                    <View style={styles.walletHeroBottomRow}>
+                      <Text
+                        style={[styles.walletHeroSubText, { color: cardSubInk }]}
+                        numberOfLines={1}
+                      >
+                        {hasUpdateInput && updateDifference !== 0
+                          ? updateMode === "set"
+                            ? `Current: ${money(current.balance)} · Change: ${
+                                updateDifference >= 0 ? "+" : "-"
+                              }${money(Math.abs(updateDifference))}`
+                            : `New balance: ${money(
+                                Math.max(0, updateProjectedBalance)
+                              )} (from ${money(current.balance)})`
+                          : `Current: ${money(current.balance)} · ${current.account}`}
+                      </Text>
+                    </View>
+                  </WalletCardPreviewBox>
+
+                  {/* Quick Stitched Actions: Edit card & Use current */}
+                  {onSwitchSheet || updateMode === "set" ? (
+                    <View style={styles.updateQuickActionsRow}>
+                      {onSwitchSheet ? (
+                        <Pressable
+                          onPress={() => {
+                            setEditReturnTarget(current);
+                            onSwitchSheet("edit", current);
+                          }}
+                          style={({ pressed }) => [
+                            styles.updateActionBtn,
+                            {
+                              overflow: "hidden",
+                              backgroundColor: theme.card,
+                              borderColor: hexToRgba(theme.leather.accent, 0.26),
+                              transform: [{ scale: pressed ? 0.97 : 1 }],
+                            },
+                            cardShadow(theme.dark),
+                          ]}
+                        >
+                          <LightLeatherSurface theme={theme} radius={15} />
+                          <Icon
+                            name="edit"
+                            size={14}
+                            color={theme.leather.accent}
                           />
                           <Text
                             style={[
-                              styles.walletSelectChipText,
-                              { color: active ? theme.accentInk : theme.ink },
+                              styles.updateActionBtnText,
+                              { color: theme.ink },
                             ]}
                           >
-                            {w.name}
+                            Edit card
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                      {updateMode === "set" ? (
+                        <Pressable
+                          onPress={() =>
+                            setAmount(String(Number(current.balance.toFixed(2))))
+                          }
+                          style={({ pressed }) => [
+                            styles.updateActionBtn,
+                            {
+                              overflow: "hidden",
+                              backgroundColor: theme.card,
+                              borderColor: hexToRgba(theme.leather.accent, 0.26),
+                              transform: [{ scale: pressed ? 0.97 : 1 }],
+                            },
+                            cardShadow(theme.dark),
+                          ]}
+                        >
+                          <LightLeatherSurface theme={theme} radius={15} />
+                          <Icon
+                            name="sync"
+                            size={14}
+                            color={theme.leather.accent}
+                          />
+                          <Text
+                            style={[
+                              styles.updateActionBtnText,
+                              { color: theme.ink },
+                            ]}
+                          >
+                            Use current
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  ) : null}
+
+                  {/* Stitched Update Mode Toggle: Set exact | Add (+) | Subtract (-) */}
+                  <View
+                    style={[
+                      styles.updateModeBar,
+                      {
+                        overflow: "hidden",
+                        backgroundColor: theme.card,
+                        borderColor: hexToRgba(theme.leather.accent, 0.24),
+                      },
+                    ]}
+                  >
+                    <LightLeatherSurface theme={theme} radius={16} />
+                    {(
+                      [
+                        ["set", "Set exact"],
+                        ["add", "Add (+)"],
+                        ["sub", "Subtract (-)"],
+                      ] as const
+                    ).map(([modeKey, modeLabel]) => {
+                      const active = updateMode === modeKey;
+                      return (
+                        <Pressable
+                          key={modeKey}
+                          onPress={() => {
+                            setUpdateMode(modeKey);
+                            setAmount("");
+                          }}
+                          style={[
+                            styles.updateModeBtn,
+                            { overflow: "hidden" },
+                          ]}
+                        >
+                          {active ? (
+                            <DarkLeatherSurface theme={theme} radius={12} />
+                          ) : null}
+                          <Text
+                            style={[
+                              styles.updateModeText,
+                              { color: active ? "#ffffff" : theme.ink },
+                            ]}
+                          >
+                            {modeLabel}
                           </Text>
                         </Pressable>
                       );
                     })}
-                  </ScrollView>
-                </View>
-
-                {/* Update Mode Toggle: Set exact | Add (+) | Subtract (-) */}
-                <View
-                  style={[
-                    styles.updateModeBar,
-                    { backgroundColor: theme.soft, borderColor: theme.line },
-                  ]}
-                >
-                  {(
-                    [
-                      ["set", "Set exact"],
-                      ["add", "Add (+)"],
-                      ["sub", "Subtract (-)"],
-                    ] as const
-                  ).map(([modeKey, modeLabel]) => {
-                    const active = updateMode === modeKey;
-                    return (
-                      <Pressable
-                        key={modeKey}
-                        onPress={() => {
-                          setUpdateMode(modeKey);
-                          setAmount("");
-                        }}
-                        style={[
-                          styles.updateModeBtn,
-                          active && { backgroundColor: theme.surface },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.updateModeText,
-                            { color: active ? theme.ink : theme.muted },
-                          ]}
-                        >
-                          {modeLabel}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-
-                <View
-                  style={[
-                    styles.amountEntryBox,
-                    {
-                      backgroundColor: theme.soft,
-                      borderColor: theme.line,
-                      marginTop: 10,
-                      marginBottom: 8,
-                    },
-                  ]}
-                >
-                  <View style={styles.transferAmountHeadRow}>
-                    <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                      {updateMode === "set"
-                        ? "New exact balance"
-                        : updateMode === "add"
-                          ? "Amount to add"
-                          : "Amount to subtract"}
-                    </Text>
-                    {updateMode === "set" ? (
-                      <Pressable
-                        onPress={() =>
-                          setAmount(String(Number(current.balance.toFixed(2))))
-                        }
-                        style={[
-                          styles.sendAllChip,
-                          { backgroundColor: theme.accentSoft },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.sendAllChipText,
-                            { color: theme.accentText },
-                          ]}
-                        >
-                          Use current
-                        </Text>
-                      </Pressable>
-                    ) : null}
                   </View>
-                  <View style={styles.amountEntryRow}>
-                    <Text style={[styles.amountEntrySign, { color: theme.ink }]}>
-                      {updateMode === "add"
-                        ? "+₱"
-                        : updateMode === "sub"
-                          ? "-₱"
-                          : "₱"}
+
+                  {updateProjectedBalance < 0 ? (
+                    <Text style={styles.errorText}>
+                      Resulting balance cannot be negative.
                     </Text>
-                    <Text
-                      style={[
-                        styles.amountEntryInput,
-                        { color: amount ? theme.ink : theme.muted },
-                      ]}
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                    >
-                      {amount ? formatAmountInput(amount) : "0.00"}
-                    </Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.fieldLabel,
-                      {
-                        color:
-                          updateProjectedBalance < 0
-                            ? "#c04444"
-                            : hasUpdateInput && updateDifference !== 0
-                              ? theme.accentText
-                              : theme.muted,
-                      },
-                    ]}
-                  >
-                    {hasUpdateInput
-                      ? updateMode === "set"
-                        ? `Current: ${money(current.balance)} · Change: ${updateDifference >= 0 ? "+" : "-"}${money(Math.abs(updateDifference))}`
-                        : `New balance: ${money(updateProjectedBalance)} (from ${money(current.balance)})`
-                      : `Current: ${money(current.balance)}`}
-                  </Text>
+                  ) : null}
+
+                  <AmountKeypad
+                    value={amount}
+                    onChange={setAmount}
+                    quickAmounts={
+                      updateMode === "set"
+                        ? [500, 1000, 5000]
+                        : [100, 500, 1000, 5000]
+                    }
+                    quickBase={updateMode === "set" ? current.balance : 0}
+                    compact
+                    stitched
+                    theme={theme}
+                  />
                 </View>
-
-                {updateProjectedBalance < 0 ? (
-                  <Text style={styles.errorText}>
-                    Resulting balance cannot be negative.
-                  </Text>
-                ) : null}
-
-                <AmountKeypad
-                  value={amount}
-                  onChange={setAmount}
-                  quickAmounts={
-                    updateMode === "set"
-                      ? [500, 1000, 5000]
-                      : [100, 500, 1000, 5000]
-                  }
-                  quickBase={updateMode === "set" ? current.balance : 0}
-                  compact
-                  theme={theme}
-                />
-
-                <PrimaryButton
-                  label={
-                    hasUpdateInput
-                      ? `Save ${money(Math.max(0, updateProjectedBalance))}`
-                      : "Save new balance"
-                  }
-                  disabled={updateInvalid}
-                  onPress={save}
-                  theme={theme}
-                />
-              </View>
-            )}
+              );
+            })()}
 
             {/* ==================== TRANSFER SHEET ==================== */}
             {type === "transfer" && sourceWallet && destWallet && (
@@ -5315,10 +5359,12 @@ function HeroAmountDisplay({
   value,
   color,
   muted = false,
+  prefix = "₱",
 }: {
   value: string;
   color: string;
   muted?: boolean;
+  prefix?: string;
 }) {
   return (
     <Text
@@ -5332,7 +5378,10 @@ function HeroAmountDisplay({
       numberOfLines={1}
       adjustsFontSizeToFit
     >
-      <Text style={[styles.entryCurrencySign, { color }]}>₱{"\u2009"}</Text>
+      <Text style={[styles.entryCurrencySign, { color }]}>
+        {prefix}
+        {"\u2009"}
+      </Text>
       {value ? formatAmountInput(value) : "0.00"}
     </Text>
   );
@@ -5735,12 +5784,13 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   updateModeBar: {
-    height: 44,
+    height: 46,
     padding: 4,
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: "row",
     gap: 4,
+    marginBottom: 4,
   },
   updateModeBtn: {
     flex: 1,
@@ -5749,9 +5799,35 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   updateModeText: {
-    fontFamily: "Poppins_800ExtraBold",
-    fontWeight: "800",
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
     fontSize: 12,
+    lineHeight: 16,
+    includeFontPadding: false,
+    marginTop: 1.5,
+  },
+  updateQuickActionsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 10,
+  },
+  updateActionBtn: {
+    flex: 1,
+    height: 40,
+    borderRadius: 15,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  updateActionBtnText: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12.5,
+    lineHeight: 16,
+    includeFontPadding: false,
+    marginTop: 1.5,
   },
   colorHeaderRow: {
     flexDirection: "row",
@@ -5860,21 +5936,6 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 10.5,
-  },
-  editCardLinkBtn: {
-    marginTop: 12,
-    height: 42,
-    borderRadius: 14,
-    borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-  },
-  editCardLinkText: {
-    fontFamily: "Poppins_700Bold",
-    fontWeight: "700",
-    fontSize: 12.5,
   },
   tonePicker: {
     gap: 6,
