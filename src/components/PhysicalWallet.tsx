@@ -344,7 +344,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
   onWallet: (wallet: Wallet) => void;
   onOpenAdd: () => void;
   onOpenMenu: (wallet: Wallet) => void;
-  onFrontChange: (index: number) => void;
+  onFrontChange?: (index: number) => void;
   onStackDragChange?: (dragging: boolean) => void;
   onHingeOffset?: (offset: number) => void;
 }) {
@@ -427,7 +427,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
   const page = wallets.slice(pageStart, pageStart + VISIBLE_CARDS);
 
   useEffect(() => {
-    onFrontChange(Math.max(activeIndex, 0));
+    onFrontChange?.(Math.max(activeIndex, 0));
   }, [activeIndex, onFrontChange]);
 
   const play = useCallback(

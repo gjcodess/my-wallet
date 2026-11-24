@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
+  AppState,
   Easing,
   Image,
   PanResponder,
@@ -49,7 +50,6 @@ import {
   LEATHER_FINISHES,
   LeatherFinishId,
   AccentSurfaceGlow,
-  ActionButton,
   bevelStyle,
   cardShadow,
   EdgeFade,
@@ -69,6 +69,18 @@ const PITAKA_TITLE_ASSETS = {
   dark: require("../../assets/brand/pitaka-title-white.png"),
   light: require("../../assets/brand/pitaka-title-dark.png"),
 };
+
+function getTimeGreeting(date: Date): { greeting: string; dateLabel: string } {
+  const hour = date.getHours();
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const dateLabel = date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
+  return { greeting, dateLabel };
+}
 
 const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
   theme,
@@ -268,10 +280,6 @@ export const HomeScreen = React.memo(function HomeScreen({
       }),
     [walletScrollY, hingeOffset]
   );
-  const [frontIndex, setFrontIndex] = useState(0);
-  const safeFront = wallets.length ? frontIndex % wallets.length : 0;
-  const featured = wallets.length ? wallets[safeFront] : undefined;
-
   const handleOpenAdd = useCallback(() => onSheet("add"), [onSheet]);
   const handleOpenSearch = useCallback(() => onSheet("search"), [onSheet]);
   const handleOpenSchedules = useCallback(() => onSheet("schedule"), [onSheet]);
@@ -283,16 +291,30 @@ export const HomeScreen = React.memo(function HomeScreen({
     () => setHidden(!hidden),
     [setHidden, hidden]
   );
-  const handleOpenUpdate = useCallback(
-    () => onSheet("update", featured),
-    [onSheet, featured]
-  );
-  const handleOpenTransfer = useCallback(
-    () => onSheet("transfer", featured),
-    [onSheet, featured]
-  );
-  const handleGoWallets = useCallback(() => setTab("wallets"), [setTab]);
   const handleGoActivity = useCallback(() => setTab("activity"), [setTab]);
+  const [headerClock, setHeaderClock] = useState(() =>
+    getTimeGreeting(new Date())
+  );
+
+  useEffect(() => {
+    const refreshGreeting = () => {
+      const next = getTimeGreeting(new Date());
+      setHeaderClock((prev) =>
+        prev.greeting === next.greeting && prev.dateLabel === next.dateLabel
+          ? prev
+          : next
+      );
+    };
+    const timer = setInterval(refreshGreeting, 60_000);
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") refreshGreeting();
+    });
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
+  }, []);
+
   const recentActivities = useMemo(
     () => activities.slice(0, 10),
     [activities]
@@ -325,7 +347,7 @@ export const HomeScreen = React.memo(function HomeScreen({
       <HeroHeaderSurface
         theme={theme}
         onHeight={onHeroHeight}
-        style={{ marginBottom: 18, zIndex: 2 }}
+        style={{ marginBottom: 18, paddingBottom: 24, zIndex: 2 }}
       >
         <View style={styles.heroTopRow}>
           <View
@@ -370,32 +392,19 @@ export const HomeScreen = React.memo(function HomeScreen({
           </View>
         </View>
 
-        {/* 4-Column Glass Quick Action Pills */}
-        <View style={styles.actionGrid}>
-          <ActionButton
-            theme={theme}
-            icon="edit"
-            label="Update"
-            onPress={handleOpenUpdate}
-          />
-          <ActionButton
-            theme={theme}
-            icon="swap"
-            label="Transfer"
-            onPress={handleOpenTransfer}
-          />
-          <ActionButton
-            theme={theme}
-            icon="plus"
-            label="Add"
-            onPress={handleOpenAdd}
-          />
-          <ActionButton
-            theme={theme}
-            icon="grid"
-            label="Wallets"
-            onPress={handleGoWallets}
-          />
+        <View style={styles.heroGreetingBlock}>
+          <Text
+            style={[styles.heroGreetingTitle, { color: theme.heroInk }]}
+            numberOfLines={1}
+          >
+            {headerClock.greeting}
+          </Text>
+          <Text
+            style={[styles.heroGreetingSub, { color: theme.heroMuted, opacity: 1 }]}
+            numberOfLines={1}
+          >
+            {headerClock.dateLabel}
+          </Text>
         </View>
       </HeroHeaderSurface>
 
@@ -409,7 +418,6 @@ export const HomeScreen = React.memo(function HomeScreen({
         onWallet={onWallet}
         onOpenAdd={handleOpenAdd}
         onOpenMenu={handleOpenMenu}
-        onFrontChange={setFrontIndex}
         onStackDragChange={onStackDragChange}
         onHingeOffset={handleHingeOffset}
         theme={theme}
@@ -2707,11 +2715,6 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
   },
-  actionGrid: {
-    marginTop: 16,
-    flexDirection: "row",
-    gap: 10,
-  },
   section: {
     marginTop: 26,
   },
@@ -2801,6 +2804,28 @@ const styles = StyleSheet.create({
   heroBalanceBlock: {
     marginTop: 18,
     gap: 4,
+  },
+  heroGreetingBlock: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  heroGreetingSub: {
+    fontFamily: "Poppins_500Medium",
+    fontWeight: "500",
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.72)",
+    textAlign: "right",
+  },
+  heroGreetingTitle: {
+    flexShrink: 1,
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 20,
+    letterSpacing: -0.4,
+    color: "#ffffff",
   },
   heroHeaderLabel: {
     fontFamily: "Poppins_600SemiBold",

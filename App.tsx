@@ -191,7 +191,7 @@ export default function App() {
   const [headerAtTop, setHeaderAtTop] = useState(true);
   const [walletInteractive, setWalletInteractive] = useState(true);
   const [heroHeights, setHeroHeights] = useState<Record<Tab, number>>({
-    home: 290,
+    home: 155,
     wallets: 220,
     activity: 170,
     overview: 170,
