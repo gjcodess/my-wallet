@@ -180,8 +180,8 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
         <Svg width="100%" height="100%">
           <Defs>
             <SvgLinearGradient id={leatherGradId} x1="10%" y1="0%" x2="90%" y2="100%">
-              <Stop offset="0" stopColor={theme.leather.colors[0]} />
-              <Stop offset=".42" stopColor={theme.leather.colors[1]} />
+              <Stop offset="0" stopColor={theme.leather.colors[1]} />
+              <Stop offset=".55" stopColor={theme.leather.colors[1]} />
               <Stop offset="1" stopColor={theme.leather.colors[2]} />
             </SvgLinearGradient>
             <Pattern id={grainId} width={6} height={6} patternUnits="userSpaceOnUse">

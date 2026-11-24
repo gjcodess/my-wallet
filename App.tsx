@@ -1097,7 +1097,7 @@ export default function App() {
             {/* Adaptive Top Edge Fade: blends into hero accent while over hero, then page background once scrolled past */}
             <EdgeFade
               position="top"
-              color={theme.heroGradient[0]}
+              color={theme.leather.colors[1]}
               size={76}
               opacity={scrollY.interpolate({
                 inputRange: [0, 18, heroFadeOutStart, heroClearY],
