@@ -5,6 +5,7 @@ import { Icon } from "./Icon";
 import {
   bevelStyle,
   cardShadow,
+  DarkLeatherSurface,
   hexToRgba,
   LightLeatherSurface,
   ThemeColors,
@@ -83,8 +84,6 @@ export const AmountKeypad = React.memo(function AmountKeypad({
   };
 
   const keyHeight = compact ? 43 : 49;
-  const dangerInk = theme.dark ? "#ff827e" : "#c04444";
-  const dangerBorder = hexToRgba(dangerInk, 0.28);
 
   return (
     <View style={styles.wrapper}>
@@ -120,23 +119,21 @@ export const AmountKeypad = React.memo(function AmountKeypad({
                 {
                   overflow: "hidden",
                   borderWidth: 1,
-                  borderColor: stitched ? dangerBorder : theme.line,
+                  borderColor: stitched ? theme.leather.edge : theme.line,
                   backgroundColor: stitched
-                    ? theme.dark
-                      ? "#2c1719"
-                      : "#fdefee"
+                    ? theme.leather.edge
                     : theme.accentSoft,
                   transform: [{ scale: pressed ? 0.95 : 1 }],
                 },
               ]}
             >
               {stitched ? (
-                <LightLeatherSurface theme={theme} radius={13} danger />
+                <DarkLeatherSurface theme={theme} radius={13} />
               ) : null}
               <Text
                 style={[
                   styles.clearChipText,
-                  { color: stitched ? dangerInk : theme.accentText },
+                  { color: stitched ? "#ffffff" : theme.accentText },
                 ]}
               >
                 Clear
@@ -173,20 +170,39 @@ export const AmountKeypad = React.memo(function AmountKeypad({
                       ? {
                           borderWidth: 1,
                           borderColor: isBack
-                            ? dangerBorder
+                            ? theme.leather.edge
                             : hexToRgba(theme.leather.accent, 0.22),
+                          backgroundColor: isBack
+                            ? theme.leather.edge
+                            : pressed
+                              ? theme.soft2
+                              : theme.card,
                         }
                       : bevelStyle(theme.dark),
                     cardShadow(theme.dark),
                   ]}
                 >
                   {stitched ? (
-                    <LightLeatherSurface theme={theme} radius={15} danger={isBack} />
+                    isBack ? (
+                      <DarkLeatherSurface theme={theme} radius={15} />
+                    ) : (
+                      <LightLeatherSurface theme={theme} radius={15} />
+                    )
                   ) : null}
                   {isBack ? (
-                    <Icon name="backspace" size={20} color={dangerInk} />
+                    <Icon
+                      name="backspace"
+                      size={20}
+                      color={stitched ? "#ffffff" : theme.ink}
+                    />
                   ) : (
-                    <Text style={[styles.keyText, { color: theme.ink }]}>
+                    <Text
+                      style={[
+                        styles.keyText,
+                        { color: theme.ink },
+                        key === "." ? { marginTop: -3 } : null,
+                      ]}
+                    >
                       {key}
                     </Text>
                   )}
@@ -222,6 +238,9 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 11,
+    lineHeight: 14,
+    includeFontPadding: false,
+    marginTop: 1.5,
   },
   clearChip: {
     paddingHorizontal: 13,
@@ -234,6 +253,9 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 11,
+    lineHeight: 14,
+    includeFontPadding: false,
+    marginTop: 1.5,
   },
   grid: {
     gap: 8,
@@ -253,5 +275,8 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 20,
+    lineHeight: 24,
+    includeFontPadding: false,
+    marginTop: 2,
   },
 });

@@ -376,30 +376,18 @@ export const AccentSurfaceGlow = React.memo(function AccentSurfaceGlow({
 export const LightLeatherSurface = React.memo(function LightLeatherSurface({
   theme,
   radius = 16,
-  danger = false,
 }: {
   theme: ThemeColors;
   radius?: number;
-  danger?: boolean;
 }) {
   const grainId = `lightLeather${React.useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
-  const gradColors: [string, string, string] = danger
-    ? theme.dark
-      ? ["#2c1719", "#351b1e", "#2c1719"]
-      : ["#fdefee", "#fff7f7", "#fae6e5"]
-    : [theme.leather.soft, "#f7f7f4", theme.leather.soft];
-  const stitchTint = danger
-    ? theme.dark
-      ? "#ef6b67"
-      : "#c04444"
-    : theme.leather.accent;
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <LinearGradient colors={gradColors} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[theme.leather.soft, "#f7f7f4", theme.leather.soft]} style={StyleSheet.absoluteFill} />
       <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
         <Defs>
           <Pattern id={grainId} width={6} height={6} patternUnits="userSpaceOnUse">
-            <SvgPath d="M1 1l.8 .3M4 4l.6 -.2" stroke={stitchTint} strokeWidth=".55" opacity=".13" />
+            <SvgPath d="M1 1l.8 .3M4 4l.6 -.2" stroke={theme.leather.accent} strokeWidth=".55" opacity=".13" />
           </Pattern>
         </Defs>
         <Rect width="100%" height="100%" fill={`url(#${grainId})`} />
@@ -409,7 +397,7 @@ export const LightLeatherSurface = React.memo(function LightLeatherSurface({
           styles.lightLeatherStitch,
           {
             borderRadius: Math.max(6, radius - 3),
-            borderColor: hexToRgba(stitchTint, danger ? 0.32 : 0.35),
+            borderColor: hexToRgba(theme.leather.accent, 0.35),
           },
         ]}
       />
@@ -419,7 +407,7 @@ export const LightLeatherSurface = React.memo(function LightLeatherSurface({
           styles.lightLeatherInnerStitch,
           {
             borderRadius: Math.max(4, radius - 6),
-            borderColor: hexToRgba(stitchTint, danger ? 0.16 : 0.16),
+            borderColor: hexToRgba(theme.leather.accent, 0.16),
           },
         ]}
       />
