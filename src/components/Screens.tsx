@@ -935,6 +935,30 @@ export const WalletsScreen = React.memo(function WalletsScreen({
         </View>
       ) : null}
 
+      {wallets.length > 6 ? (
+        <View
+          style={[
+            styles.walletLimitBanner,
+            {
+              overflow: "hidden",
+              backgroundColor: theme.card,
+              borderColor: hexToRgba(theme.leather.accent, 0.24),
+            },
+          ]}
+        >
+          <LightLeatherSurface theme={theme} radius={14} />
+          <Icon name="wallet" size={14} color={theme.leather.accent} />
+          <Text
+            style={[styles.walletLimitBannerText, { color: theme.ink }]}
+            numberOfLines={1}
+          >
+            {reordering
+              ? "Drag any card into the top 6 to show it on Home"
+              : `Top 6 cards show on Home · All ${wallets.length} count in total`}
+          </Text>
+        </View>
+      ) : null}
+
       {wallets.length === 0 ? (
         <View
           style={[
@@ -976,7 +1000,19 @@ export const WalletsScreen = React.memo(function WalletsScreen({
           ) : null}
         </View>
       ) : (
-        <View style={styles.walletList}>
+        <View style={[styles.walletList, { position: "relative" }]}>
+          {wallets.length > 6 ? (
+            <View
+              pointerEvents="none"
+              style={[
+                styles.walletHomeCutoffLine,
+                {
+                  top: 6 * WALLET_SLOT_HEIGHT - WALLET_TILE_GAP / 2 - 1,
+                  borderColor: hexToRgba(theme.leather.accent, 0.42),
+                },
+              ]}
+            />
+          ) : null}
           {wallets.map((wallet, idx) => {
             const pal = tonePalette[wallet.tone] || tonePalette.blue;
             const cardDesign = resolveWalletCardDesign(wallet.logoKey, wallet.name);
@@ -985,6 +1021,17 @@ export const WalletsScreen = React.memo(function WalletsScreen({
             const shiftAnim = getShiftAnim(wallet.id);
             const rowPan = rowPanResponders[idx];
             const flow = walletFlows.get(wallet.id) ?? { earned: 0, spent: 0 };
+            let effectiveSlot = idx;
+            if (dragIndex !== null && hoverIndex !== null) {
+              if (idx === dragIndex) {
+                effectiveSlot = hoverIndex;
+              } else if (dragIndex < hoverIndex && idx > dragIndex && idx <= hoverIndex) {
+                effectiveSlot = idx - 1;
+              } else if (dragIndex > hoverIndex && idx >= hoverIndex && idx < dragIndex) {
+                effectiveSlot = idx + 1;
+              }
+            }
+            const inHomeWallet = effectiveSlot < 6;
 
             return (
               <Animated.View
@@ -1072,12 +1119,37 @@ export const WalletsScreen = React.memo(function WalletsScreen({
                   </View>
 
                   <View style={styles.tileMain}>
-                    <Text
-                      style={[styles.tileName, { color: theme.ink }]}
-                      numberOfLines={1}
-                    >
-                      {wallet.name}
-                    </Text>
+                    <View style={styles.tileNameRow}>
+                      <Text
+                        style={[styles.tileName, { color: theme.ink, flexShrink: 1 }]}
+                        numberOfLines={1}
+                      >
+                        {wallet.name}
+                      </Text>
+                      {wallets.length > 6 ? (
+                        <View
+                          style={[
+                            styles.tileHomeTag,
+                            {
+                              backgroundColor: inHomeWallet
+                                ? theme.leather.edge
+                                : hexToRgba(theme.leather.accent, 0.12),
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.tileHomeTagText,
+                              {
+                                color: inHomeWallet ? "#ffffff" : theme.muted,
+                              },
+                            ]}
+                          >
+                            {inHomeWallet ? "Home" : "Counted"}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
                     <Text
                       style={[styles.tileSub, { color: theme.muted }]}
                       numberOfLines={1}
@@ -3072,6 +3144,51 @@ const styles = StyleSheet.create({
   },
   walletList: {
     gap: 9,
+  },
+  walletLimitBanner: {
+    height: 36,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  walletLimitBannerText: {
+    flex: 1,
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 11.5,
+    lineHeight: 15,
+    includeFontPadding: false,
+    marginTop: 1,
+  },
+  walletHomeCutoffLine: {
+    position: "absolute",
+    left: 10,
+    right: 10,
+    borderTopWidth: 1.5,
+    borderStyle: "dashed",
+    zIndex: 2,
+  },
+  tileNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  tileHomeTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  tileHomeTagText: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 9,
+    lineHeight: 12,
+    includeFontPadding: false,
+    letterSpacing: 0.2,
   },
   walletsSectionHead: {
     flexDirection: "row",
