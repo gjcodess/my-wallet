@@ -93,7 +93,7 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
   theme,
   compact = false,
   fullBleed = true,
-  archBottom = false,
+  archBottom = true,
   onHeight,
   style,
   children,
@@ -152,7 +152,13 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
         {
           marginHorizontal: fullBleed ? -18 : 0,
           paddingTop: insets.top + (compact ? 10 : 14),
-          paddingBottom: compact ? 16 : 22,
+          paddingBottom: archBottom
+            ? compact
+              ? 38
+              : 44
+            : compact
+              ? 16
+              : 22,
           backgroundColor: archBottom ? "transparent" : theme.heroGradient[0],
           shadowColor: theme.dark ? "#000000" : theme.accent,
         },
@@ -458,9 +464,8 @@ export const HomeScreen = React.memo(function HomeScreen({
       {/* Net Worth Hero Header */}
       <HeroHeaderSurface
         theme={theme}
-        archBottom
         onHeight={onHeroHeight}
-        style={{ marginBottom: -18, paddingBottom: 44, zIndex: 2 }}
+        style={{ marginBottom: -18, zIndex: 2 }}
       >
         <View style={styles.heroTopRow}>
           <View
@@ -2634,7 +2639,7 @@ export function WalletDetailScreen({
         ],
       }}
     >
-      <HeroHeaderSurface theme={theme} compact fullBleed={false}>
+      <HeroHeaderSurface theme={theme} compact fullBleed={false} style={{ zIndex: 2 }}>
         <View style={styles.heroDetailBar}>
           <Pressable
             onPress={onBack}

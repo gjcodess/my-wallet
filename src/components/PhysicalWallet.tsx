@@ -702,6 +702,44 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
         </Animated.View>
 
         <Animated.View
+          pointerEvents={open && !busy ? "box-none" : "none"}
+          accessibilityElementsHidden={!open}
+          importantForAccessibility={open ? "auto" : "no-hide-descendants"}
+          style={[
+            styles.pocketAddWrap,
+            {
+              top: (POCKET_Y + 24) * scale,
+              right: 22 * scale,
+              opacity: flap.interpolate({
+                inputRange: [0.4, 0.85],
+                outputRange: [0, 1],
+                extrapolate: "clamp",
+              }),
+            },
+          ]}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Add new card"
+            disabled={!open || busy}
+            onPress={onOpenAdd}
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.pocketAddBtn,
+              {
+                width: 32 * scale,
+                height: 32 * scale,
+                borderRadius: 16 * scale,
+                borderColor: `${theme.leather.thread}55`,
+                transform: [{ scale: pressed ? 0.9 : 1 }],
+              },
+            ]}
+          >
+            <Icon name="plus" size={16} strokeWidth={2.4} color="#f0f1eb" />
+          </Pressable>
+        </Animated.View>
+
+        <Animated.View
           pointerEvents="none"
           renderToHardwareTextureAndroid
           accessibilityElementsHidden
@@ -885,6 +923,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   closedSummary: { position: "absolute", left: 20, right: 20, zIndex: 8, alignItems: "center", justifyContent: "center", paddingBottom: 16 },
+  pocketAddWrap: { position: "absolute", zIndex: 9 },
+  pocketAddBtn: {
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   monthlyFlow: { flexDirection: "row", alignItems: "center", width: "100%", marginTop: 2 },
   monthlyItem: { flex: 1, alignItems: "center" },
   monthlyDivider: { width: 1, height: 28, backgroundColor: "#a2b0bd55" },
