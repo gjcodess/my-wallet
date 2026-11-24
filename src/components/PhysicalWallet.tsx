@@ -864,9 +864,10 @@ const styles = StyleSheet.create({
   cardName: { flex: 1, fontFamily: "Poppins_700Bold", fontSize: 12 },
   cardAmountFade: { position: "absolute", top: 0, left: 0 },
   cardBalance: {
-    maxWidth: "42%",
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 11,
+    maxWidth: "46%",
+    fontFamily: "Poppins_700Bold",
+    fontSize: 13.5,
+    includeFontPadding: false,
   },
   cardBody: { paddingHorizontal: 15, marginTop: 13, gap: 3 },
   cardType: {

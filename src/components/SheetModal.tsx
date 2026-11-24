@@ -1995,43 +1995,51 @@ export function SheetModal({
                           </ScrollView>
                         ) : (
                           <View style={styles.tonePicker}>
-                            {(Object.keys(tonePalette) as Tone[]).map((t) => {
-                              const pal = tonePalette[t];
-                              const active = !hasBrandCardArt && tone === t;
-                              return (
-                                <Pressable
-                                  key={t}
-                                  onPress={() => {
-                                    setLogoKey(
-                                      encodeWalletLogoAndBg(
-                                        selectedPresetKey,
-                                        "none"
-                                      )
-                                    );
-                                    setTone(t);
-                                  }}
-                                  style={[
-                                    styles.toneSwatchWrapper,
-                                    {
-                                      borderColor: active
-                                        ? theme.leather.accent
-                                        : theme.page,
-                                    },
-                                  ]}
-                                >
-                                  <View style={styles.toneSwatch}>
-                                    <TexturedGradientSurface
-                                      fromColor={pal.from}
-                                      toColor={pal.to}
-                                      subtle
-                                    />
-                                    {active && (
-                                      <Icon name="check" size={15} color={pal.ink} />
-                                    )}
-                                  </View>
-                                </Pressable>
-                              );
-                            })}
+                            {([
+                              (Object.keys(tonePalette) as Tone[]).slice(0, 6),
+                              (Object.keys(tonePalette) as Tone[]).slice(6, 12),
+                            ]).map((toneRow, rIdx) => (
+                              <View key={rIdx} style={styles.tonePickerRow}>
+                                {toneRow.map((t) => {
+                                  const pal = tonePalette[t];
+                                  const active = !hasBrandCardArt && tone === t;
+                                  return (
+                                    <Pressable
+                                      key={t}
+                                      onPress={() => {
+                                        setLogoKey(
+                                          encodeWalletLogoAndBg(
+                                            selectedPresetKey,
+                                            "none"
+                                          )
+                                        );
+                                        setTone(t);
+                                      }}
+                                      style={[
+                                        styles.toneSwatchWrapper,
+                                        {
+                                          borderStyle: active ? "dashed" : "solid",
+                                          borderColor: active
+                                            ? theme.leather.accent
+                                            : "transparent",
+                                        },
+                                      ]}
+                                    >
+                                      <View style={styles.toneSwatch}>
+                                        <TexturedGradientSurface
+                                          fromColor={pal.from}
+                                          toColor={pal.to}
+                                          subtle
+                                        />
+                                        {active && (
+                                          <Icon name="check" size={15} color={pal.ink} />
+                                        )}
+                                      </View>
+                                    </Pressable>
+                                  );
+                                })}
+                              </View>
+                            ))}
                           </View>
                         )}
                       </View>
@@ -5869,20 +5877,24 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
   },
   tonePicker: {
+    gap: 6,
+    marginVertical: 12,
+  },
+  tonePickerRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 9,
-    marginVertical: 14,
+    gap: 6,
   },
   toneSwatchWrapper: {
-    width: "14%",
+    flex: 1,
     aspectRatio: 1,
-    borderRadius: 16,
-    borderWidth: 3,
-    overflow: "hidden",
+    borderRadius: 17,
+    borderWidth: 1.5,
+    padding: 3.5,
   },
   toneSwatch: {
     flex: 1,
+    borderRadius: 12.5,
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
   },
