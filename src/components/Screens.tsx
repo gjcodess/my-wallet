@@ -18,7 +18,14 @@ import {
   ViewStyle,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Svg, { Defs, Pattern, Path, Rect } from "react-native-svg";
+import Svg, {
+  Defs,
+  LinearGradient as SvgLinearGradient,
+  Pattern,
+  Path,
+  Rect,
+  Stop,
+} from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityItem,
@@ -43,8 +50,8 @@ import {
   getWalletScale,
   PhysicalWallet,
   WALLET_CLOSE_SCROLL_DISTANCE,
+  WALLET_COMPACT_SHIFT_Y,
   WALLET_FLAP_SCROLL_START,
-  WALLET_HINGE_Y,
 } from "./PhysicalWallet";
 import {
   LEATHER_FINISHES,
@@ -86,6 +93,7 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
   theme,
   compact = false,
   fullBleed = true,
+  archBottom = false,
   onHeight,
   style,
   children,
@@ -93,13 +101,45 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
   theme: ThemeColors;
   compact?: boolean;
   fullBleed?: boolean;
+  archBottom?: boolean;
   onHeight?: (height: number) => void;
   style?: StyleProp<ViewStyle>;
   children: React.ReactNode;
 }) {
   const insets = useSafeAreaInsets();
-  const gradientId = React.useId().replace(/:/g, "");
+  const uid = React.useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const grainId = `heroGrain${uid}`;
+  const leatherGradId = `heroLeather${uid}`;
   const [headerSize, setHeaderSize] = useState({ width: 0, height: 0 });
+  const W = headerSize.width;
+  const H = headerSize.height;
+  const scale = getWalletScale(W || 390);
+  const archH = 22 * scale;
+  const cx = W / 2;
+  const hw = 59 * scale;
+  const c1 = 35 * scale;
+  const c2 = 26 * scale;
+  const makeArchPath = (inset: number, yShift = 0, closed = false) => {
+    const xL = inset;
+    const xR = W - inset;
+    const yB = H - inset + yShift;
+    const yP = yB - archH;
+    const r = Math.max(8, 32 - inset);
+    const cmds = [
+      `M${xL} 0`,
+      `V${yB - r}`,
+      `Q${xL} ${yB} ${xL + r} ${yB}`,
+      `H${cx - hw}`,
+      `C${cx - c1} ${yB} ${cx - c2} ${yP} ${cx} ${yP}`,
+      `C${cx + c2} ${yP} ${cx + c1} ${yB} ${cx + hw} ${yB}`,
+      `H${xR - r}`,
+      `Q${xR} ${yB} ${xR} ${yB - r}`,
+      `V0`,
+    ];
+    if (closed) cmds.push("Z");
+    return cmds.join(" ");
+  };
+
   return (
     <View
       onLayout={(event) => {
@@ -113,28 +153,100 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
           marginHorizontal: fullBleed ? -18 : 0,
           paddingTop: insets.top + (compact ? 10 : 14),
           paddingBottom: compact ? 16 : 22,
-          backgroundColor: theme.heroGradient[0],
+          backgroundColor: archBottom ? "transparent" : theme.heroGradient[0],
           shadowColor: theme.dark ? "#000000" : theme.accent,
         },
-        !theme.dark && styles.lightHeroLift,
+        !archBottom && !theme.dark && styles.lightHeroLift,
+        archBottom && {
+          overflow: "visible",
+          elevation: 0,
+          shadowOpacity: 0,
+        },
         style,
       ]}
     >
-      <LinearGradient pointerEvents="none" colors={theme.leather.colors} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      {!archBottom ? (
+        <LinearGradient
+          pointerEvents="none"
+          colors={theme.leather.colors}
+          start={{ x: 0.1, y: 0 }}
+          end={{ x: 0.9, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
+      <View
+        pointerEvents="none"
+        style={
+          archBottom
+            ? { position: "absolute", top: 0, left: 0, right: 0, height: H + 10 }
+            : StyleSheet.absoluteFill
+        }
+      >
         <Svg width="100%" height="100%">
           <Defs>
-            <Pattern id={gradientId} width={6} height={6} patternUnits="userSpaceOnUse">
+            {archBottom && (
+              <SvgLinearGradient id={leatherGradId} x1="10%" y1="0%" x2="90%" y2="100%">
+                <Stop offset="0" stopColor={theme.leather.colors[0]} />
+                <Stop offset=".48" stopColor={theme.leather.colors[1]} />
+                <Stop offset="1" stopColor={theme.leather.colors[2]} />
+              </SvgLinearGradient>
+            )}
+            <Pattern id={grainId} width={6} height={6} patternUnits="userSpaceOnUse">
               <Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth=".7" opacity=".45" />
               <Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke="#a2b0bd" strokeWidth=".65" opacity=".26" />
             </Pattern>
           </Defs>
-          <Rect width="100%" height="100%" fill={`url(#${gradientId})`} />
-          {headerSize.width > 30 && headerSize.height > 30 && (
+          {archBottom ? (
+            W > 64 && H > 64 ? (
+              <>
+                <Path
+                  d={makeArchPath(0, 4, true)}
+                  fill="rgba(24, 32, 54, 0.14)"
+                />
+                <Path
+                  d={makeArchPath(0, 0, true)}
+                  fill={`url(#${leatherGradId})`}
+                />
+                <Path
+                  d={makeArchPath(0, 0, true)}
+                  fill={`url(#${grainId})`}
+                />
+                <Path
+                  d={makeArchPath(2)}
+                  fill="none"
+                  stroke={theme.leather.edge}
+                  strokeWidth="3"
+                />
+                <Path
+                  d={makeArchPath(8)}
+                  fill="none"
+                  stroke={theme.leather.thread}
+                  strokeWidth="1.05"
+                  strokeDasharray="3.5 3"
+                  strokeLinecap="round"
+                  opacity=".82"
+                />
+                <Path
+                  d={makeArchPath(13)}
+                  fill="none"
+                  stroke={theme.leather.thread}
+                  strokeWidth=".8"
+                  strokeDasharray="3.5 3"
+                  strokeLinecap="round"
+                  opacity=".43"
+                />
+              </>
+            ) : null
+          ) : (
             <>
-              <Path d={`M2 0 V${headerSize.height - 32} Q2 ${headerSize.height - 2} 32 ${headerSize.height - 2} H${headerSize.width - 32} Q${headerSize.width - 2} ${headerSize.height - 2} ${headerSize.width - 2} ${headerSize.height - 32} V0`} fill="none" stroke={theme.leather.edge} strokeWidth="3" />
-              <Path d={`M8 0 V${headerSize.height - 32} Q8 ${headerSize.height - 8} 32 ${headerSize.height - 8} H${headerSize.width - 32} Q${headerSize.width - 8} ${headerSize.height - 8} ${headerSize.width - 8} ${headerSize.height - 32} V0`} fill="none" stroke={theme.leather.thread} strokeWidth="1.05" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".82" />
-              <Path d={`M13 0 V${headerSize.height - 32} Q13 ${headerSize.height - 13} 32 ${headerSize.height - 13} H${headerSize.width - 32} Q${headerSize.width - 13} ${headerSize.height - 13} ${headerSize.width - 13} ${headerSize.height - 32} V0`} fill="none" stroke={theme.leather.thread} strokeWidth=".8" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".43" />
+              <Rect width="100%" height="100%" fill={`url(#${grainId})`} />
+              {W > 30 && H > 30 && (
+                <>
+                  <Path d={`M2 0 V${H - 32} Q2 ${H - 2} 32 ${H - 2} H${W - 32} Q${W - 2} ${H - 2} ${W - 2} ${H - 32} V0`} fill="none" stroke={theme.leather.edge} strokeWidth="3" />
+                  <Path d={`M8 0 V${H - 32} Q8 ${H - 8} 32 ${H - 8} H${W - 32} Q${W - 8} ${H - 8} ${W - 8} ${H - 32} V0`} fill="none" stroke={theme.leather.thread} strokeWidth="1.05" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".82" />
+                  <Path d={`M13 0 V${H - 32} Q13 ${H - 13} 32 ${H - 13} H${W - 32} Q${W - 13} ${H - 13} ${W - 13} ${H - 32} V0`} fill="none" stroke={theme.leather.thread} strokeWidth=".8" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".43" />
+                </>
+              )}
             </>
           )}
         </Svg>
@@ -266,7 +378,7 @@ export const HomeScreen = React.memo(function HomeScreen({
 }) {
   const { width: windowWidth } = useWindowDimensions();
   const [hingeOffset, setHingeOffset] = useState(
-    () => WALLET_HINGE_Y * getWalletScale(windowWidth)
+    () => WALLET_COMPACT_SHIFT_Y * getWalletScale(windowWidth)
   );
   const handleHingeOffset = useCallback((offset: number) => {
     setHingeOffset((prev) => (Math.abs(offset - prev) > 0.5 ? offset : prev));
@@ -346,8 +458,9 @@ export const HomeScreen = React.memo(function HomeScreen({
       {/* Net Worth Hero Header */}
       <HeroHeaderSurface
         theme={theme}
+        archBottom
         onHeight={onHeroHeight}
-        style={{ marginBottom: 18, paddingBottom: 24, zIndex: 2 }}
+        style={{ marginBottom: -18, paddingBottom: 44, zIndex: 2 }}
       >
         <View style={styles.heroTopRow}>
           <View

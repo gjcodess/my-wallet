@@ -42,6 +42,8 @@ const WIDTH = WALLET_WIDTH;
 const HEIGHT = 410;
 export const WALLET_HINGE_Y = 153;
 const HINGE_Y = WALLET_HINGE_Y;
+export const WALLET_COMPACT_SHIFT_Y = 119;
+const COMPACT_SHIFT_Y = WALLET_COMPACT_SHIFT_Y;
 const POCKET_Y = 245;
 const BOTTOM_Y = 403;
 const CARD_HEIGHT = 166;
@@ -376,7 +378,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
     () =>
       scrollY.interpolate({
         inputRange: [FLAP_SCROLL_START, CLOSE_SCROLL_DISTANCE],
-        outputRange: [0, -HINGE_Y * scale],
+        outputRange: [0, -COMPACT_SHIFT_Y * scale],
         extrapolate: "clamp",
       }),
     [scrollY, scale],
@@ -570,7 +572,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
             setScale((prev) =>
               Math.abs(nextScale - prev) > 0.002 ? nextScale : prev,
             );
-            onHingeOffset?.(HINGE_Y * nextScale);
+            onHingeOffset?.(COMPACT_SHIFT_Y * nextScale);
           }
         }}
         style={[
