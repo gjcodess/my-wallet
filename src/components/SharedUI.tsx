@@ -6,7 +6,9 @@ import Svg, {
   Defs,
   Pattern,
   Path as SvgPath,
+  RadialGradient as SvgRadialGradient,
   Rect,
+  Stop,
 } from "react-native-svg";
 import { ActivityItem, money, Tab, Tone } from "../types/wallet";
 import { Icon } from "./Icon";
@@ -471,6 +473,67 @@ export const DarkLeatherSurface = React.memo(function DarkLeatherSurface({
   );
 });
 
+export const SaffianoSheetSurface = React.memo(function SaffianoSheetSurface({
+  theme,
+  radius = 32,
+}: {
+  theme: ThemeColors;
+  radius?: number;
+}) {
+  const uid = React.useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const radialId = `sheetRadial${uid}`;
+  const grainId = `sheetSaffiano${uid}`;
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
+        <Defs>
+          <SvgRadialGradient id={radialId} cx="50%" cy="0%" rx="85%" ry="52%">
+            <Stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+            <Stop offset="50%" stopColor={theme.surface} stopOpacity="1" />
+            <Stop offset="100%" stopColor={theme.page} stopOpacity="1" />
+          </SvgRadialGradient>
+          <Pattern id={grainId} width="10" height="10" patternUnits="userSpaceOnUse">
+            <SvgPath
+              d="M-2 2L2-2M0 10L10 0M8 12l4-4"
+              stroke={theme.leather.accent}
+              strokeWidth=".7"
+              opacity=".06"
+            />
+            <SvgPath
+              d="M-2 8L2 12M0 0l10 10M8-2l4 4"
+              stroke={theme.leather.accent}
+              strokeWidth=".55"
+              opacity=".035"
+            />
+          </Pattern>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${radialId})`} />
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${grainId})`} />
+      </Svg>
+      <View
+        style={[
+          styles.sheetOuterStitch,
+          {
+            borderTopLeftRadius: Math.max(12, radius - 6),
+            borderTopRightRadius: Math.max(12, radius - 6),
+            borderColor: hexToRgba(theme.leather.accent, 0.28),
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.sheetInnerStitch,
+          {
+            borderTopLeftRadius: Math.max(10, radius - 10),
+            borderTopRightRadius: Math.max(10, radius - 10),
+            borderColor: hexToRgba(theme.leather.accent, 0.13),
+          },
+        ]}
+      />
+    </View>
+  );
+});
+
 export function EdgeFade({
   position,
   color,
@@ -722,18 +785,20 @@ export function TopBar({
       {onBack ? (
         <Pressable
           onPress={onBack}
-          style={[
+          style={({ pressed }) => [
             styles.roundButton,
             {
               backgroundColor: theme.card,
               overflow: "hidden",
+              borderWidth: 1,
+              borderColor: hexToRgba(theme.leather.accent, 0.28),
+              transform: [{ scale: pressed ? 0.94 : 1 }],
             },
-            bevelStyle(theme.dark),
             cardShadow(theme.dark),
           ]}
         >
-          <AccentSurfaceGlow theme={theme} intensity="medium" />
-          <Icon name="back" size={20} color={theme.accentText} />
+          <LightLeatherSurface theme={theme} radius={21} />
+          <Icon name="back" size={18} strokeWidth={2.3} color={theme.leather.accent} />
         </Pressable>
       ) : (
         <View style={{ width: 42 }} />
@@ -947,6 +1012,24 @@ const styles = StyleSheet.create({
     left: 9,
     borderWidth: 0.75,
     borderRadius: 11,
+  },
+  sheetOuterStitch: {
+    position: "absolute",
+    top: 6,
+    left: 6,
+    right: 6,
+    bottom: -4,
+    borderWidth: 1,
+    borderStyle: "dashed",
+  },
+  sheetInnerStitch: {
+    position: "absolute",
+    top: 10,
+    left: 10,
+    right: 10,
+    bottom: -4,
+    borderWidth: 0.8,
+    borderStyle: "dashed",
   },
   txRow: {
     minHeight: 68,

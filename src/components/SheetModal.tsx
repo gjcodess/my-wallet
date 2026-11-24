@@ -43,6 +43,7 @@ import {
   EdgeFade,
   hexToRgba,
   LightLeatherSurface,
+  SaffianoSheetSurface,
   ThemeColors,
   TopBar,
   TxRow,
@@ -1052,8 +1053,14 @@ export function SheetModal({
             },
           ]}
         >
+          <View pointerEvents="none" style={styles.sheetTextureClip}>
+            <SaffianoSheetSurface theme={theme} radius={32} />
+          </View>
           <View
-            style={[styles.sheetHandle, { backgroundColor: theme.soft2 }]}
+            style={[
+              styles.sheetHandle,
+              { backgroundColor: hexToRgba(theme.leather.accent, 0.25) },
+            ]}
           />
           <TopBar
             title={sheetTitle}
@@ -1067,15 +1074,25 @@ export function SheetModal({
                   onPress={onClose}
                   accessibilityRole="button"
                   accessibilityLabel="Close"
-                  style={[
+                  style={({ pressed }) => [
                     styles.closeRoundBtn,
-                    { backgroundColor: theme.card, overflow: "hidden" },
-                    bevelStyle(theme.dark),
+                    {
+                      backgroundColor: theme.card,
+                      overflow: "hidden",
+                      borderWidth: 1,
+                      borderColor: hexToRgba(theme.leather.accent, 0.28),
+                      transform: [{ scale: pressed ? 0.94 : 1 }],
+                    },
                     cardShadow(theme.dark),
                   ]}
                 >
-                  <AccentSurfaceGlow theme={theme} intensity="medium" />
-                  <Icon name="close" size={18} color={theme.accentText} />
+                  <LightLeatherSurface theme={theme} radius={21} />
+                  <Icon
+                    name="close"
+                    size={17}
+                    strokeWidth={2.3}
+                    color={theme.leather.accent}
+                  />
                 </Pressable>
               ) : undefined
             }
@@ -4818,8 +4835,8 @@ const styles = StyleSheet.create({
     width: "100%",
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    paddingHorizontal: 20,
-    paddingTop: 9,
+    paddingHorizontal: 22,
+    paddingTop: 18,
     paddingBottom: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -12 },
@@ -4827,12 +4844,18 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 20,
   },
+  sheetTextureClip: {
+    ...StyleSheet.absoluteFill,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    overflow: "hidden",
+  },
   sheetHandle: {
     width: 42,
     height: 4,
     borderRadius: 3,
     alignSelf: "center",
-    marginBottom: 7,
+    marginBottom: 8,
   },
   formTitle: {
     fontFamily: "Poppins_800ExtraBold",
