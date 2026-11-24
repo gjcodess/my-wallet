@@ -93,7 +93,7 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
   theme,
   compact = false,
   fullBleed = true,
-  archBottom = true,
+  archBottom = false,
   onHeight,
   style,
   children,
@@ -119,7 +119,7 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
   const hw = 59 * scale;
   const c1 = 35 * scale;
   const c2 = 26 * scale;
-  const makeArchPath = (inset: number, yShift = 0, closed = false) => {
+  const makeHeaderPath = (inset: number, yShift = 0, closed = false) => {
     const xL = inset;
     const xR = W - inset;
     const yB = H - inset + yShift;
@@ -129,13 +129,19 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
       `M${xL} 0`,
       `V${yB - r}`,
       `Q${xL} ${yB} ${xL + r} ${yB}`,
-      `H${cx - hw}`,
-      `C${cx - c1} ${yB} ${cx - c2} ${yP} ${cx} ${yP}`,
-      `C${cx + c2} ${yP} ${cx + c1} ${yB} ${cx + hw} ${yB}`,
+    ];
+    if (archBottom) {
+      cmds.push(
+        `H${cx - hw}`,
+        `C${cx - c1} ${yB} ${cx - c2} ${yP} ${cx} ${yP}`,
+        `C${cx + c2} ${yP} ${cx + c1} ${yB} ${cx + hw} ${yB}`,
+      );
+    }
+    cmds.push(
       `H${xR - r}`,
       `Q${xR} ${yB} ${xR} ${yB - r}`,
       `V0`,
-    ];
+    );
     if (closed) cmds.push("Z");
     return cmds.join(" ");
   };
@@ -157,13 +163,9 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
               ? 38
               : 44
             : compact
-              ? 16
-              : 22,
-          backgroundColor: archBottom ? "transparent" : theme.heroGradient[0],
-          shadowColor: theme.dark ? "#000000" : theme.accent,
-        },
-        !archBottom && !theme.dark && styles.lightHeroLift,
-        archBottom && {
+              ? 20
+              : 26,
+          backgroundColor: "transparent",
           overflow: "visible",
           elevation: 0,
           shadowOpacity: 0,
@@ -171,90 +173,62 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
         style,
       ]}
     >
-      {!archBottom ? (
-        <LinearGradient
-          pointerEvents="none"
-          colors={theme.leather.colors}
-          start={{ x: 0.1, y: 0 }}
-          end={{ x: 0.9, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-      ) : null}
       <View
         pointerEvents="none"
-        style={
-          archBottom
-            ? { position: "absolute", top: 0, left: 0, right: 0, height: H + 10 }
-            : StyleSheet.absoluteFill
-        }
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: H + 10 }}
       >
         <Svg width="100%" height="100%">
           <Defs>
-            {archBottom && (
-              <SvgLinearGradient id={leatherGradId} x1="10%" y1="0%" x2="90%" y2="100%">
-                <Stop offset="0" stopColor={theme.leather.colors[0]} />
-                <Stop offset=".48" stopColor={theme.leather.colors[1]} />
-                <Stop offset="1" stopColor={theme.leather.colors[2]} />
-              </SvgLinearGradient>
-            )}
+            <SvgLinearGradient id={leatherGradId} x1="10%" y1="0%" x2="90%" y2="100%">
+              <Stop offset="0" stopColor={theme.leather.colors[0]} />
+              <Stop offset=".42" stopColor={theme.leather.colors[1]} />
+              <Stop offset="1" stopColor={theme.leather.colors[2]} />
+            </SvgLinearGradient>
             <Pattern id={grainId} width={6} height={6} patternUnits="userSpaceOnUse">
               <Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth=".7" opacity=".45" />
               <Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke="#a2b0bd" strokeWidth=".65" opacity=".26" />
             </Pattern>
           </Defs>
-          {archBottom ? (
-            W > 64 && H > 64 ? (
-              <>
-                <Path
-                  d={makeArchPath(0, 4, true)}
-                  fill="rgba(24, 32, 54, 0.14)"
-                />
-                <Path
-                  d={makeArchPath(0, 0, true)}
-                  fill={`url(#${leatherGradId})`}
-                />
-                <Path
-                  d={makeArchPath(0, 0, true)}
-                  fill={`url(#${grainId})`}
-                />
-                <Path
-                  d={makeArchPath(2)}
-                  fill="none"
-                  stroke={theme.leather.edge}
-                  strokeWidth="3"
-                />
-                <Path
-                  d={makeArchPath(8)}
-                  fill="none"
-                  stroke={theme.leather.thread}
-                  strokeWidth="1.05"
-                  strokeDasharray="3.5 3"
-                  strokeLinecap="round"
-                  opacity=".82"
-                />
-                <Path
-                  d={makeArchPath(13)}
-                  fill="none"
-                  stroke={theme.leather.thread}
-                  strokeWidth=".8"
-                  strokeDasharray="3.5 3"
-                  strokeLinecap="round"
-                  opacity=".43"
-                />
-              </>
-            ) : null
-          ) : (
+          {W > 64 && H > 64 ? (
             <>
-              <Rect width="100%" height="100%" fill={`url(#${grainId})`} />
-              {W > 30 && H > 30 && (
-                <>
-                  <Path d={`M2 0 V${H - 32} Q2 ${H - 2} 32 ${H - 2} H${W - 32} Q${W - 2} ${H - 2} ${W - 2} ${H - 32} V0`} fill="none" stroke={theme.leather.edge} strokeWidth="3" />
-                  <Path d={`M8 0 V${H - 32} Q8 ${H - 8} 32 ${H - 8} H${W - 32} Q${W - 8} ${H - 8} ${W - 8} ${H - 32} V0`} fill="none" stroke={theme.leather.thread} strokeWidth="1.05" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".82" />
-                  <Path d={`M13 0 V${H - 32} Q13 ${H - 13} 32 ${H - 13} H${W - 32} Q${W - 13} ${H - 13} ${W - 13} ${H - 32} V0`} fill="none" stroke={theme.leather.thread} strokeWidth=".8" strokeDasharray="3.5 3" strokeLinecap="round" opacity=".43" />
-                </>
-              )}
+              <Path
+                d={makeHeaderPath(0, 4, true)}
+                fill="rgba(24, 32, 54, 0.14)"
+              />
+              <Path
+                d={makeHeaderPath(0, 0, true)}
+                fill={`url(#${leatherGradId})`}
+              />
+              <Path
+                d={makeHeaderPath(0, 0, true)}
+                fill={`url(#${grainId})`}
+              />
+              <Path
+                d={makeHeaderPath(2)}
+                fill="none"
+                stroke={theme.leather.edge}
+                strokeWidth="3"
+              />
+              <Path
+                d={makeHeaderPath(8)}
+                fill="none"
+                stroke={theme.leather.thread}
+                strokeWidth="1.05"
+                strokeDasharray="3.5 3"
+                strokeLinecap="round"
+                opacity=".82"
+              />
+              <Path
+                d={makeHeaderPath(13)}
+                fill="none"
+                stroke={theme.leather.thread}
+                strokeWidth=".8"
+                strokeDasharray="3.5 3"
+                strokeLinecap="round"
+                opacity=".43"
+              />
             </>
-          )}
+          ) : null}
         </Svg>
       </View>
       {children}
@@ -464,6 +438,7 @@ export const HomeScreen = React.memo(function HomeScreen({
       {/* Net Worth Hero Header */}
       <HeroHeaderSurface
         theme={theme}
+        archBottom
         onHeight={onHeroHeight}
         style={{ marginBottom: -18, zIndex: 2 }}
       >
@@ -2639,7 +2614,7 @@ export function WalletDetailScreen({
         ],
       }}
     >
-      <HeroHeaderSurface theme={theme} compact fullBleed={false} style={{ zIndex: 2 }}>
+      <HeroHeaderSurface theme={theme} compact fullBleed={false}>
         <View style={styles.heroDetailBar}>
           <Pressable
             onPress={onBack}
@@ -2851,13 +2826,6 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 8,
   },
-  lightHeroLift: Platform.OS === "android" && Platform.Version < 28
-    ? { shadowColor: "#182036" }
-    : {
-        elevation: 0,
-        shadowOpacity: 0,
-        boxShadow: "0px 7px 16px rgba(24, 32, 54, 0.17)",
-      },
   heroSingleRow: {
     flexDirection: "row",
     alignItems: "center",
