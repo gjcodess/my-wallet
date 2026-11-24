@@ -2821,10 +2821,10 @@ const styles = StyleSheet.create({
   },
   heroGreetingTitle: {
     flexShrink: 1,
-    fontFamily: "Poppins_700Bold",
-    fontWeight: "700",
-    fontSize: 20,
-    letterSpacing: -0.4,
+    fontFamily: "Poppins_400Regular",
+    fontWeight: "400",
+    fontSize: 21,
+    letterSpacing: -0.3,
     color: "#ffffff",
   },
   heroHeaderLabel: {
