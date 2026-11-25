@@ -1271,11 +1271,10 @@ export const WalletsScreen = React.memo(function WalletsScreen({
       {wallets.length > 0 ? (
         <View style={styles.walletsSectionHead}>
           <View style={styles.walletsSectionTitleGroup}>
-            <Text style={[styles.walletsSectionTitle, { color: theme.ink }]}>
-              {reordering ? "Drag to reorder" : "Your wallets"}
-            </Text>
             <Text style={[styles.walletsSectionCount, { color: theme.muted }]}>
-              {wallets.length} {wallets.length === 1 ? "card" : "cards"}
+              {reordering
+                ? "Drag to reorder"
+                : `${wallets.length} ${wallets.length === 1 ? "card" : "cards"}`}
             </Text>
           </View>
           {wallets.length > 1 && onReorderWallets ? (
