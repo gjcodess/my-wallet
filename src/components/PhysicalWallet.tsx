@@ -358,6 +358,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
   theme,
   onWallet,
   onOpenAdd,
+  onOpenReorder,
   onOpenMenu,
   onFrontChange,
   onStackDragChange,
@@ -373,6 +374,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
   theme: ThemeColors;
   onWallet: (wallet: Wallet) => void;
   onOpenAdd: () => void;
+  onOpenReorder?: () => void;
   onOpenMenu: (wallet: Wallet) => void;
   onFrontChange?: (index: number) => void;
   onStackDragChange?: (dragging: boolean) => void;
@@ -733,6 +735,46 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
           </View>
         </Animated.View>
 
+        {onOpenReorder && wallets.length > 1 ? (
+          <Animated.View
+            pointerEvents={open && !busy ? "box-none" : "none"}
+            accessibilityElementsHidden={!open}
+            importantForAccessibility={open ? "auto" : "no-hide-descendants"}
+            style={[
+              styles.pocketAddWrap,
+              {
+                top: (POCKET_Y + 24) * scale,
+                left: 22 * scale,
+                opacity: flap.interpolate({
+                  inputRange: [0.4, 0.85],
+                  outputRange: [0, 1],
+                  extrapolate: "clamp",
+                }),
+              },
+            ]}
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Reorder cards"
+              disabled={!open || busy}
+              onPress={onOpenReorder}
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.pocketAddBtn,
+                {
+                  width: 32 * scale,
+                  height: 32 * scale,
+                  borderRadius: 16 * scale,
+                  borderColor: `${theme.leather.thread}55`,
+                  transform: [{ scale: pressed ? 0.9 : 1 }],
+                },
+              ]}
+            >
+              <Icon name="grip" size={15} strokeWidth={2.2} color="#f0f1eb" />
+            </Pressable>
+          </Animated.View>
+        ) : null}
+
         <Animated.View
           pointerEvents={open && !busy ? "box-none" : "none"}
           accessibilityElementsHidden={!open}
@@ -868,6 +910,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
   onWallet,
   onOpenMenu,
   onOpenAdd,
+  onOpenReorder,
 }: {
   groupLabel: string;
   wallets: Wallet[];
@@ -882,6 +925,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
   onWallet: (wallet: Wallet) => void;
   onOpenMenu?: (wallet: Wallet) => void;
   onOpenAdd?: () => void;
+  onOpenReorder?: () => void;
 }) {
   const effectiveOpen = collapsible ? isOpen : true;
   const maskPocketAmounts = hidden || (collapsible && !effectiveOpen);
@@ -1168,6 +1212,46 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
             </View>
           </View>
         </Pressable>
+
+        {onOpenReorder && wallets.length > 1 ? (
+          <Animated.View
+            pointerEvents={effectiveOpen ? "box-none" : "none"}
+            accessibilityElementsHidden={!effectiveOpen}
+            importantForAccessibility={effectiveOpen ? "auto" : "no-hide-descendants"}
+            style={[
+              styles.pocketAddWrap,
+              {
+                top: (POCKET_Y + extraY + 24) * scale,
+                left: 22 * scale,
+                opacity: openAnim.interpolate({
+                  inputRange: [0.4, 0.85],
+                  outputRange: [0, 1],
+                  extrapolate: "clamp",
+                }),
+              },
+            ]}
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Reorder ${groupLabel} cards`}
+              disabled={!effectiveOpen}
+              onPress={onOpenReorder}
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.pocketAddBtn,
+                {
+                  width: 32 * scale,
+                  height: 32 * scale,
+                  borderRadius: 16 * scale,
+                  borderColor: `${theme.leather.thread}55`,
+                  transform: [{ scale: pressed ? 0.9 : 1 }],
+                },
+              ]}
+            >
+              <Icon name="grip" size={15} strokeWidth={2.2} color="#f0f1eb" />
+            </Pressable>
+          </Animated.View>
+        ) : null}
 
         {onOpenAdd ? (
           <Animated.View

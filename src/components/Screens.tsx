@@ -357,6 +357,7 @@ export const HomeScreen = React.memo(function HomeScreen({
   hidden,
   setHidden,
   onWallet,
+  onReorderWallets,
   onTransaction,
   onSheet,
   onSettings,
@@ -382,6 +383,7 @@ export const HomeScreen = React.memo(function HomeScreen({
   hidden: boolean;
   setHidden: (v: boolean) => void;
   onWallet: (w: Wallet) => void;
+  onReorderWallets?: (orderedVisible: Wallet[]) => void;
   onTransaction?: (item: ActivityItem) => void;
   onSheet: (s: Sheet, w?: Wallet) => void;
   onSettings: () => void;
@@ -434,6 +436,7 @@ export const HomeScreen = React.memo(function HomeScreen({
     () => (onEditBudget ? onEditBudget() : onSheet("budget")),
     [onEditBudget, onSheet]
   );
+  const [reorderModalOpen, setReorderModalOpen] = useState(false);
   const [headerClock, setHeaderClock] = useState(() =>
     getTimeGreeting(new Date())
   );
@@ -638,6 +641,11 @@ export const HomeScreen = React.memo(function HomeScreen({
           walletFlows={walletFlows}
           onWallet={onWallet}
           onOpenAdd={handleOpenAdd}
+          onOpenReorder={
+            onReorderWallets && wallets.length > 1
+              ? () => setReorderModalOpen(true)
+              : undefined
+          }
           onOpenMenu={handleOpenMenu}
           onStackDragChange={onStackDragChange}
           onHingeOffset={handleHingeOffset}
@@ -1016,6 +1024,15 @@ export const HomeScreen = React.memo(function HomeScreen({
           </View>
         </StaggerReveal>
       </Animated.View>
+
+      <ReorderWalletsModal
+        visible={reorderModalOpen}
+        wallets={wallets}
+        hidden={hidden}
+        theme={theme}
+        onSaveOrder={(ordered) => onReorderWallets?.(ordered)}
+        onClose={() => setReorderModalOpen(false)}
+      />
     </View>
   );
 });
@@ -1068,7 +1085,10 @@ export const WalletsScreen = React.memo(function WalletsScreen({
     [wallets]
   );
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
-  const [reorderModalOpen, setReorderModalOpen] = useState(false);
+  const [reorderGroup, setReorderGroup] = useState<{
+    label: string;
+    wallets: Wallet[];
+  } | null>(null);
 
   const { monthLabel, fullMonthLabel, totalEarned, totalSpent, walletFlows, walletFlowsRecord } =
     useMemo(() => {
@@ -1186,10 +1206,15 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   }, []);
 
   const handleSaveReorder = useCallback(
-    (orderedVisible: Wallet[]) => {
-      onReorderWallets?.([...orderedVisible, ...hiddenWallets]);
+    (orderedGroup: Wallet[]) => {
+      const groupIds = new Set(orderedGroup.map((w) => w.id));
+      let cursor = 0;
+      const nextVisible = visibleWallets.map((w) =>
+        groupIds.has(w.id) ? orderedGroup[cursor++] : w
+      );
+      onReorderWallets?.([...nextVisible, ...hiddenWallets]);
     },
-    [hiddenWallets, onReorderWallets]
+    [hiddenWallets, onReorderWallets, visibleWallets]
   );
 
   return (
@@ -1280,38 +1305,6 @@ export const WalletsScreen = React.memo(function WalletsScreen({
         />
       </HeroHeaderSurface>
 
-      {visibleWallets.length > 0 ? (
-        <View style={styles.walletsSectionHead}>
-          <View style={styles.walletsSectionTitleGroup}>
-            <Text style={[styles.walletsSectionCount, { color: theme.muted }]}>
-              {visibleWallets.length} {visibleWallets.length === 1 ? "card" : "cards"} ·{" "}
-              {walletGroups.length} {walletGroups.length === 1 ? "group" : "groups"}
-            </Text>
-          </View>
-          {visibleWallets.length > 1 && onReorderWallets ? (
-            <Pressable
-              onPress={() => setReorderModalOpen(true)}
-              style={({ pressed }) => [
-                styles.stitchedReorderBtn,
-                {
-                  overflow: "hidden",
-                  backgroundColor: theme.card,
-                  borderColor: hexToRgba(theme.leather.accent, 0.28),
-                  transform: [{ scale: pressed ? 0.96 : 1 }],
-                },
-                cardShadow(theme.dark),
-              ]}
-            >
-              <LightLeatherSurface theme={theme} radius={13} />
-              <Icon name="grip" size={13.5} color={theme.leather.accent} />
-              <Text style={[styles.stitchedReorderText, { color: theme.ink }]}>
-                Reorder
-              </Text>
-            </Pressable>
-          ) : null}
-        </View>
-      ) : null}
-
       {visibleWallets.length === 0 ? (
         <View
           style={[
@@ -1374,6 +1367,11 @@ export const WalletsScreen = React.memo(function WalletsScreen({
               onWallet={onWallet}
               onOpenMenu={onUpdateWallet ?? onWallet}
               onOpenAdd={onAddWallet}
+              onOpenReorder={
+                group.wallets.length > 1 && onReorderWallets
+                  ? () => setReorderGroup({ label: group.label, wallets: group.wallets })
+                  : undefined
+              }
             />
           ))}
         </View>
@@ -1403,12 +1401,18 @@ export const WalletsScreen = React.memo(function WalletsScreen({
       ) : null}
 
       <ReorderWalletsModal
-        visible={reorderModalOpen}
-        wallets={visibleWallets}
+        visible={reorderGroup !== null}
+        wallets={reorderGroup?.wallets ?? []}
         hidden={hidden}
+        title={reorderGroup ? `Reorder ${reorderGroup.label} cards` : "Reorder cards"}
+        subtitle={
+          reorderGroup
+            ? `Drag handles to arrange your ${reorderGroup.label} cards`
+            : undefined
+        }
         theme={theme}
         onSaveOrder={handleSaveReorder}
-        onClose={() => setReorderModalOpen(false)}
+        onClose={() => setReorderGroup(null)}
       />
     </View>
   );

@@ -34,6 +34,8 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
   visible,
   wallets,
   hidden,
+  title = "Reorder Home cards",
+  subtitle,
   theme,
   onSaveOrder,
   onClose,
@@ -41,6 +43,8 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
   visible: boolean;
   wallets: Wallet[];
   hidden: boolean;
+  title?: string;
+  subtitle?: string;
   theme: ThemeColors;
   onSaveOrder: (ordered: Wallet[]) => void;
   onClose: () => void;
@@ -71,7 +75,9 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
       hoverIndexRef.current = null;
       isDroppingRef.current = false;
       liftAnim.setValue(0);
-      shiftMapRef.current.clear();
+      wallets.forEach((w, idx) => {
+        getShiftAnim(w.id).setValue(idx * SLOT_HEIGHT);
+      });
     }
   }, [visible, wallets, liftAnim]);
 
@@ -85,13 +91,11 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
   };
 
   useEffect(() => {
-    if (dragWalletId !== null || isDroppingRef.current) return;
+    if (!visible || dragWalletId !== null || isDroppingRef.current) return;
     draftWallets.forEach((w, idx) => {
-      const stableIdx = stableIdsRef.current.indexOf(w.id);
-      const offset = stableIdx >= 0 ? (idx - stableIdx) * SLOT_HEIGHT : 0;
-      getShiftAnim(w.id).setValue(offset);
+      getShiftAnim(w.id).setValue(idx * SLOT_HEIGHT);
     });
-  }, [draftWallets, dragWalletId]);
+  }, [visible, draftWallets, dragWalletId]);
 
   const panResponders = useMemo(() => {
     const map = new Map<number, ReturnType<typeof PanResponder.create>>();
@@ -126,13 +130,15 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
           if (fromIdx === null || id === null) return;
 
           const list = draftRef.current;
-          const baseStableIdx = stableIdsRef.current.indexOf(id);
-          const baseIdx = baseStableIdx >= 0 ? baseStableIdx : fromIdx;
-          const draggedBaseOffset = (fromIdx - baseIdx) * SLOT_HEIGHT;
+          const maxTop = Math.max(0, (list.length - 1) * SLOT_HEIGHT);
+          const clampedY = Math.max(
+            0,
+            Math.min(maxTop, fromIdx * SLOT_HEIGHT + gestureState.dy)
+          );
 
-          getShiftAnim(id).setValue(draggedBaseOffset + gestureState.dy);
+          getShiftAnim(id).setValue(clampedY);
 
-          const rawTarget = Math.round(fromIdx + gestureState.dy / SLOT_HEIGHT);
+          const rawTarget = Math.round(clampedY / SLOT_HEIGHT);
           const clampedTarget = Math.max(0, Math.min(list.length - 1, rawTarget));
 
           if (clampedTarget !== hoverIndexRef.current) {
@@ -145,11 +151,8 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
               } else if (fromIdx > clampedTarget && idx >= clampedTarget && idx < fromIdx) {
                 newVisualIdx = idx + 1;
               }
-              const sIdx = stableIdsRef.current.indexOf(item.id);
-              const targetOffset =
-                sIdx >= 0 ? (newVisualIdx - sIdx) * SLOT_HEIGHT : 0;
               Animated.timing(getShiftAnim(item.id), {
-                toValue: targetOffset,
+                toValue: newVisualIdx * SLOT_HEIGHT,
                 duration: 180,
                 easing: Easing.out(Easing.cubic),
                 useNativeDriver: true,
@@ -165,8 +168,7 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
 
           const list = draftRef.current;
           isDroppingRef.current = true;
-          const sIdx = stableIdsRef.current.indexOf(id);
-          const finalOffset = sIdx >= 0 ? (toIdx - sIdx) * SLOT_HEIGHT : 0;
+          const finalOffset = toIdx * SLOT_HEIGHT;
 
           Animated.parallel([
             Animated.timing(getShiftAnim(id), {
@@ -200,8 +202,7 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
           const id = dragWalletIdRef.current;
           if (fromIdx === null || id === null) return;
           isDroppingRef.current = true;
-          const sIdx = stableIdsRef.current.indexOf(id);
-          const origOffset = sIdx >= 0 ? (fromIdx - sIdx) * SLOT_HEIGHT : 0;
+          const origOffset = fromIdx * SLOT_HEIGHT;
 
           Animated.parallel([
             Animated.timing(getShiftAnim(id), {
@@ -274,12 +275,13 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.title, { color: theme.ink }]}>
-                Reorder Home cards
+                {title}
               </Text>
               <Text style={[styles.subtitle, { color: theme.muted }]}>
-                {draftWallets.length > 6
-                  ? "Drag handles to arrange · Top 6 show on Home"
-                  : "Drag handles to change card order on Home"}
+                {subtitle ??
+                  (draftWallets.length > 6
+                    ? "Drag handles to arrange · Top 6 show on Home"
+                    : "Drag handles to change card order on Home")}
               </Text>
             </View>
           </View>
@@ -404,7 +406,7 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
                         size={26}
                       />
 
-                      <View style={{ flex: 1 }}>
+                      <View style={{ flex: 1, justifyContent: "center" }}>
                         <Text
                           style={[styles.rowName, { color: cardInk }]}
                           numberOfLines={1}
@@ -532,9 +534,11 @@ const styles = StyleSheet.create({
   },
   scroll: {
     maxHeight: 420,
+    marginHorizontal: -10,
   },
   scrollContent: {
     paddingVertical: 4,
+    paddingHorizontal: 10,
   },
   rowWrap: {
     position: "absolute",
@@ -563,20 +567,25 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 11,
+    lineHeight: 14,
     includeFontPadding: false,
+    marginTop: 1,
   },
   rowName: {
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 13.5,
+    lineHeight: 17,
     includeFontPadding: false,
+    marginTop: 1,
   },
   rowSub: {
     fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 11,
+    lineHeight: 14,
     includeFontPadding: false,
-    marginTop: 1,
+    marginTop: 1.5,
   },
   gripBtn: {
     width: 34,
@@ -602,11 +611,17 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 14,
+    lineHeight: 18,
+    includeFontPadding: false,
+    marginTop: 1,
   },
   saveText: {
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 14,
+    lineHeight: 18,
+    includeFontPadding: false,
+    marginTop: 1,
     color: "#ffffff",
   },
 });

@@ -1386,6 +1386,12 @@ export default function App() {
                         hidden={hidden}
                         setHidden={setHidden}
                         onWallet={handleSelectWallet}
+                        onReorderWallets={(orderedVisible) =>
+                          handleReorderWallets([
+                            ...orderedVisible,
+                            ...wallets.filter((w) => w.isHidden),
+                          ])
+                        }
                         onTransaction={openTransactionSheet}
                         onSheet={openSheet}
                         schedules={dueSchedules}
