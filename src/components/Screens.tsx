@@ -2762,7 +2762,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
 
       {mode === "transactions" ? <>
       {/* All Transactions List (10 per page) */}
-      <View style={styles.section}>
+      <View style={{ marginTop: 2 }}>
         <SectionTitle
           title={
             activeCategory
