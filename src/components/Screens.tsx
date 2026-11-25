@@ -3380,6 +3380,7 @@ export function WalletDetailScreen({
   const [detailFilter, setDetailFilter] = useState<
     "Recent" | "Money in" | "Money out" | "Transfers"
   >("Recent");
+  const [overviewRange, setOverviewRange] = useState<"month" | "all">("month");
 
   const related = useMemo(() => {
     return activities
@@ -3444,6 +3445,58 @@ export function WalletDetailScreen({
     return { earned, spent };
   }, [activities, wallet, detailNow]);
 
+  const walletOverview = useMemo(() => {
+    const month = detailNow.getMonth();
+    const year = detailNow.getFullYear();
+    let moneyIn = 0;
+    let moneyOut = 0;
+    let expenseTotal = 0;
+    let txCount = 0;
+    const catTotals = new Map<string, number>();
+
+    for (const item of activities) {
+      if (overviewRange === "month") {
+        const d = getActivityDate(item, detailNow);
+        if (d.getMonth() !== month || d.getFullYear() !== year) continue;
+      }
+      const match = isActivityForWallet(item, wallet);
+      if (!match.matched) continue;
+      txCount += 1;
+
+      if (match.isIncomingTransfer) {
+        moneyIn += Math.abs(item.amount);
+      } else if (item.amount > 0) {
+        moneyIn += item.amount;
+      } else if (item.amount < 0) {
+        const abs = Math.abs(item.amount);
+        moneyOut += abs;
+        if (!isTransferActivity(item) && !isAdjustmentActivity(item)) {
+          expenseTotal += abs;
+          catTotals.set(item.kind, (catTotals.get(item.kind) ?? 0) + abs);
+        }
+      }
+    }
+
+    const iconMap = new Map(EXPENSE_CATEGORIES.map(([label, icon]) => [label, icon]));
+    const topCategories = Array.from(catTotals.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([label, amount]) => ({
+        label,
+        icon: iconMap.get(label) ?? "tag",
+        amount,
+        pct: expenseTotal > 0 ? Math.round((amount / expenseTotal) * 100) : 0,
+      }));
+
+    return {
+      moneyIn,
+      moneyOut,
+      net: moneyIn - moneyOut,
+      txCount,
+      topCategories,
+    };
+  }, [activities, wallet, detailNow, overviewRange]);
+
   const cardDesign = resolveWalletCardDesign(wallet.logoKey, wallet.name);
   const pal = tonePalette[wallet.tone] || tonePalette.blue;
   const cardInk = cardDesign ? cardDesign.ink : pal.ink;
@@ -3462,6 +3515,7 @@ export function WalletDetailScreen({
 
   useEffect(() => {
     setDetailFilter("Recent");
+    setOverviewRange("month");
     detailScrollY.setValue(0);
     Animated.timing(slideAnim, {
       toValue: 1,
@@ -3752,6 +3806,229 @@ export function WalletDetailScreen({
                 Transfer
               </Text>
             </Pressable>
+          </View>
+
+          {/* Wallet Overview */}
+          <View style={styles.walletOverviewHead}>
+            <Text style={[styles.walletOverviewTitle, { color: theme.ink }]}>
+              Wallet overview
+            </Text>
+            <View
+              style={[
+                styles.walletOverviewRangePill,
+                {
+                  overflow: "hidden",
+                  backgroundColor: theme.card,
+                  borderColor: hexToRgba(theme.leather.accent, 0.24),
+                },
+              ]}
+            >
+              <LightLeatherSurface theme={theme} radius={12} />
+              {(["month", "all"] as const).map((r) => {
+                const active = overviewRange === r;
+                return (
+                  <Pressable
+                    key={r}
+                    onPress={() => setOverviewRange(r)}
+                    style={[
+                      styles.walletOverviewRangeChip,
+                      active && { backgroundColor: theme.leather.accent },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.walletOverviewRangeText,
+                        { color: active ? "#ffffff" : theme.muted },
+                      ]}
+                    >
+                      {r === "month" ? detailMonthLabel : "All time"}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          <View
+            style={[
+              styles.walletOverviewCard,
+              {
+                overflow: "hidden",
+                backgroundColor: theme.leather.colors[1],
+                borderColor: theme.leather.edge,
+              },
+              cardShadow(theme.dark),
+            ]}
+          >
+            <DarkLeatherSurface theme={theme} radius={20} />
+            <View style={styles.walletOverviewStatsRow}>
+              <View style={styles.walletOverviewStatCol}>
+                <Text
+                  style={[
+                    styles.walletOverviewStatLabel,
+                    { color: theme.heroMuted },
+                  ]}
+                >
+                  Money in
+                </Text>
+                <Text
+                  style={[styles.walletOverviewStatVal, { color: "#6ee7b7" }]}
+                  numberOfLines={1}
+                >
+                  {hidden ? "••••" : `+${money(walletOverview.moneyIn)}`}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.walletOverviewStatDivider,
+                  { backgroundColor: "rgba(255, 255, 255, 0.14)" },
+                ]}
+              />
+              <View style={styles.walletOverviewStatCol}>
+                <Text
+                  style={[
+                    styles.walletOverviewStatLabel,
+                    { color: theme.heroMuted },
+                  ]}
+                >
+                  Money out
+                </Text>
+                <Text
+                  style={[styles.walletOverviewStatVal, { color: "#ffffff" }]}
+                  numberOfLines={1}
+                >
+                  {hidden ? "••••" : `-${money(walletOverview.moneyOut)}`}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.walletOverviewStatDivider,
+                  { backgroundColor: "rgba(255, 255, 255, 0.14)" },
+                ]}
+              />
+              <View style={styles.walletOverviewStatCol}>
+                <Text
+                  style={[
+                    styles.walletOverviewStatLabel,
+                    { color: theme.heroMuted },
+                  ]}
+                >
+                  Net
+                </Text>
+                <Text
+                  style={[
+                    styles.walletOverviewStatVal,
+                    {
+                      color:
+                        walletOverview.net >= 0 ? "#6ee7b7" : "#fda4af",
+                    },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {hidden
+                    ? "••••"
+                    : `${walletOverview.net >= 0 ? "+" : "-"}${money(Math.abs(walletOverview.net))}`}
+                </Text>
+              </View>
+            </View>
+
+            <View
+              style={[
+                styles.walletOverviewDivider,
+                { backgroundColor: "rgba(255, 255, 255, 0.14)" },
+              ]}
+            />
+
+            {walletOverview.topCategories.length > 0 ? (
+              <View style={styles.walletOverviewCats}>
+                <View style={styles.walletOverviewCatsHead}>
+                  <Text
+                    style={[
+                      styles.walletOverviewSubLabel,
+                      { color: theme.heroMuted },
+                    ]}
+                  >
+                    Top spending
+                  </Text>
+                  <Text
+                    style={[
+                      styles.walletOverviewSubLabel,
+                      { color: theme.heroMuted },
+                    ]}
+                  >
+                    {walletOverview.txCount}{" "}
+                    {walletOverview.txCount === 1 ? "transaction" : "transactions"}
+                  </Text>
+                </View>
+                {walletOverview.topCategories.map((cat) => (
+                  <View key={cat.label} style={styles.walletOverviewCatRow}>
+                    <View style={styles.walletOverviewCatTop}>
+                      <View style={styles.walletOverviewCatLeft}>
+                        <Icon
+                          name={cat.icon}
+                          size={14}
+                          color="rgba(255, 255, 255, 0.82)"
+                        />
+                        <Text
+                          style={[
+                            styles.walletOverviewCatName,
+                            { color: "#ffffff" },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {cat.label}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.walletOverviewCatPct,
+                            { color: theme.heroMuted },
+                          ]}
+                        >
+                          {cat.pct}%
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.walletOverviewCatAmt,
+                          { color: "#ffffff" },
+                        ]}
+                      >
+                        {hidden ? "••••" : money(cat.amount)}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.walletOverviewBarTrack,
+                        { backgroundColor: "rgba(255, 255, 255, 0.16)" },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.walletOverviewBarFill,
+                          {
+                            width: `${Math.max(6, cat.pct)}%`,
+                            backgroundColor: "rgba(255, 255, 255, 0.88)",
+                          },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.walletOverviewEmptyFoot}>
+                <Text
+                  style={[
+                    styles.walletOverviewSubLabel,
+                    { color: theme.heroMuted },
+                  ]}
+                >
+                  {walletOverview.txCount > 0
+                    ? `${walletOverview.txCount} ${walletOverview.txCount === 1 ? "transaction" : "transactions"} · No expenses recorded`
+                    : "No activity in this period yet"}
+                </Text>
+              </View>
+            )}
           </View>
 
           <SectionTitle
@@ -4903,7 +5180,126 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 9,
     marginTop: 14,
-    marginBottom: 25,
+    marginBottom: 20,
+  },
+  walletOverviewHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  walletOverviewTitle: {
+    fontFamily: "Poppins_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 16,
+  },
+  walletOverviewRangePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 3,
+    gap: 2,
+  },
+  walletOverviewRangeChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 9,
+  },
+  walletOverviewRangeText: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 11,
+  },
+  walletOverviewCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 22,
+  },
+  walletOverviewStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  walletOverviewStatCol: {
+    flex: 1,
+    alignItems: "center",
+    gap: 2,
+    paddingHorizontal: 4,
+  },
+  walletOverviewStatDivider: {
+    width: 1,
+    height: 28,
+  },
+  walletOverviewStatLabel: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 10.5,
+  },
+  walletOverviewStatVal: {
+    fontFamily: "Poppins_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 12.5,
+  },
+  walletOverviewDivider: {
+    height: 1,
+    marginVertical: 12,
+  },
+  walletOverviewCats: {
+    gap: 10,
+  },
+  walletOverviewCatsHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  walletOverviewSubLabel: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 11,
+  },
+  walletOverviewCatRow: {
+    gap: 5,
+  },
+  walletOverviewCatTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  walletOverviewCatLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flex: 1,
+  },
+  walletOverviewCatName: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12.5,
+  },
+  walletOverviewCatPct: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 11,
+  },
+  walletOverviewCatAmt: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12.5,
+  },
+  walletOverviewBarTrack: {
+    height: 5,
+    borderRadius: 99,
+    overflow: "hidden",
+  },
+  walletOverviewBarFill: {
+    height: "100%",
+    borderRadius: 99,
+  },
+  walletOverviewEmptyFoot: {
+    alignItems: "center",
+    paddingVertical: 2,
   },
   detailActionBtn: {
     flex: 1,
