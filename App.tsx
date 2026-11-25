@@ -1101,8 +1101,8 @@ export default function App() {
                   <View style={{ display: tab === "overview" ? "flex" : "none" }}>
                     <ActivityScreen
                       mode="overview"
-                      activities={activityItems}
-                      wallets={wallets}
+                      activities={visibleActivities}
+                      wallets={visibleWallets}
                       hidden={hidden}
                       onToggleHidden={handleToggleHidden}
                       monthlyBudget={monthlyBudget}

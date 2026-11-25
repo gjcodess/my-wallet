@@ -373,3 +373,16 @@ export function isActivityIncludedWithWallets(
   }
   return !hiddenWallets.some((w) => isActivityForWallet(item, w).matched);
 }
+
+export function getDisplayActivityWallet(
+  item: ActivityItem,
+  wallets: Wallet[]
+): { label: string; isHidden: boolean } {
+  const hiddenMatch = wallets.find(
+    (w) => w.isHidden && isActivityForWallet(item, w).matched
+  );
+  if (hiddenMatch) {
+    return { label: "Hidden wallet", isHidden: true };
+  }
+  return { label: item.wallet, isHidden: false };
+}

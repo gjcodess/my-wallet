@@ -23,6 +23,7 @@ import { AmountKeypad, formatAmountInput } from "./AmountKeypad";
 import {
   ActivityItem,
   EXPENSE_CATEGORIES,
+  getDisplayActivityWallet,
   getWalletLocalId,
   INCOME_CATEGORIES,
   isAdjustmentActivity,
@@ -496,26 +497,28 @@ export function SheetModal({
       },
     ];
 
+    const searchableWallets = wallets.filter((w) => !w.isHidden);
     const q = globalSearch.trim().toLowerCase();
     if (!q) {
       return {
-        wallets: wallets.slice(0, 4),
+        wallets: searchableWallets.slice(0, 4),
         activities: activities.slice(0, 6),
         actions: quickItems.slice(0, 4),
       };
     }
 
-    const matchedWallets = wallets.filter((w) =>
+    const matchedWallets = searchableWallets.filter((w) =>
       `${w.name} ${w.type} ${w.account} ${w.balance}`
         .toLowerCase()
         .includes(q)
     );
     const matchedActivities = activities
-      .filter((item) =>
-        `${item.title} ${item.wallet} ${item.kind} ${item.date} ${Math.abs(item.amount)}`
+      .filter((item) => {
+        const displayWallet = getDisplayActivityWallet(item, wallets).label;
+        return `${item.title} ${displayWallet} ${item.kind} ${item.date} ${Math.abs(item.amount)}`
           .toLowerCase()
-          .includes(q)
-      )
+          .includes(q);
+      })
       .slice(0, 20);
     const matchedActions = quickItems.filter((a) =>
       `${a.label} ${a.sub} ${a.keywords}`.toLowerCase().includes(q)
@@ -4699,7 +4702,7 @@ export function SheetModal({
                         {isTransfer ? "From wallet" : "Wallet"}
                       </Text>
                       <View style={styles.txWalletValRow}>
-                        {matchedWallet ? (
+                        {matchedWallet && !matchedWallet.isHidden ? (
                           <WalletLogoBadge
                             logoKey={matchedWallet.logoKey}
                             name={matchedWallet.name}
@@ -4709,10 +4712,15 @@ export function SheetModal({
                             ink={theme.ink}
                             fontSize={8}
                           />
+                        ) : matchedWallet?.isHidden ? (
+                          <Icon name="eye-off" size={14} color={theme.muted} />
                         ) : null}
                         <Text style={[styles.txDetailVal, { color: theme.ink }]}>
-                          {matchedWallet ? matchedWallet.name : activity.wallet}
-                          {matchedWallet ? ` · ${matchedWallet.type}` : ""}
+                          {matchedWallet?.isHidden
+                            ? "Hidden wallet"
+                            : matchedWallet
+                              ? `${matchedWallet.name} · ${matchedWallet.type}`
+                              : activity.wallet}
                         </Text>
                       </View>
                     </View>
@@ -4728,17 +4736,23 @@ export function SheetModal({
                           To wallet
                         </Text>
                         <View style={styles.txWalletValRow}>
-                          <WalletLogoBadge
-                            logoKey={matchedDestWallet.logoKey}
-                            name={matchedDestWallet.name}
-                            mark={matchedDestWallet.mark}
-                            size={22}
-                            radius={7}
-                            ink={theme.ink}
-                            fontSize={8}
-                          />
+                          {matchedDestWallet.isHidden ? (
+                            <Icon name="eye-off" size={14} color={theme.muted} />
+                          ) : (
+                            <WalletLogoBadge
+                              logoKey={matchedDestWallet.logoKey}
+                              name={matchedDestWallet.name}
+                              mark={matchedDestWallet.mark}
+                              size={22}
+                              radius={7}
+                              ink={theme.ink}
+                              fontSize={8}
+                            />
+                          )}
                           <Text style={[styles.txDetailVal, { color: theme.ink }]}>
-                            {matchedDestWallet.name} · {matchedDestWallet.type}
+                            {matchedDestWallet.isHidden
+                              ? "Hidden wallet"
+                              : `${matchedDestWallet.name} · ${matchedDestWallet.type}`}
                           </Text>
                         </View>
                       </View>
@@ -5335,6 +5349,7 @@ export function SheetModal({
                         <TxRow
                           key={item.id}
                           item={item}
+                          walletLabel={getDisplayActivityWallet(item, wallets).label}
                           hidden={hidden}
                           onPress={() => onOpenTransaction?.(item)}
                           theme={theme}

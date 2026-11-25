@@ -689,12 +689,14 @@ export function bevelStyle(dark: boolean) {
 
 export function TxRow({
   item,
+  walletLabel,
   dateLabel,
   hidden,
   onPress,
   theme,
 }: {
   item: ActivityItem;
+  walletLabel?: string;
   dateLabel?: string;
   hidden: boolean;
   onPress?: () => void;
@@ -733,7 +735,7 @@ export function TxRow({
           style={[styles.rowSub, { color: theme.muted }]}
           numberOfLines={1}
         >
-          {item.kind} · {item.wallet}
+          {item.kind} · {walletLabel ?? item.wallet}
         </Text>
       </View>
       <View style={styles.txValue}>

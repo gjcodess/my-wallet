@@ -33,6 +33,7 @@ import {
   ActivityItem,
   EXPENSE_CATEGORIES,
   getActivityDate,
+  getDisplayActivityWallet,
   INCOME_CATEGORIES,
   isActivityForWallet,
   isAdjustmentActivity,
@@ -1877,6 +1878,11 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   const barProgress = useRef(new Animated.Value(0)).current;
   const activeCategory = categoryFilter?.category ?? selectedCategory;
 
+  const visibleWalletChips = useMemo(
+    () => wallets.filter((w) => !w.isHidden),
+    [wallets]
+  );
+
   const filteredActivities = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return activities.filter((item) => {
@@ -1905,8 +1911,9 @@ export const ActivityScreen = React.memo(function ActivityScreen({
       }
 
       if (q) {
+        const displayWallet = getDisplayActivityWallet(item, wallets).label;
         const haystack =
-          `${item.title} ${item.wallet} ${item.kind} ${item.date}`.toLowerCase();
+          `${item.title} ${displayWallet} ${item.kind} ${item.date}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
@@ -2112,7 +2119,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
       return [
         esc(dateStr),
         esc(item.title),
-        esc(item.wallet),
+        esc(getDisplayActivityWallet(item, wallets).label),
         esc(item.kind),
         esc(dir),
         esc(item.amount.toFixed(2)),
@@ -2298,7 +2305,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                   All wallets
                 </Text>
               </Pressable>
-              {wallets.map((w) => {
+              {visibleWalletChips.map((w) => {
                 const wKey = w.localId || `wallet-${w.id}`;
                 const active = selectedWalletFilter === wKey;
                 return (
@@ -2816,6 +2823,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
               <TxRow
                 key={item.id}
                 item={item}
+                walletLabel={getDisplayActivityWallet(item, wallets).label}
                 hidden={hidden}
                 onPress={onTransaction ? () => onTransaction(item) : undefined}
                 theme={theme}
