@@ -110,27 +110,27 @@ const LeatherPanel = React.memo(function LeatherPanel({
       <Defs>
         <LinearGradient id={light} x1="10%" y1="0%" x2="90%" y2="100%">
           <Stop offset="0" stopColor={finish.colors[0]} />
-          <Stop offset=".42" stopColor={finish.colors[1]} />
+          <Stop offset="0.42" stopColor={finish.colors[1]} />
           <Stop offset="1" stopColor={finish.colors[2]} />
         </LinearGradient>
         <Pattern id={grain} width={6} height={6} patternUnits="userSpaceOnUse">
           <Path
             d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3"
             stroke="#071522"
-            strokeWidth=".7"
-            opacity=".45"
+            strokeWidth="0.7"
+            opacity="0.45"
           />
           <Path
             d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3"
             stroke="#a2b0bd"
-            strokeWidth=".65"
-            opacity=".26"
+            strokeWidth="0.65"
+            opacity="0.26"
           />
         </Pattern>
         {part === "flap" && (
           <LinearGradient id={fastener} x1="0%" y1="0%" x2="80%" y2="100%">
             <Stop offset="0" stopColor="#e1e4e3" />
-            <Stop offset=".45" stopColor="#949c9f" />
+            <Stop offset="0.45" stopColor="#949c9f" />
             <Stop offset="1" stopColor="#333c42" />
           </LinearGradient>
         )}
@@ -149,17 +149,17 @@ const LeatherPanel = React.memo(function LeatherPanel({
         strokeWidth="1.05"
         strokeDasharray="3.5 3"
         strokeLinecap="round"
-        opacity=".82"
+        opacity="0.82"
       />
       {"inner" in surface && (
         <Path
           d={surface.inner}
           fill="none"
           stroke={finish.thread}
-          strokeWidth=".8"
+          strokeWidth="0.8"
           strokeDasharray="3.5 3"
           strokeLinecap="round"
-          opacity=".43"
+          opacity="0.43"
         />
       )}
       {part === "flap" && (
@@ -178,7 +178,7 @@ const LeatherPanel = React.memo(function LeatherPanel({
               r="5.5"
               fill="none"
               stroke="#a2b0bd"
-              opacity=".5"
+              opacity="0.5"
             />
           )}
         </>
@@ -788,12 +788,12 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
               <Pressable accessibilityRole="button" accessibilityLabel={"Update " + liftedWallet.name} disabled={busy} style={styles.focusMenu} onPress={() => { const wallet = liftedWallet; void move(async () => { if (await play(0, 260)) { setLiftedId(null); onOpenMenu(wallet); } }); }}>
                 <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
                   <Defs>
-                    <LinearGradient id="updateLeather" x1="0%" y1="0%" x2="100%" y2="100%"><Stop offset="0" stopColor={theme.leather.colors[0]} /><Stop offset=".42" stopColor={theme.leather.colors[1]} /><Stop offset="1" stopColor={theme.leather.colors[2]} /></LinearGradient>
-                    <Pattern id="updateGrain" width={6} height={6} patternUnits="userSpaceOnUse"><Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth=".7" opacity=".45" /><Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke="#a2b0bd" strokeWidth=".65" opacity=".26" /></Pattern>
+                    <LinearGradient id="updateLeather" x1="0%" y1="0%" x2="100%" y2="100%"><Stop offset="0" stopColor={theme.leather.colors[0]} /><Stop offset="0.42" stopColor={theme.leather.colors[1]} /><Stop offset="1" stopColor={theme.leather.colors[2]} /></LinearGradient>
+                    <Pattern id="updateGrain" width={6} height={6} patternUnits="userSpaceOnUse"><Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth="0.7" opacity="0.45" /><Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke="#a2b0bd" strokeWidth="0.65" opacity="0.26" /></Pattern>
                   </Defs>
                   <Rect x="1" y="1" width="98%" height="96%" rx="16" fill="url(#updateLeather)" stroke={theme.leather.edge} strokeWidth="1.5" />
                   <Rect x="1" y="1" width="98%" height="96%" rx="16" fill="url(#updateGrain)" />
-                  <Rect x="5" y="5" width="90%" height="76%" rx="12" fill="none" stroke={theme.leather.thread} strokeWidth="1" strokeDasharray="3.5 3" opacity=".82" />
+                  <Rect x="5" y="5" width="90%" height="76%" rx="12" fill="none" stroke={theme.leather.thread} strokeWidth="1" strokeDasharray="3.5 3" opacity="0.82" />
                 </Svg>
                 <Icon name="edit" size={14} color="#ffffff" />
                 <Text style={styles.focusMenuText}>Update</Text>

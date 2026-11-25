@@ -1257,8 +1257,8 @@ export default function App() {
                   <Stop offset="100%" stopColor={theme.page} stopOpacity="1" />
                 </SvgRadialGradient>
                 <SvgPattern id="saffianoGrain" width="10" height="10" patternUnits="userSpaceOnUse">
-                  <SvgPath d="M-2 2L2-2M0 10L10 0M8 12l4-4" stroke={theme.leather.accent} strokeWidth=".7" opacity=".04" />
-                  <SvgPath d="M-2 8L2 12M0 0l10 10M8-2l4 4" stroke={theme.leather.accent} strokeWidth=".55" opacity=".02" />
+                  <SvgPath d="M-2 2L2-2M0 10L10 0M8 12l4-4" stroke={theme.leather.accent} strokeWidth="0.7" opacity="0.04" />
+                  <SvgPath d="M-2 8L2 12M0 0l10 10M8-2l4 4" stroke={theme.leather.accent} strokeWidth="0.55" opacity="0.02" />
                 </SvgPattern>
               </Defs>
               <SvgRect x="0" y="0" width="100%" height="100%" fill="url(#bgRadial)" />

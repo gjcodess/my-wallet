@@ -197,12 +197,12 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
           <Defs>
             <SvgLinearGradient id={leatherGradId} x1="10%" y1="0%" x2="90%" y2="100%">
               <Stop offset="0" stopColor={theme.leather.colors[1]} />
-              <Stop offset=".55" stopColor={theme.leather.colors[1]} />
+              <Stop offset="0.55" stopColor={theme.leather.colors[1]} />
               <Stop offset="1" stopColor={theme.leather.colors[2]} />
             </SvgLinearGradient>
             <Pattern id={grainId} width={6} height={6} patternUnits="userSpaceOnUse">
-              <Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth=".7" opacity=".45" />
-              <Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke="#a2b0bd" strokeWidth=".65" opacity=".26" />
+              <Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth="0.7" opacity="0.45" />
+              <Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke="#a2b0bd" strokeWidth="0.65" opacity="0.26" />
             </Pattern>
           </Defs>
           {W > 64 && H > 64 ? (
@@ -232,16 +232,16 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
                 strokeWidth="1.05"
                 strokeDasharray="3.5 3"
                 strokeLinecap="round"
-                opacity=".82"
+                opacity="0.82"
               />
               <Path
                 d={makeHeaderPath(13)}
                 fill="none"
                 stroke={theme.leather.thread}
-                strokeWidth=".8"
+                strokeWidth="0.8"
                 strokeDasharray="3.5 3"
                 strokeLinecap="round"
-                opacity=".43"
+                opacity="0.43"
               />
             </>
           ) : null}
@@ -3530,13 +3530,13 @@ export const SettingsScreen = React.memo(function SettingsScreen({
                     <Svg pointerEvents="none" width="100%" height="100%" viewBox="0 0 100 72" preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
                       <Defs>
                         <Pattern id={`finishGrain${item.id}`} width={6} height={6} patternUnits="userSpaceOnUse">
-                          <Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth=".7" opacity=".45" />
-                          <Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke={item.thread} strokeWidth=".65" opacity=".26" />
+                          <Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth="0.7" opacity="0.45" />
+                          <Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke={item.thread} strokeWidth="0.65" opacity="0.26" />
                         </Pattern>
                       </Defs>
                       <Rect width="100" height="72" fill={`url(#finishGrain${item.id})`} />
-                      <Rect x="5" y="5" width="90" height="62" rx="10" fill="none" stroke={item.thread} strokeWidth="1" strokeDasharray="3.5 3" opacity=".85" />
-                      <Rect x="9" y="9" width="82" height="54" rx="7" fill="none" stroke={item.thread} strokeWidth=".7" strokeDasharray="2 3" opacity=".48" />
+                      <Rect x="5" y="5" width="90" height="62" rx="10" fill="none" stroke={item.thread} strokeWidth="1" strokeDasharray="3.5 3" opacity="0.85" />
+                      <Rect x="9" y="9" width="82" height="54" rx="7" fill="none" stroke={item.thread} strokeWidth="0.7" strokeDasharray="2 3" opacity="0.48" />
                     </Svg>
                     {item.id === leatherFinish && <View style={styles.accentTileCheck}><Icon name="check" size={14} color="#ffffff" /></View>}
                     <Text style={styles.accentTileLabel} numberOfLines={1}>{item.label}</Text>

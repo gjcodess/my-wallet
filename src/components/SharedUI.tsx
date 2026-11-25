@@ -388,7 +388,7 @@ export const LightLeatherSurface = React.memo(function LightLeatherSurface({
       <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
         <Defs>
           <Pattern id={grainId} width={6} height={6} patternUnits="userSpaceOnUse">
-            <SvgPath d="M1 1l.8 .3M4 4l.6 -.2" stroke={theme.leather.accent} strokeWidth=".55" opacity=".13" />
+            <SvgPath d="M1 1l.8 .3M4 4l.6 -.2" stroke={theme.leather.accent} strokeWidth="0.55" opacity="0.13" />
           </Pattern>
         </Defs>
         <Rect width="100%" height="100%" fill={`url(#${grainId})`} />
@@ -438,14 +438,14 @@ export const DarkLeatherSurface = React.memo(function DarkLeatherSurface({
             <SvgPath
               d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3"
               stroke="#071522"
-              strokeWidth=".7"
-              opacity=".45"
+              strokeWidth="0.7"
+              opacity="0.45"
             />
             <SvgPath
               d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3"
               stroke={theme.leather.thread}
-              strokeWidth=".65"
-              opacity=".26"
+              strokeWidth="0.65"
+              opacity="0.26"
             />
           </Pattern>
         </Defs>
@@ -571,14 +571,14 @@ export const SaffianoSheetSurface = React.memo(function SaffianoSheetSurface({
             <SvgPath
               d="M-2 2L2-2M0 10L10 0M8 12l4-4"
               stroke={theme.leather.accent}
-              strokeWidth=".7"
-              opacity=".06"
+              strokeWidth="0.7"
+              opacity="0.06"
             />
             <SvgPath
               d="M-2 8L2 12M0 0l10 10M8-2l4 4"
               stroke={theme.leather.accent}
-              strokeWidth=".55"
-              opacity=".035"
+              strokeWidth="0.55"
+              opacity="0.035"
             />
           </Pattern>
         </Defs>
@@ -968,21 +968,21 @@ function NavLeatherSurface({ theme, round = false }: { theme: ThemeColors; round
       <Svg width="100%" height="100%" viewBox={round ? "0 0 62 62" : "0 0 300 62"} preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
         <Defs>
           <Pattern id={grainId} width={6} height={6} patternUnits="userSpaceOnUse">
-            <SvgPath d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke={round ? theme.leather.colors[1] : "#071522"} strokeWidth=".7" opacity={round ? ".22" : ".45"} />
-            <SvgPath d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke={round ? "#ffffff" : theme.leather.thread} strokeWidth=".65" opacity=".26" />
+            <SvgPath d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke={round ? theme.leather.colors[1] : "#071522"} strokeWidth="0.7" opacity={round ? "0.22" : "0.45"} />
+            <SvgPath d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke={round ? "#ffffff" : theme.leather.thread} strokeWidth="0.65" opacity="0.26" />
           </Pattern>
         </Defs>
         {round ? (
           <>
             <SvgCircle cx="31" cy="31" r="31" fill={`url(#${grainId})`} />
-            <SvgCircle cx="31" cy="31" r="26" fill="none" stroke={thread} strokeWidth="1" strokeDasharray="3.5 3" opacity=".75" />
-            <SvgCircle cx="31" cy="31" r="22" fill="none" stroke={thread} strokeWidth=".7" strokeDasharray="2 3" opacity=".42" />
+            <SvgCircle cx="31" cy="31" r="26" fill="none" stroke={thread} strokeWidth="1" strokeDasharray="3.5 3" opacity="0.75" />
+            <SvgCircle cx="31" cy="31" r="22" fill="none" stroke={thread} strokeWidth="0.7" strokeDasharray="2 3" opacity="0.42" />
           </>
         ) : (
           <>
             <Rect width="300" height="62" fill={`url(#${grainId})`} />
-            <Rect x="4" y="4" width="292" height="54" rx="27" fill="none" stroke={theme.leather.thread} strokeWidth="1" strokeDasharray="3.5 3" opacity=".85" />
-            <Rect x="8" y="8" width="284" height="46" rx="23" fill="none" stroke={theme.leather.thread} strokeWidth=".7" strokeDasharray="2 3" opacity=".48" />
+            <Rect x="4" y="4" width="292" height="54" rx="27" fill="none" stroke={theme.leather.thread} strokeWidth="1" strokeDasharray="3.5 3" opacity="0.85" />
+            <Rect x="8" y="8" width="284" height="46" rx="23" fill="none" stroke={theme.leather.thread} strokeWidth="0.7" strokeDasharray="2 3" opacity="0.48" />
           </>
         )}
       </Svg>
