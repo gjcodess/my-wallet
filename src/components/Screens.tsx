@@ -2296,21 +2296,6 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                 />
               </Pressable>
             ) : null}
-            {mode === "transactions" && onToggleFilters ? (
-              <Pressable
-                onPress={onToggleFilters}
-                accessibilityRole="button"
-                accessibilityLabel="Filters"
-                style={({ pressed }) => [
-                  styles.heroIconBtn,
-                  heroControlStyle(theme),
-                  showFilters && styles.heroIconBtnActive,
-                  { transform: [{ scale: pressed ? 0.92 : 1 }] },
-                ]}
-              >
-                <Icon name="more" size={18} color={theme.heroInk} />
-              </Pressable>
-            ) : null}
             {onSearch ? (
               <Pressable
                 onPress={onSearch}
@@ -2363,132 +2348,6 @@ export const ActivityScreen = React.memo(function ActivityScreen({
           />
         ) : null}
       </HeroHeaderSurface>
-
-      {mode === "transactions" && showFilters ? (
-        <View
-          style={[
-            styles.activityFilterPanel,
-            {
-              backgroundColor: theme.card,
-              borderWidth: 1,
-              borderColor: hexToRgba(theme.leather.accent, 0.24),
-              overflow: "hidden",
-            },
-            cardShadow(theme.dark),
-          ]}
-        >
-          <LightLeatherSurface theme={theme} radius={18} />
-          <View style={styles.activityFilterHeader}>
-            <Text style={[styles.activityFilterTitle, { color: theme.muted }]}>
-              WALLETS & EXPORT
-            </Text>
-            <Pressable
-              onPress={handleExportCsv}
-              style={({ pressed }) => [
-                styles.exportCsvPill,
-                {
-                  overflow: "hidden",
-                  backgroundColor: theme.leather.colors[1],
-                  borderWidth: 1,
-                  borderColor: theme.leather.edge,
-                  opacity: pressed ? 0.82 : 1,
-                },
-              ]}
-            >
-              <DarkLeatherSurface theme={theme} radius={12} />
-              <Icon name="arrow-out" size={12} color="#ffffff" />
-              <Text style={[styles.exportCsvText, { color: "#ffffff" }]}>
-                Export CSV ({filteredActivities.length})
-              </Text>
-            </Pressable>
-          </View>
-
-          {visibleWalletChips.length > 0 ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filterChipRow}
-            >
-              <Pressable
-                onPress={() => {
-                  setSelectedWalletFilter(null);
-                  setPage(1);
-                }}
-                style={[
-                  styles.filterChip,
-                  {
-                    overflow: "hidden",
-                    backgroundColor:
-                      selectedWalletFilter === null
-                        ? theme.leather.colors[1]
-                        : theme.card,
-                    borderColor:
-                      selectedWalletFilter === null
-                        ? theme.leather.edge
-                        : hexToRgba(theme.leather.accent, 0.24),
-                  },
-                ]}
-              >
-                {selectedWalletFilter === null ? (
-                  <DarkLeatherSurface theme={theme} radius={12} />
-                ) : (
-                  <LightLeatherSurface theme={theme} radius={12} />
-                )}
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    {
-                      color:
-                        selectedWalletFilter === null ? "#ffffff" : theme.ink,
-                    },
-                  ]}
-                >
-                  All wallets
-                </Text>
-              </Pressable>
-              {visibleWalletChips.map((w) => {
-                const wKey = w.localId || `wallet-${w.id}`;
-                const active = selectedWalletFilter === wKey;
-                return (
-                  <Pressable
-                    key={w.id}
-                    onPress={() => {
-                      setSelectedWalletFilter(active ? null : wKey);
-                      setPage(1);
-                    }}
-                    style={[
-                      styles.filterChip,
-                      {
-                        overflow: "hidden",
-                        backgroundColor: active
-                          ? theme.leather.colors[1]
-                          : theme.card,
-                        borderColor: active
-                          ? theme.leather.edge
-                          : hexToRgba(theme.leather.accent, 0.24),
-                      },
-                    ]}
-                  >
-                    {active ? (
-                      <DarkLeatherSurface theme={theme} radius={12} />
-                    ) : (
-                      <LightLeatherSurface theme={theme} radius={12} />
-                    )}
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        { color: active ? "#ffffff" : theme.ink },
-                      ]}
-                    >
-                      {w.name}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          ) : null}
-        </View>
-      ) : null}
 
       {mode === "overview" ? <>
       {/* Navy Folder Chart */}
@@ -2936,42 +2795,213 @@ export const ActivityScreen = React.memo(function ActivityScreen({
           theme={theme}
         />
 
-        {/* Stitched Search Bar */}
-        <View
-          style={[
-            styles.activitySearchBox,
-            {
-              overflow: "hidden",
-              backgroundColor: theme.card,
-              borderColor: hexToRgba(theme.leather.accent, 0.24),
-            },
-            cardShadow(theme.dark),
-          ]}
-        >
-          <LightLeatherSurface theme={theme} radius={16} />
-          <Icon name="search" size={16} color={theme.leather.accent} />
-          <TextInput
-            value={searchQuery}
-            onChangeText={(t) => {
-              setSearchQuery(t);
-              setPage(1);
-            }}
-            placeholder="Search merchant, category, or wallet..."
-            placeholderTextColor={theme.muted}
-            style={[styles.activitySearchInput, { color: theme.ink }]}
-          />
-          {searchQuery ? (
-            <Pressable
-              onPress={() => {
-                setSearchQuery("");
+        {/* Stitched Search Bar + Filter Button */}
+        <View style={styles.activitySearchRow}>
+          <View
+            style={[
+              styles.activitySearchBox,
+              {
+                flex: 1,
+                marginBottom: 0,
+                overflow: "hidden",
+                backgroundColor: theme.card,
+                borderColor: hexToRgba(theme.leather.accent, 0.24),
+              },
+              cardShadow(theme.dark),
+            ]}
+          >
+            <LightLeatherSurface theme={theme} radius={16} />
+            <Icon name="search" size={16} color={theme.leather.accent} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={(t) => {
+                setSearchQuery(t);
                 setPage(1);
               }}
-              hitSlop={8}
+              placeholder="Search merchant, category, or wallet..."
+              placeholderTextColor={theme.muted}
+              style={[styles.activitySearchInput, { color: theme.ink }]}
+            />
+            {searchQuery ? (
+              <Pressable
+                onPress={() => {
+                  setSearchQuery("");
+                  setPage(1);
+                }}
+                hitSlop={8}
+              >
+                <Icon name="close" size={14} color={theme.muted} />
+              </Pressable>
+            ) : null}
+          </View>
+          {onToggleFilters ? (
+            <Pressable
+              onPress={onToggleFilters}
+              accessibilityRole="button"
+              accessibilityLabel="Wallet filters and export"
+              style={({ pressed }) => [
+                styles.activityFilterBtn,
+                {
+                  overflow: "hidden",
+                  backgroundColor:
+                    showFilters || selectedWalletFilter !== null
+                      ? theme.leather.colors[1]
+                      : theme.card,
+                  borderColor:
+                    showFilters || selectedWalletFilter !== null
+                      ? theme.leather.edge
+                      : hexToRgba(theme.leather.accent, 0.24),
+                  transform: [{ scale: pressed ? 0.95 : 1 }],
+                },
+                cardShadow(theme.dark),
+              ]}
             >
-              <Icon name="close" size={14} color={theme.muted} />
+              {showFilters || selectedWalletFilter !== null ? (
+                <DarkLeatherSurface theme={theme} radius={16} />
+              ) : (
+                <LightLeatherSurface theme={theme} radius={16} />
+              )}
+              <Icon
+                name="more"
+                size={18}
+                color={
+                  showFilters || selectedWalletFilter !== null
+                    ? "#ffffff"
+                    : theme.leather.accent
+                }
+              />
             </Pressable>
           ) : null}
         </View>
+
+        {showFilters ? (
+          <View
+            style={[
+              styles.activityFilterPanel,
+              {
+                backgroundColor: theme.leather.colors[1],
+                borderWidth: 1,
+                borderColor: theme.leather.edge,
+                overflow: "hidden",
+                marginBottom: 10,
+              },
+              cardShadow(theme.dark),
+            ]}
+          >
+            <DarkLeatherSurface theme={theme} radius={18} />
+            <View style={styles.activityFilterHeader}>
+              <Text style={[styles.activityFilterTitle, { color: theme.heroMuted }]}>
+                WALLETS & EXPORT
+              </Text>
+              <Pressable
+                onPress={handleExportCsv}
+                style={({ pressed }) => [
+                  styles.exportCsvPill,
+                  {
+                    overflow: "hidden",
+                    backgroundColor: theme.card,
+                    borderWidth: 1,
+                    borderColor: hexToRgba(theme.leather.accent, 0.28),
+                    opacity: pressed ? 0.85 : 1,
+                  },
+                ]}
+              >
+                <LightLeatherSurface theme={theme} radius={12} />
+                <Icon name="arrow-out" size={12} color={theme.leather.accent} />
+                <Text style={[styles.exportCsvText, { color: theme.ink }]}>
+                  Export CSV ({filteredActivities.length})
+                </Text>
+              </Pressable>
+            </View>
+
+            {visibleWalletChips.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterChipRow}
+              >
+                <Pressable
+                  onPress={() => {
+                    setSelectedWalletFilter(null);
+                    setPage(1);
+                  }}
+                  style={[
+                    styles.filterChip,
+                    {
+                      overflow: "hidden",
+                      backgroundColor:
+                        selectedWalletFilter === null
+                          ? theme.card
+                          : "rgba(255, 255, 255, 0.1)",
+                      borderColor:
+                        selectedWalletFilter === null
+                          ? hexToRgba(theme.leather.accent, 0.28)
+                          : "rgba(255, 255, 255, 0.18)",
+                    },
+                  ]}
+                >
+                  {selectedWalletFilter === null ? (
+                    <LightLeatherSurface theme={theme} radius={12} />
+                  ) : null}
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      {
+                        color:
+                          selectedWalletFilter === null
+                            ? theme.ink
+                            : "rgba(255, 255, 255, 0.88)",
+                      },
+                    ]}
+                  >
+                    All wallets
+                  </Text>
+                </Pressable>
+                {visibleWalletChips.map((w) => {
+                  const wKey = w.localId || `wallet-${w.id}`;
+                  const active = selectedWalletFilter === wKey;
+                  return (
+                    <Pressable
+                      key={w.id}
+                      onPress={() => {
+                        setSelectedWalletFilter(active ? null : wKey);
+                        setPage(1);
+                      }}
+                      style={[
+                        styles.filterChip,
+                        {
+                          overflow: "hidden",
+                          backgroundColor: active
+                            ? theme.card
+                            : "rgba(255, 255, 255, 0.1)",
+                          borderColor: active
+                            ? hexToRgba(theme.leather.accent, 0.28)
+                            : "rgba(255, 255, 255, 0.18)",
+                        },
+                      ]}
+                    >
+                      {active ? (
+                        <LightLeatherSurface theme={theme} radius={12} />
+                      ) : null}
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          {
+                            color: active
+                              ? theme.ink
+                              : "rgba(255, 255, 255, 0.88)",
+                          },
+                        ]}
+                      >
+                        {w.name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            ) : null}
+          </View>
+        ) : null}
 
         {/* Always-visible Quick Type Filter Pills */}
         <ScrollView
@@ -4948,6 +4978,20 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 11,
+  },
+  activitySearchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  activityFilterBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   activitySearchBox: {
     height: 46,
