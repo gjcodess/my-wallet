@@ -1219,6 +1219,21 @@ export function SheetModal({
       };
     }
 
+    if (type === "budget") {
+      const budgetVal = Number(amount);
+      return {
+        primaryLabel: "Save monthly budget",
+        primaryIcon: "check",
+        primaryDisabled: !budgetVal || budgetVal <= 0,
+        onPrimary: () => {
+          const nextVal = Number(Number(amount).toFixed(2));
+          if (!nextVal || nextVal <= 0) return;
+          onSaveMonthlyBudget?.(nextVal);
+          onDone(`Monthly budget set to ${money(nextVal)}`);
+        },
+      };
+    }
+
     return null;
   })();
 
@@ -5057,33 +5072,62 @@ export function SheetModal({
               <View>
                 <View
                   style={[
-                    styles.amountEntryBox,
-                    { backgroundColor: theme.soft, borderColor: theme.line, marginTop: 4 },
+                    styles.walletHeroPanel,
+                    {
+                      overflow: "hidden",
+                      borderColor: theme.leather.edge,
+                    },
                   ]}
                 >
-                  <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                    Monthly spending target
-                  </Text>
-                  <View style={styles.amountEntryRow}>
-                    <Text style={[styles.amountEntrySign, { color: theme.ink }]}>
-                      ₱
-                    </Text>
+                  <DarkLeatherSurface theme={theme} radius={22} />
+                  <View style={styles.walletHeroTopRow}>
+                    <View style={styles.walletHeroTag}>
+                      <Icon name="pie" size={14} color={theme.leather.thread} />
+                      <Text style={styles.walletHeroTagText}>
+                        Spending Target
+                      </Text>
+                    </View>
+                    <View style={styles.walletHeroModeBadge}>
+                      <Text
+                        style={[
+                          styles.walletHeroModeText,
+                          { color: theme.leather.thread },
+                        ]}
+                      >
+                        MONTHLY
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.walletHeroAmountWrap}>
                     <Text
                       style={[
-                        styles.amountEntryInput,
-                        { color: amount ? theme.ink : theme.muted },
+                        styles.walletHeroLabel,
+                        { color: theme.leather.thread },
+                      ]}
+                    >
+                      Monthly spending target
+                    </Text>
+                    <HeroAmountDisplay
+                      value={amount}
+                      color="#ffffff"
+                      muted={!amount}
+                    />
+                  </View>
+
+                  <View style={styles.walletHeroBottomRow}>
+                    <Text
+                      style={[
+                        styles.walletHeroSubText,
+                        { color: theme.leather.thread },
                       ]}
                       numberOfLines={1}
-                      adjustsFontSizeToFit
                     >
-                      {amount ? formatAmountInput(amount) : "0.00"}
+                      {monthlyBudget && monthlyBudget > 0
+                        ? `Current target: ${money(monthlyBudget)}`
+                        : "Tracks your monthly spending pace"}
                     </Text>
                   </View>
-                  <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                    {monthlyBudget && monthlyBudget > 0
-                      ? `Current target: ${money(monthlyBudget)}`
-                      : "Tracks your monthly spending pace in Activity"}
-                  </Text>
                 </View>
 
                 <AmountKeypad
@@ -5091,18 +5135,7 @@ export function SheetModal({
                   onChange={setAmount}
                   quickAmounts={[2000, 5000, 10000, 25000]}
                   compact
-                  theme={theme}
-                />
-
-                <PrimaryButton
-                  label="Save monthly budget"
-                  disabled={!Number(amount) || Number(amount) <= 0}
-                  onPress={() => {
-                    const nextVal = Number(Number(amount).toFixed(2));
-                    if (!nextVal || nextVal <= 0) return;
-                    onSaveMonthlyBudget?.(nextVal);
-                    onDone(`Monthly budget set to ${money(nextVal)}`);
-                  }}
+                  stitched
                   theme={theme}
                 />
 
@@ -5112,20 +5145,26 @@ export function SheetModal({
                       onSaveMonthlyBudget?.(null);
                       onDone("Monthly budget cleared");
                     }}
-                    style={[
-                      styles.secondaryButton,
+                    style={({ pressed }) => [
+                      styles.stitchedDeleteTriggerBtn,
                       {
-                        marginTop: 10,
-                        backgroundColor: theme.dark
-                          ? "rgba(192, 68, 68, 0.16)"
-                          : "#fdeaea",
+                        overflow: "hidden",
+                        backgroundColor: theme.card,
+                        borderColor: hexToRgba("#9e3c42", 0.34),
+                        transform: [{ scale: pressed ? 0.985 : 1 }],
                       },
                     ]}
                   >
+                    <LightLeatherSurface theme={theme} radius={16} />
+                    <Icon
+                      name="trash"
+                      size={15}
+                      color={theme.dark ? "#f28b88" : "#9e3c42"}
+                    />
                     <Text
                       style={[
-                        styles.secondaryButtonText,
-                        { color: "#c04444" },
+                        styles.stitchedDeleteTriggerText,
+                        { color: theme.dark ? "#f28b88" : "#9e3c42" },
                       ]}
                     >
                       Clear target
