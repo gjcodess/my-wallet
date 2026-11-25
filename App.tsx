@@ -1277,6 +1277,7 @@ export default function App() {
                       onSearch={handleOpenSearch}
                       onSettings={handleOpenSettings}
                       onOpenWallet={handleSelectWallet}
+                      onViewAllWallets={() => handleTabChange("wallets")}
                       monthlyBudget={monthlyBudget}
                       monthlySpending={monthlySpending}
                       categoryLimits={categoryLimits}

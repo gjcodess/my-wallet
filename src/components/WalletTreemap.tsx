@@ -207,11 +207,13 @@ export const WalletTreemap = React.memo(function WalletTreemap({
   wallets,
   hidden,
   onSelectWallet,
+  onViewAll,
   theme,
 }: {
   wallets: Wallet[];
   hidden: boolean;
   onSelectWallet?: (wallet: Wallet) => void;
+  onViewAll?: () => void;
   theme: ThemeColors;
 }) {
   const [canvasWidth, setCanvasWidth] = useState(320);
@@ -332,9 +334,31 @@ export const WalletTreemap = React.memo(function WalletTreemap({
         <Text style={[styles.title, { color: theme.ink }]}>
           Wallet distribution
         </Text>
-        <Text style={[styles.sub, { color: theme.muted }]}>
-          {tiles.length} {tiles.length === 1 ? "card" : "cards"}
-        </Text>
+        <View style={styles.catHeaderRight}>
+          <Text style={[styles.sub, { color: theme.muted }]}>
+            {tiles.length} {tiles.length === 1 ? "card" : "cards"}
+          </Text>
+          {onViewAll ? (
+            <Pressable
+              onPress={onViewAll}
+              hitSlop={6}
+              style={({ pressed }) => [
+                styles.viewAllInlineBtn,
+                { opacity: pressed ? 0.65 : 1 },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.viewAllInlineText,
+                  { color: theme.leather.accent },
+                ]}
+              >
+                View all
+              </Text>
+              <Icon name="chevron" size={13} color={theme.leather.accent} />
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
       <View
@@ -627,41 +651,58 @@ export const CategoryTreemap = React.memo(function CategoryTreemap({
     <View style={styles.section}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: theme.ink }]}>Categories</Text>
-        <View
-          style={[
-            styles.modeTogglePill,
-            {
-              backgroundColor: theme.card,
-              borderColor: hexToRgba(theme.leather.accent, 0.24),
-            },
-          ]}
-        >
-          {(["Expense", "Income"] as const).map((opt) => {
-            const isActive = mode === opt;
-            const chipColor =
-              opt === "Income" ? theme.positive : theme.leather.accent;
-            return (
-              <Pressable
-                key={opt}
-                onPress={() => {
-                  if (!isActive) onToggleMode();
-                }}
-                style={[
-                  styles.modeToggleChip,
-                  isActive && { backgroundColor: chipColor },
-                ]}
-              >
-                <Text
+        <View style={styles.catHeaderRight}>
+          <View
+            style={[
+              styles.modeTogglePill,
+              {
+                backgroundColor: theme.card,
+                borderColor: hexToRgba(theme.leather.accent, 0.24),
+              },
+            ]}
+          >
+            {(["Expense", "Income"] as const).map((opt) => {
+              const isActive = mode === opt;
+              const chipColor =
+                opt === "Income" ? theme.positive : theme.leather.accent;
+              return (
+                <Pressable
+                  key={opt}
+                  onPress={() => {
+                    if (!isActive) onToggleMode();
+                  }}
                   style={[
-                    styles.modeToggleText,
-                    { color: isActive ? "#ffffff" : theme.muted },
+                    styles.modeToggleChip,
+                    isActive && { backgroundColor: chipColor },
                   ]}
                 >
-                  {opt}
-                </Text>
-              </Pressable>
-            );
-          })}
+                  <Text
+                    style={[
+                      styles.modeToggleText,
+                      { color: isActive ? "#ffffff" : theme.muted },
+                    ]}
+                  >
+                    {opt}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {onViewAll && categories.length > 0 ? (
+            <Pressable
+              onPress={onViewAll}
+              hitSlop={6}
+              style={({ pressed }) => [
+                styles.viewAllInlineBtn,
+                { opacity: pressed ? 0.65 : 1 },
+              ]}
+            >
+              <Text style={[styles.viewAllInlineText, { color: accentHex }]}>
+                View all
+              </Text>
+              <Icon name="chevron" size={13} color={accentHex} />
+            </Pressable>
+          ) : null}
         </View>
       </View>
 
@@ -832,29 +873,6 @@ export const CategoryTreemap = React.memo(function CategoryTreemap({
           </Text>
         </View>
       )}
-
-      {onViewAll && categories.length > 0 ? (
-        <Pressable
-          onPress={onViewAll}
-          style={({ pressed }) => [
-            styles.viewAllBtn,
-            {
-              marginTop: 10,
-              overflow: "hidden",
-              backgroundColor: theme.card,
-              borderColor: hexToRgba(theme.leather.accent, 0.24),
-              transform: [{ scale: pressed ? 0.985 : 1 }],
-            },
-            cardShadow(theme.dark),
-          ]}
-        >
-          <LightLeatherSurface theme={theme} radius={14} />
-          <Text style={[styles.viewAllText, { color: theme.ink }]}>
-            View all categories ({categories.length})
-          </Text>
-          <Icon name="chevron" size={14} color={theme.muted} />
-        </Pressable>
-      ) : null}
     </View>
   );
 });
@@ -915,12 +933,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical: 2.5,
     borderRadius: 99,
+    alignItems: "center",
+    justifyContent: "center",
   },
   pctText: {
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 10,
+    lineHeight: 13,
     includeFontPadding: false,
+    marginTop: 1,
   },
   tileName: {
     fontFamily: "Poppins_600SemiBold",
@@ -979,12 +1001,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
   },
   modeToggleText: {
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 11,
+    lineHeight: 14,
     includeFontPadding: false,
+    marginTop: 1.5,
+  },
+  catHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  viewAllInlineBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  viewAllInlineText: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12,
+    lineHeight: 15,
+    includeFontPadding: false,
+    marginTop: 1.5,
   },
   viewAllBtn: {
     height: 42,

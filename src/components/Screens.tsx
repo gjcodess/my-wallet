@@ -1911,6 +1911,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   onOpenCategoryBudget,
   onEditBudget,
   onOpenWallet,
+  onViewAllWallets,
   onTransaction,
   onShowToast,
   showFilters = false,
@@ -1936,6 +1937,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   onOpenCategoryBudget: (category: string | null) => void;
   onEditBudget?: () => void;
   onOpenWallet?: (wallet: Wallet) => void;
+  onViewAllWallets?: () => void;
   onTransaction?: (item: ActivityItem) => void;
   onShowToast?: (msg: string) => void;
   showFilters?: boolean;
@@ -2518,14 +2520,6 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         </View>
       </View>
 
-      {/* Squarified Wallet Distribution Treemap */}
-      <WalletTreemap
-        wallets={wallets}
-        hidden={hidden}
-        onSelectWallet={onOpenWallet}
-        theme={theme}
-      />
-
       {/* Expense / Income Breakdown Donut Chart */}
       <View
         style={[
@@ -2833,6 +2827,15 @@ export const ActivityScreen = React.memo(function ActivityScreen({
           setPage(1);
         }}
         onViewAll={onViewAllCategories}
+        theme={theme}
+      />
+
+      {/* Squarified Wallet Distribution Treemap */}
+      <WalletTreemap
+        wallets={wallets}
+        hidden={hidden}
+        onSelectWallet={onOpenWallet}
+        onViewAll={onViewAllWallets}
         theme={theme}
       />
 
@@ -5334,6 +5337,9 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 11,
+    lineHeight: 14,
+    includeFontPadding: false,
+    marginTop: 1.5,
   },
   chartBody: {
     height: 232,
@@ -5423,11 +5429,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
   budgetEditText: {
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
     fontSize: 11,
+    lineHeight: 14,
+    includeFontPadding: false,
+    marginTop: 1.5,
   },
   budgetTrack: {
     height: 9,
@@ -5716,11 +5727,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
   },
   walletOverviewRangeText: {
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 11,
+    lineHeight: 14,
+    includeFontPadding: false,
+    marginTop: 1.5,
   },
   walletOverviewCard: {
     borderRadius: 20,
