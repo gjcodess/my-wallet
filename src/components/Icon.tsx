@@ -31,11 +31,9 @@ export function Icon({
       case "leather-wallet":
         return (
           <>
-            <Path d="M3 8V19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8H3Z" />
-            <Path d="M3 8V7a2 2 0 0 1 2-2h4.5c1 0 1.7-.5 2.5-1.5.8 1 1.5 1.5 2.5 1.5H19a2 2 0 0 1 2 2v1" />
-            <Path d="M3 12h5.2c1.7 0 2.1 1.8 3.8 1.8s2.1-1.8 3.8-1.8H21" />
-            <Path d="M5 14.5v3.2c0 .7.6 1.3 1.3 1.3h11.4c.7 0 1.3-.6 1.3-1.3v-3.2" strokeDasharray="1 1.5" opacity=".75" />
-            <Circle cx="12" cy="6.5" r=".6" fill={color} stroke="none" />
+            <Path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h11A2.5 2.5 0 0 1 20 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5Z" />
+            <Path d="M8 6V5a1.5 1.5 0 0 1 1.5-1.5h5A1.5 1.5 0 0 1 16 5v1" />
+            <Path d="M4 11.5h4.8c1.3 0 1.8 1.6 3.2 1.6s1.9-1.6 3.2-1.6H20" />
           </>
         );
       case "activity":
