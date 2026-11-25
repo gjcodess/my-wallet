@@ -5369,10 +5369,16 @@ export function SheetModal({
                 <View
                   style={[
                     styles.presetSearchBox,
-                    { backgroundColor: theme.soft, borderColor: theme.line },
+                    {
+                      overflow: "hidden",
+                      backgroundColor: theme.card,
+                      borderColor: hexToRgba(theme.leather.accent, 0.24),
+                    },
+                    cardShadow(theme.dark),
                   ]}
                 >
-                  <Icon name="search" size={16} color={theme.accentText} />
+                  <LightLeatherSurface theme={theme} radius={16} />
+                  <Icon name="search" size={16} color={theme.leather.accent} />
                   <TextInput
                     value={globalSearch}
                     onChangeText={setGlobalSearch}
@@ -5397,7 +5403,6 @@ export function SheetModal({
                     </Text>
                     <View style={{ gap: 8 }}>
                       {globalSearchResults.wallets.map((w) => {
-                        const pal = tonePalette[w.tone] || tonePalette.blue;
                         return (
                           <Pressable
                             key={w.id}
@@ -5406,30 +5411,23 @@ export function SheetModal({
                               styles.searchWalletRow,
                               {
                                 backgroundColor: theme.card,
+                                borderColor: hexToRgba(theme.leather.accent, 0.2),
                                 overflow: "hidden",
                                 transform: [{ scale: pressed ? 0.985 : 1 }],
                               },
-                              bevelStyle(theme.dark),
                               cardShadow(theme.dark),
                             ]}
                           >
-                            <AccentSurfaceGlow theme={theme} />
-                            <LinearGradient
-                              colors={[pal.from, pal.to]}
-                              start={{ x: 0, y: 0 }}
-                              end={{ x: 1, y: 1 }}
-                              style={styles.searchWalletBadge}
-                            >
-                              <WalletLogoBadge
-                                logoKey={w.logoKey}
-                                name={w.name}
-                                mark={w.mark}
-                                size={36}
-                                radius={12}
-                                ink={pal.ink}
-                                fontSize={9}
-                              />
-                            </LinearGradient>
+                            <LightLeatherSurface theme={theme} radius={16} />
+                            <WalletLogoBadge
+                              logoKey={w.logoKey}
+                              name={w.name}
+                              mark={w.mark}
+                              size={36}
+                              radius={11}
+                              ink={theme.ink}
+                              fontSize={10}
+                            />
                             <View style={{ flex: 1, gap: 1 }}>
                               <Text
                                 style={[
@@ -5514,24 +5512,19 @@ export function SheetModal({
                             styles.searchWalletRow,
                             {
                               backgroundColor: theme.card,
+                              borderColor: hexToRgba(theme.leather.accent, 0.2),
                               overflow: "hidden",
                               transform: [{ scale: pressed ? 0.985 : 1 }],
                             },
-                            bevelStyle(theme.dark),
                             cardShadow(theme.dark),
                           ]}
                         >
-                          <AccentSurfaceGlow theme={theme} />
-                          <View
-                            style={[
-                              styles.searchActionIcon,
-                              { backgroundColor: theme.accentSoft },
-                            ]}
-                          >
+                          <LightLeatherSurface theme={theme} radius={16} />
+                          <View style={styles.searchActionIcon}>
                             <Icon
                               name={act.icon}
-                              size={16}
-                              color={theme.accentText}
+                              size={20}
+                              color={theme.leather.accent}
                             />
                           </View>
                           <View style={{ flex: 1, gap: 1 }}>
@@ -5569,8 +5562,21 @@ export function SheetModal({
                 globalSearchResults.wallets.length === 0 &&
                 globalSearchResults.activities.length === 0 &&
                 globalSearchResults.actions.length === 0 ? (
-                  <View style={styles.searchEmptyBox}>
-                    <Icon name="search" size={24} color={theme.muted} />
+                  <View
+                    style={[
+                      styles.searchEmptyBox,
+                      {
+                        overflow: "hidden",
+                        backgroundColor: theme.card,
+                        borderRadius: 18,
+                        borderWidth: 1,
+                        borderColor: hexToRgba(theme.leather.accent, 0.2),
+                        marginTop: 12,
+                      },
+                    ]}
+                  >
+                    <LightLeatherSurface theme={theme} radius={18} />
+                    <Icon name="search" size={22} color={theme.leather.accent} />
                     <Text
                       style={[styles.searchEmptyTitle, { color: theme.ink }]}
                     >
@@ -5839,7 +5845,7 @@ const styles = StyleSheet.create({
     gap: 11,
     paddingVertical: 11,
     paddingHorizontal: 13,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
   },
   searchWalletBadge: {
