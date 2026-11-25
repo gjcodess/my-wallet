@@ -968,7 +968,7 @@ export default function App() {
 
       <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
 
-        <StatusBar style={dark || (!isLocked && !selected && headerAtTop) ? "light" : "dark"} />
+        <StatusBar style={dark || (!isLocked && (Boolean(selected) || headerAtTop)) ? "light" : "dark"} />
 
         {isLocked ? (
           <AppLockModal
