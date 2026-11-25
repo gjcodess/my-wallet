@@ -2009,6 +2009,48 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   const pageEnd = Math.min(filteredActivities.length, pageStart + pageSize);
   const pageItems = filteredActivities.slice(pageStart, pageEnd);
 
+  const groupedPageItems = useMemo(() => {
+    const groups: { dateLabel: string; dayNet: number; items: ActivityItem[] }[] = [];
+    const byDate = new Map<string, { dateLabel: string; dayNet: number; items: ActivityItem[] }>();
+    for (const item of pageItems) {
+      const dateLabel = (item.date || "Recent").split(",")[0].trim() || "Recent";
+      let group = byDate.get(dateLabel);
+      if (!group) {
+        group = { dateLabel, dayNet: 0, items: [] };
+        byDate.set(dateLabel, group);
+        groups.push(group);
+      }
+      group.items.push(item);
+      group.dayNet += item.amount;
+    }
+    return groups;
+  }, [pageItems]);
+
+  const filteredNetTotal = useMemo(
+    () => filteredActivities.reduce((sum, item) => sum + item.amount, 0),
+    [filteredActivities]
+  );
+
+  const activityMonthFlow = useMemo(() => {
+    const now = monthSpending.referenceDate;
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    let earned = 0;
+    for (const item of activities) {
+      if (!isIncomeActivity(item)) continue;
+      if (getDisplayActivityWallet(item, wallets).isHidden) continue;
+      const d = getActivityDate(item, now);
+      if (d.getMonth() === month && d.getFullYear() === year) {
+        earned += item.amount;
+      }
+    }
+    return {
+      earned,
+      spent: monthSpending.spent,
+      label: monthSpending.monthLabel,
+    };
+  }, [activities, wallets, monthSpending]);
+
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
@@ -2231,6 +2273,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
     <View style={[styles.page, { paddingTop: 0 }]}>
       <HeroHeaderSurface
         theme={theme}
+        compact={mode === "transactions"}
         onHeight={onHeroHeight}
         style={{ marginBottom: 14 }}
       >
@@ -2299,87 +2342,72 @@ export const ActivityScreen = React.memo(function ActivityScreen({
           </View>
         </View>
 
-        <View style={styles.heroBalanceBlock}>
+        <View
+          style={[
+            styles.heroBalanceBlock,
+            mode === "transactions" && { marginTop: 10, gap: 2 },
+          ]}
+        >
           <Text style={[styles.heroHeaderLabel, { color: theme.heroMuted, opacity: 1 }]}>{mode === "overview" ? "Total spending" : "Your activity"}</Text>
-          {mode === "overview" ? <Amount value={totalOut} hidden={hidden} size="lg" color={theme.heroInk} /> : <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>{activities.length} transactions</Text>}
+          {mode === "overview" ? <Amount value={totalOut} hidden={hidden} size="lg" color={theme.heroInk} /> : <Text style={[styles.heroHeaderTitle, { color: theme.heroInk, fontSize: 21 }]}>{activities.length} {activities.length === 1 ? "transaction" : "transactions"}</Text>}
         </View>
+
+        {mode === "transactions" ? (
+          <HeroMonthlyFlowRow
+            theme={theme}
+            monthLabel={activityMonthFlow.label}
+            earned={activityMonthFlow.earned}
+            spent={activityMonthFlow.spent}
+            hidden={hidden}
+            compact
+          />
+        ) : null}
       </HeroHeaderSurface>
 
       {mode === "transactions" && showFilters ? (
         <View
           style={[
             styles.activityFilterPanel,
-            { backgroundColor: theme.card, overflow: "hidden" },
-            bevelStyle(theme.dark),
+            {
+              backgroundColor: theme.card,
+              borderWidth: 1,
+              borderColor: hexToRgba(theme.leather.accent, 0.24),
+              overflow: "hidden",
+            },
             cardShadow(theme.dark),
           ]}
         >
-          <AccentSurfaceGlow theme={theme} />
+          <LightLeatherSurface theme={theme} radius={18} />
           <View style={styles.activityFilterHeader}>
             <Text style={[styles.activityFilterTitle, { color: theme.muted }]}>
-              FILTER & EXPORT
+              WALLETS & EXPORT
             </Text>
             <Pressable
               onPress={handleExportCsv}
               style={({ pressed }) => [
                 styles.exportCsvPill,
                 {
-                  backgroundColor: theme.accentSoft,
-                  opacity: pressed ? 0.78 : 1,
+                  overflow: "hidden",
+                  backgroundColor: theme.leather.colors[1],
+                  borderWidth: 1,
+                  borderColor: theme.leather.edge,
+                  opacity: pressed ? 0.82 : 1,
                 },
               ]}
             >
-              <Icon name="arrow-out" size={12} color={theme.accentText} />
-              <Text
-                style={[styles.exportCsvText, { color: theme.accentText }]}
-              >
+              <DarkLeatherSurface theme={theme} radius={12} />
+              <Icon name="arrow-out" size={12} color="#ffffff" />
+              <Text style={[styles.exportCsvText, { color: "#ffffff" }]}>
                 Export CSV ({filteredActivities.length})
               </Text>
             </Pressable>
           </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterChipRow}
-          >
-            {(["All", "Expenses", "Income", "Transfers", "Adjusted"] as const).map(
-              (opt) => {
-                const active = typeFilter === opt;
-                return (
-                  <Pressable
-                    key={opt}
-                    onPress={() => {
-                      setTypeFilter(opt);
-                      setPage(1);
-                    }}
-                    style={[
-                      styles.filterChip,
-                      {
-                        backgroundColor: active ? theme.accent : theme.soft,
-                        borderColor: active ? theme.accent : theme.line,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        { color: active ? theme.accentInk : theme.ink },
-                      ]}
-                    >
-                      {opt}
-                    </Text>
-                  </Pressable>
-                );
-              }
-            )}
-          </ScrollView>
-
-          {wallets.length > 0 ? (
+          {visibleWalletChips.length > 0 ? (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={[styles.filterChipRow, { paddingTop: 8 }]}
+              contentContainerStyle={styles.filterChipRow}
             >
               <Pressable
                 onPress={() => {
@@ -2389,21 +2417,29 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                 style={[
                   styles.filterChip,
                   {
+                    overflow: "hidden",
                     backgroundColor:
-                      selectedWalletFilter === null ? theme.accent : theme.soft,
+                      selectedWalletFilter === null
+                        ? theme.leather.colors[1]
+                        : theme.card,
                     borderColor:
-                      selectedWalletFilter === null ? theme.accent : theme.line,
+                      selectedWalletFilter === null
+                        ? theme.leather.edge
+                        : hexToRgba(theme.leather.accent, 0.24),
                   },
                 ]}
               >
+                {selectedWalletFilter === null ? (
+                  <DarkLeatherSurface theme={theme} radius={12} />
+                ) : (
+                  <LightLeatherSurface theme={theme} radius={12} />
+                )}
                 <Text
                   style={[
                     styles.filterChipText,
                     {
                       color:
-                        selectedWalletFilter === null
-                          ? theme.accentInk
-                          : theme.ink,
+                        selectedWalletFilter === null ? "#ffffff" : theme.ink,
                     },
                   ]}
                 >
@@ -2423,15 +2459,25 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                     style={[
                       styles.filterChip,
                       {
-                        backgroundColor: active ? theme.accent : theme.soft,
-                        borderColor: active ? theme.accent : theme.line,
+                        overflow: "hidden",
+                        backgroundColor: active
+                          ? theme.leather.colors[1]
+                          : theme.card,
+                        borderColor: active
+                          ? theme.leather.edge
+                          : hexToRgba(theme.leather.accent, 0.24),
                       },
                     ]}
                   >
+                    {active ? (
+                      <DarkLeatherSurface theme={theme} radius={12} />
+                    ) : (
+                      <LightLeatherSurface theme={theme} radius={12} />
+                    )}
                     <Text
                       style={[
                         styles.filterChipText,
-                        { color: active ? theme.accentInk : theme.ink },
+                        { color: active ? "#ffffff" : theme.ink },
                       ]}
                     >
                       {w.name}
@@ -2890,16 +2936,20 @@ export const ActivityScreen = React.memo(function ActivityScreen({
           theme={theme}
         />
 
-        {/* Always-accessible Search Bar */}
+        {/* Stitched Search Bar */}
         <View
           style={[
             styles.activitySearchBox,
-            { backgroundColor: theme.card, borderColor: theme.line },
-            bevelStyle(theme.dark),
+            {
+              overflow: "hidden",
+              backgroundColor: theme.card,
+              borderColor: hexToRgba(theme.leather.accent, 0.24),
+            },
             cardShadow(theme.dark),
           ]}
         >
-          <Icon name="search" size={16} color={theme.muted} />
+          <LightLeatherSurface theme={theme} radius={16} />
+          <Icon name="search" size={16} color={theme.leather.accent} />
           <TextInput
             value={searchQuery}
             onChangeText={(t) => {
@@ -2922,35 +2972,153 @@ export const ActivityScreen = React.memo(function ActivityScreen({
             </Pressable>
           ) : null}
         </View>
-        {pageItems.length ? (
-          <View style={styles.txList}>
-            {pageItems.map((item) => (
-              <TxRow
-                key={item.id}
-                item={item}
-                walletLabel={getDisplayActivityWallet(item, wallets).label}
-                hidden={hidden}
-                onPress={onTransaction ? () => onTransaction(item) : undefined}
-                theme={theme}
-              />
+
+        {/* Always-visible Quick Type Filter Pills */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.activityQuickFilterRow}
+        >
+          {(["All", "Expenses", "Income", "Transfers", "Adjusted"] as const).map(
+            (opt) => {
+              const active = typeFilter === opt;
+              return (
+                <Pressable
+                  key={opt}
+                  onPress={() => {
+                    setTypeFilter(opt);
+                    setPage(1);
+                  }}
+                  style={({ pressed }) => [
+                    styles.filterChip,
+                    {
+                      overflow: "hidden",
+                      backgroundColor: active
+                        ? theme.leather.colors[1]
+                        : theme.card,
+                      borderColor: active
+                        ? theme.leather.edge
+                        : hexToRgba(theme.leather.accent, 0.24),
+                      transform: [{ scale: pressed ? 0.96 : 1 }],
+                    },
+                  ]}
+                >
+                  {active ? (
+                    <DarkLeatherSurface theme={theme} radius={12} />
+                  ) : (
+                    <LightLeatherSurface theme={theme} radius={12} />
+                  )}
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      { color: active ? "#ffffff" : theme.ink },
+                    ]}
+                  >
+                    {opt}
+                  </Text>
+                </Pressable>
+              );
+            }
+          )}
+        </ScrollView>
+
+        {hasFilter && filteredActivities.length > 0 ? (
+          <View
+            style={[
+              styles.activityFilteredSummary,
+              {
+                overflow: "hidden",
+                backgroundColor: theme.card,
+                borderColor: hexToRgba(theme.leather.accent, 0.2),
+              },
+            ]}
+          >
+            <LightLeatherSurface theme={theme} radius={14} />
+            <Text style={[styles.activityFilteredCount, { color: theme.muted }]}>
+              {filteredActivities.length}{" "}
+              {filteredActivities.length === 1 ? "match" : "matches"}
+            </Text>
+            <Text
+              style={[
+                styles.activityFilteredTotal,
+                {
+                  color:
+                    filteredNetTotal > 0 ? theme.positive : theme.ink,
+                },
+              ]}
+            >
+              {hidden
+                ? "••••"
+                : `${filteredNetTotal >= 0 ? "+" : "-"}${money(Math.abs(filteredNetTotal))}`}
+            </Text>
+          </View>
+        ) : null}
+
+        {groupedPageItems.length ? (
+          <View style={styles.activityDateGroups}>
+            {groupedPageItems.map((group) => (
+              <View key={group.dateLabel} style={styles.activityDateGroup}>
+                <View style={styles.activityDateHeader}>
+                  <Text style={[styles.activityDateTitle, { color: theme.muted }]}>
+                    {group.dateLabel}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.activityDateTotal,
+                      {
+                        color:
+                          group.dayNet > 0 ? theme.positive : theme.muted,
+                      },
+                    ]}
+                  >
+                    {hidden
+                      ? "••••"
+                      : `${group.dayNet >= 0 ? "+" : "-"}${money(Math.abs(group.dayNet))}`}
+                  </Text>
+                </View>
+                <View style={styles.txList}>
+                  {group.items.map((item) => (
+                    <TxRow
+                      key={item.id}
+                      item={item}
+                      walletLabel={getDisplayActivityWallet(item, wallets).label}
+                      hidden={hidden}
+                      onPress={onTransaction ? () => onTransaction(item) : undefined}
+                      theme={theme}
+                    />
+                  ))}
+                </View>
+              </View>
             ))}
           </View>
         ) : (
           <View
             style={[
               styles.emptyState,
-              { backgroundColor: theme.card, overflow: "hidden" },
-              bevelStyle(theme.dark),
+              {
+                overflow: "hidden",
+                backgroundColor: theme.card,
+                borderColor: hexToRgba(theme.leather.accent, 0.24),
+              },
               cardShadow(theme.dark),
             ]}
           >
-            <AccentSurfaceGlow theme={theme} />
-            <LinearGradient
-              colors={theme.accentGradient}
-              style={styles.emptyStateIcon}
+            <LightLeatherSurface theme={theme} radius={20} />
+            <View
+              style={[
+                styles.emptyStateIcon,
+                {
+                  backgroundColor: hexToRgba(
+                    theme.leather.accent,
+                    theme.dark ? 0.2 : 0.1
+                  ),
+                  borderWidth: 1,
+                  borderColor: hexToRgba(theme.leather.accent, 0.22),
+                },
+              ]}
             >
-              <Icon name="activity" size={22} color={theme.accentInk} />
-            </LinearGradient>
+              <Icon name="activity" size={22} color={theme.leather.accent} />
+            </View>
             <Text style={[styles.emptyStateTitle, { color: theme.ink }]}>
               No matching transactions
             </Text>
@@ -4782,14 +4950,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   activitySearchBox: {
-    height: 44,
+    height: 46,
     borderRadius: 16,
     borderWidth: 1,
-    paddingHorizontal: 13,
+    paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
     gap: 9,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   activitySearchInput: {
     flex: 1,
@@ -4797,17 +4965,73 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 13,
     paddingVertical: 0,
+    includeFontPadding: false,
   },
-  filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+  activityQuickFilterRow: {
+    gap: 7,
+    paddingBottom: 12,
+  },
+  activityFilteredSummary: {
+    height: 38,
     borderRadius: 14,
     borderWidth: 1,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  activityFilteredCount: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 12,
+    includeFontPadding: false,
+  },
+  activityFilteredTotal: {
+    fontFamily: "Poppins_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 12.5,
+    includeFontPadding: false,
+  },
+  activityDateGroups: {
+    gap: 14,
+  },
+  activityDateGroup: {
+    gap: 8,
+  },
+  activityDateHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 4,
+  },
+  activityDateTitle: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12,
+    includeFontPadding: false,
+  },
+  activityDateTotal: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 11.5,
+    includeFontPadding: false,
+  },
+  filterChip: {
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   filterChipText: {
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 12,
+    lineHeight: 16,
+    includeFontPadding: false,
+    marginTop: 1,
   },
   chartTabLegend: {
     position: "absolute",
