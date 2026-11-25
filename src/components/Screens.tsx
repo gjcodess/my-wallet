@@ -2130,10 +2130,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
       for (let offset = 5; offset >= 0; offset--) {
         const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset);
         const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-        const label =
-          offset === 0
-            ? "Today"
-            : d.toLocaleDateString("en-US", { weekday: "short" });
+        const label = d.toLocaleDateString("en-US", { weekday: "short" });
         buckets.push({ key, label, income: 0, expense: 0 });
       }
       for (const item of activities) {
@@ -2510,6 +2507,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                       { color: theme.heroMuted },
                       isSelected && { color: "#ffffff", fontWeight: "800" },
                     ]}
+                    numberOfLines={1}
                   >
                     {b.label}
                   </Text>
@@ -5342,18 +5340,18 @@ const styles = StyleSheet.create({
     marginTop: 1.5,
   },
   chartBody: {
-    height: 232,
-    paddingTop: 64,
-    paddingBottom: 14,
-    paddingLeft: 46,
-    paddingRight: 16,
+    height: 162,
+    paddingTop: 14,
+    paddingBottom: 10,
+    paddingLeft: 42,
+    paddingRight: 8,
   },
   chartGrid: {
     position: "absolute",
-    top: 64,
-    bottom: 34,
-    left: 15,
-    right: 15,
+    top: 14,
+    bottom: 30,
+    left: 2,
+    right: 2,
     justifyContent: "space-between",
   },
   chartGridLine: {
