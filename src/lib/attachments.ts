@@ -4,6 +4,12 @@ import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 
 export const MAX_ATTACHMENTS = 4;
+export const CUSTOM_CARD_BG_PREFIX = "custom-img:";
+export const CARD_BG_ASPECT: [number, number] = [16, 10];
+const CARD_BG_WIDTH = 1280;
+const CARD_BG_HEIGHT = 800;
+const CARD_BG_QUALITY = 0.78;
+const CARD_BGS_DIR_NAME = "card_bgs";
 const MAX_DIMENSION = 1280;
 const FALLBACK_DIMENSION = 1024;
 const PRIMARY_QUALITY = 0.68;
@@ -244,6 +250,150 @@ export async function pickImageAttachments(
       canceled: true,
       skippedNonImages: 0,
       error: err?.message || "Could not attach image.",
+    };
+  }
+}
+
+function getCardBgsDir(): Directory {
+  return new Directory(Paths.document, CARD_BGS_DIR_NAME);
+}
+
+function ensureCardBgsDir(): Directory {
+  const dir = getCardBgsDir();
+  if (!dir.exists) {
+    dir.create({ idempotent: true, intermediates: true });
+  }
+  return dir;
+}
+
+export function resolveCardBgUri(ref: string): string {
+  if (!ref) return "";
+  const clean = ref.startsWith(CUSTOM_CARD_BG_PREFIX)
+    ? ref.slice(CUSTOM_CARD_BG_PREFIX.length)
+    : ref;
+  if (
+    clean.startsWith("file://") ||
+    clean.startsWith("content://") ||
+    clean.startsWith("http://") ||
+    clean.startsWith("https://") ||
+    clean.startsWith("data:") ||
+    clean.startsWith("blob:")
+  ) {
+    return clean;
+  }
+  return new File(getCardBgsDir(), clean).uri;
+}
+
+export function deleteCardBgFile(bgKey?: string): void {
+  if (!bgKey || !bgKey.startsWith(CUSTOM_CARD_BG_PREFIX) || Platform.OS === "web") {
+    return;
+  }
+  const clean = bgKey.slice(CUSTOM_CARD_BG_PREFIX.length);
+  if (!clean || clean.startsWith("http://") || clean.startsWith("https://") || clean.startsWith("data:")) {
+    return;
+  }
+  try {
+    const file = clean.includes("/") ? new File(clean) : new File(getCardBgsDir(), clean);
+    if (file.exists) {
+      file.delete();
+    }
+  } catch {
+    // Ignore missing file errors
+  }
+}
+
+export type PickCardBgOutcome = {
+  bgKey?: string;
+  uri?: string;
+  canceled: boolean;
+  permissionDenied?: boolean;
+  error?: string;
+};
+
+/**
+ * Picks an image and crops/resizes it to the exact 16:10 (1280x800) aspect ratio
+ * used by preset wallet card backgrounds.
+ */
+export async function pickAndCropCardBackground(): Promise<PickCardBgOutcome> {
+  try {
+    if (Platform.OS !== "web") {
+      const libPerm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!libPerm.granted) {
+        return { canceled: true, permissionDenied: true };
+      }
+    }
+
+    const pickerResult = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: CARD_BG_ASPECT,
+      quality: 0.9,
+      exif: false,
+    });
+
+    if (pickerResult.canceled || !pickerResult.assets?.length) {
+      return { canceled: true };
+    }
+
+    const asset = pickerResult.assets[0];
+    if (!isImageAsset(asset)) {
+      return { canceled: true, error: "Only image files can be used as card backgrounds." };
+    }
+
+    const srcW = asset.width || CARD_BG_WIDTH;
+    const srcH = asset.height || CARD_BG_HEIGHT;
+    const targetRatio = CARD_BG_WIDTH / CARD_BG_HEIGHT; // 1.6
+    const srcRatio = srcW / Math.max(1, srcH);
+
+    const ctx = ImageManipulator.manipulate(asset.uri);
+    if (Math.abs(srcRatio - targetRatio) > 0.02) {
+      if (srcRatio > targetRatio) {
+        const cropW = Math.round(srcH * targetRatio);
+        const originX = Math.max(0, Math.round((srcW - cropW) / 2));
+        ctx.crop({ originX, originY: 0, width: cropW, height: srcH });
+      } else {
+        const cropH = Math.round(srcW / targetRatio);
+        const originY = Math.max(0, Math.round((srcH - cropH) / 2));
+        ctx.crop({ originX: 0, originY, width: srcW, height: cropH });
+      }
+    }
+    ctx.resize({ width: CARD_BG_WIDTH, height: CARD_BG_HEIGHT });
+
+    const rendered = await ctx.renderAsync();
+    let savedUri = "";
+    try {
+      const result = await rendered.saveAsync({
+        format: SaveFormat.JPEG,
+        compress: CARD_BG_QUALITY,
+      });
+      savedUri = result.uri;
+    } finally {
+      rendered.release();
+      ctx.release();
+    }
+
+    if (Platform.OS !== "web") {
+      const dir = ensureCardBgsDir();
+      const filename = `cardbg-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 7)}.jpg`;
+      const dest = new File(dir, filename);
+      const src = new File(savedUri);
+      await src.copy(dest);
+      try {
+        if (src.exists) src.delete();
+      } catch {
+        // Ignore cache cleanup error
+      }
+      const bgKey = `${CUSTOM_CARD_BG_PREFIX}${filename}`;
+      return { bgKey, uri: dest.uri, canceled: false };
+    }
+
+    return { bgKey: `${CUSTOM_CARD_BG_PREFIX}${savedUri}`, uri: savedUri, canceled: false };
+  } catch (err: any) {
+    return {
+      canceled: true,
+      error: err?.message || "Could not process custom card image.",
     };
   }
 }

@@ -57,7 +57,13 @@ import { WalletLogoBadge } from "./WalletFolder";
 import { ScheduleManager } from "./Schedules";
 import { FavoriteEditor, FavoriteList, FavoriteStrip } from "./Favorites";
 import { TransactionAttachmentsSection } from "./AttachmentPicker";
-import { deleteAttachmentFiles } from "../lib/attachments";
+import {
+  CUSTOM_CARD_BG_PREFIX,
+  deleteAttachmentFiles,
+  deleteCardBgFile,
+  pickAndCropCardBackground,
+  resolveCardBgUri,
+} from "../lib/attachments";
 import { createFavoriteDraft, favoriteFromActivity } from "../types/favorite";
 import type { Favorite, FavoriteDraft } from "../types/favorite";
 import { CategoryBudgetSheet } from "./CategoryBudgets";
@@ -268,11 +274,15 @@ export function SheetModal({
   const [accountLabel, setAccountLabel] = useState(editTarget?.account || "");
   const [tone, setTone] = useState<Tone>(editTarget?.tone || "blue");
   const [showCustomTone, setShowCustomTone] = useState(false);
-  const [customBgTab, setCustomBgTab] = useState<"presets" | "gradient">(
-    resolveWalletCardDesign(editTarget?.logoKey, editTarget?.name)
-      ? "presets"
-      : "gradient"
+  const [customBgTab, setCustomBgTab] = useState<"presets" | "gradient" | "custom">(
+    initialParsedWallet.bgPresetKey?.startsWith(CUSTOM_CARD_BG_PREFIX)
+      ? "custom"
+      : resolveWalletCardDesign(editTarget?.logoKey, editTarget?.name)
+        ? "presets"
+        : "gradient"
   );
+  const [pickingCardBg, setPickingCardBg] = useState(false);
+  const [cardBgError, setCardBgError] = useState("");
   const [balance, setBalance] = useState(
     editTarget ? String(editTarget.balance) : ""
   );
@@ -326,10 +336,13 @@ export function SheetModal({
           : null
       );
       setCustomBgTab(
-        resolveWalletCardDesign(editTarget.logoKey, editTarget.name)
-          ? "presets"
-          : "gradient"
+        parsedEdit.bgPresetKey?.startsWith(CUSTOM_CARD_BG_PREFIX)
+          ? "custom"
+          : resolveWalletCardDesign(editTarget.logoKey, editTarget.name)
+            ? "presets"
+            : "gradient"
       );
+      setCardBgError("");
       setName(editTarget.name);
       setCategory(editTarget.type);
       setAccountLabel(editTarget.account);
@@ -1661,14 +1674,20 @@ export function SheetModal({
                 ? (parsedWalletLogoBg.bgPresetKey ||
                   (hasBrandCardArt ? selectedPreset?.key : undefined))
                 : undefined;
-              const activeBgPreset = activeBgKey
-                ? walletPresets.find((p) => p.key === activeBgKey)
-                : undefined;
+              const isCustomImageBg = Boolean(
+                activeBgKey?.startsWith(CUSTOM_CARD_BG_PREFIX)
+              );
+              const activeBgPreset =
+                activeBgKey && !isCustomImageBg
+                  ? walletPresets.find((p) => p.key === activeBgKey)
+                  : undefined;
               const hasProviderPreset = selectedPresetKey !== "custom";
               const previewPalette = tonePalette[tone] || tonePalette.blue;
-              const bgDesignLabel = hasBrandCardArt
-                ? `${activeBgPreset?.name || selectedPreset?.name || "Preset"} bg`
-                : `${previewPalette.label} gradient`;
+              const bgDesignLabel = isCustomImageBg
+                ? "Custom image (16:10)"
+                : hasBrandCardArt
+                  ? `${activeBgPreset?.name || selectedPreset?.name || "Preset"} bg`
+                  : `${previewPalette.label} gradient`;
               const cardInk = brandCardDesign
                 ? brandCardDesign.ink
                 : previewPalette.ink;
@@ -2216,12 +2235,15 @@ export function SheetModal({
                     {(!hasProviderPreset || showCustomTone) && (
                       <View style={{ marginTop: hasProviderPreset ? 2 : 8 }}>
                         <View style={styles.bgCustomizeTabsRow}>
-                          {(["presets", "gradient"] as const).map((tabKey) => {
+                          {(["presets", "gradient", "custom"] as const).map((tabKey) => {
                             const active = customBgTab === tabKey;
                             return (
                               <Pressable
                                 key={tabKey}
-                                onPress={() => setCustomBgTab(tabKey)}
+                                onPress={() => {
+                                  setCardBgError("");
+                                  setCustomBgTab(tabKey);
+                                }}
                                 style={[
                                   styles.bgCustomizeTabBtn,
                                   {
@@ -2245,10 +2267,13 @@ export function SheetModal({
                                     styles.bgCustomizeTabText,
                                     { color: active ? "#ffffff" : theme.ink },
                                   ]}
+                                  numberOfLines={1}
                                 >
                                   {tabKey === "presets"
                                     ? "Preset bgs"
-                                    : "Gradient colors"}
+                                    : tabKey === "gradient"
+                                      ? "Gradient"
+                                      : "Custom img"}
                                 </Text>
                               </Pressable>
                             );
@@ -2362,6 +2387,152 @@ export function SheetModal({
                               );
                             })}
                           </ScrollView>
+                        ) : customBgTab === "custom" ? (
+                          <View style={{ marginTop: 10, gap: 10 }}>
+                            {isCustomImageBg && activeBgKey ? (
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  gap: 12,
+                                  padding: 10,
+                                  borderRadius: 16,
+                                  borderWidth: 1,
+                                  borderColor: hexToRgba(theme.leather.accent, 0.24),
+                                  backgroundColor: theme.card,
+                                  overflow: "hidden",
+                                }}
+                              >
+                                <LightLeatherSurface theme={theme} radius={16} />
+                                <View
+                                  style={{
+                                    width: 96,
+                                    height: 60,
+                                    borderRadius: 10,
+                                    overflow: "hidden",
+                                    borderWidth: 1,
+                                    borderColor: hexToRgba(theme.leather.accent, 0.25),
+                                  }}
+                                >
+                                  <Svg width={96} height={60}>
+                                    <SvgImage
+                                      href={{ uri: resolveCardBgUri(activeBgKey) }}
+                                      x={0}
+                                      y={0}
+                                      width={96}
+                                      height={60}
+                                      preserveAspectRatio="xMidYMid slice"
+                                    />
+                                  </Svg>
+                                </View>
+                                <View style={{ flex: 1, gap: 3 }}>
+                                  <Text style={{ fontFamily: "Poppins_700Bold", fontSize: 12.5, color: theme.ink }}>
+                                    Custom photo
+                                  </Text>
+                                  <Text style={{ fontFamily: "Poppins_500Medium", fontSize: 11, color: theme.muted }}>
+                                    Cropped to 16:10 card ratio
+                                  </Text>
+                                </View>
+                                <Pressable
+                                  onPress={() => {
+                                    if (activeBgKey !== parseWalletLogoAndBg(editTarget?.logoKey).bgPresetKey) {
+                                      deleteCardBgFile(activeBgKey);
+                                    }
+                                    setLogoKey(
+                                      encodeWalletLogoAndBg(selectedPresetKey, "none")
+                                    );
+                                    setCardBgError("");
+                                  }}
+                                  style={{
+                                    paddingHorizontal: 10,
+                                    paddingVertical: 6,
+                                    borderRadius: 10,
+                                    backgroundColor: hexToRgba("#9e3c42", 0.12),
+                                  }}
+                                >
+                                  <Text style={{ fontFamily: "Poppins_700Bold", fontSize: 11, color: "#9e3c42" }}>
+                                    Remove
+                                  </Text>
+                                </Pressable>
+                              </View>
+                            ) : null}
+
+                            <Pressable
+                              disabled={pickingCardBg}
+                              onPress={async () => {
+                                setCardBgError("");
+                                setPickingCardBg(true);
+                                try {
+                                  const res = await pickAndCropCardBackground();
+                                  if (res.permissionDenied) {
+                                    setCardBgError("Photo library permission is required.");
+                                    return;
+                                  }
+                                  if (res.error) {
+                                    setCardBgError(res.error);
+                                    return;
+                                  }
+                                  if (res.bgKey) {
+                                    const oldBg = activeBgKey;
+                                    if (
+                                      oldBg?.startsWith(CUSTOM_CARD_BG_PREFIX) &&
+                                      oldBg !== parseWalletLogoAndBg(editTarget?.logoKey).bgPresetKey
+                                    ) {
+                                      deleteCardBgFile(oldBg);
+                                    }
+                                    setLogoKey(
+                                      encodeWalletLogoAndBg(selectedPresetKey, res.bgKey)
+                                    );
+                                  }
+                                } finally {
+                                  setPickingCardBg(false);
+                                }
+                              }}
+                              style={({ pressed }) => [
+                                {
+                                  height: 44,
+                                  borderRadius: 14,
+                                  borderWidth: 1,
+                                  borderColor: theme.leather.edge,
+                                  backgroundColor: theme.leather.colors[1],
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: 8,
+                                  overflow: "hidden",
+                                  transform: [{ scale: pressed ? 0.97 : 1 }],
+                                },
+                                cardShadow(theme.dark),
+                              ]}
+                            >
+                              <DarkLeatherSurface theme={theme} radius={14} />
+                              {pickingCardBg ? (
+                                <ActivityIndicator size="small" color="#ffffff" />
+                              ) : (
+                                <Icon name="image" size={16} color="#ffffff" />
+                              )}
+                              <Text
+                                style={{
+                                  fontFamily: "Poppins_700Bold",
+                                  fontSize: 13,
+                                  color: "#ffffff",
+                                  includeFontPadding: false,
+                                  marginTop: 1,
+                                }}
+                              >
+                                {pickingCardBg
+                                  ? "Processing…"
+                                  : isCustomImageBg
+                                    ? "Choose & crop another image"
+                                    : "Choose & crop image (16:10)"}
+                              </Text>
+                            </Pressable>
+                            {cardBgError ? (
+                              <Text style={[styles.errorText, { marginTop: 0 }]}>
+                                {cardBgError}
+                              </Text>
+                            ) : null}
+                          </View>
                         ) : (
                           <View style={styles.tonePicker}>
                             {([

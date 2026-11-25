@@ -1,4 +1,5 @@
 import { ImageSourcePropType } from "react-native";
+import { CUSTOM_CARD_BG_PREFIX, resolveCardBgUri } from "../lib/attachments";
 import { Tone } from "../types/wallet";
 
 export type WalletPresetGroup = "E-wallet" | "Bank" | "Digital Bank" | "Cash";
@@ -217,6 +218,10 @@ export function resolveWalletCardBackground(
 ): ImageSourcePropType | undefined {
   const { bgPresetKey, explicitNoBg } = parseWalletLogoAndBg(logoKey);
   if (explicitNoBg) return undefined;
+  if (bgPresetKey?.startsWith(CUSTOM_CARD_BG_PREFIX)) {
+    const uri = resolveCardBgUri(bgPresetKey);
+    return uri ? { uri } : undefined;
+  }
   return resolveFromMap(walletCardBackgroundAssets, bgPresetKey, walletName);
 }
 
@@ -226,6 +231,15 @@ export function resolveWalletCardDesign(
 ): WalletCardDesign | undefined {
   const { bgPresetKey, explicitNoBg } = parseWalletLogoAndBg(logoKey);
   if (explicitNoBg) return undefined;
+  if (bgPresetKey?.startsWith(CUSTOM_CARD_BG_PREFIX)) {
+    const uri = resolveCardBgUri(bgPresetKey);
+    if (!uri) return undefined;
+    return {
+      source: { uri },
+      ink: "#ffffff",
+      isDark: true,
+    };
+  }
   const key = resolvePresetKey(
     walletCardBackgroundAssets,
     bgPresetKey,

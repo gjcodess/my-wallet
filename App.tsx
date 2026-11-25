@@ -94,7 +94,8 @@ import { AppLockModal, AppLockMode } from "./src/components/AppLockModal";
 import { LaunchIntro } from "./src/components/LaunchIntro";
 import { HomeSkeleton } from "./src/components/HomeSkeleton";
 import { Icon } from "./src/components/Icon";
-import { deleteAttachmentFiles } from "./src/lib/attachments";
+import { deleteAttachmentFiles, deleteCardBgFile } from "./src/lib/attachments";
+import { parseWalletLogoAndBg } from "./src/data/walletPresets";
 import {
   MOTION_DURATIONS,
   MOTION_EASE,
@@ -936,6 +937,8 @@ export default function App() {
   };
 
   const handleDeleteWallet = (targetWallet: Wallet) => {
+    const parsedBg = parseWalletLogoAndBg(targetWallet.logoKey).bgPresetKey;
+    deleteCardBgFile(parsedBg);
     const nextWallets = walletsRef.current.filter(
       (w) => w.id !== targetWallet.id
     );
