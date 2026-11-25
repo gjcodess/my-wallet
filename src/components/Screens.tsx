@@ -3762,7 +3762,7 @@ function SettingsGroup({
 }) {
   return (
     <View style={styles.settingsGroup}>
-      <Text style={[styles.settingsGroupTitle, { color: theme.muted }]}>
+      <Text style={[styles.settingsGroupTitle, { color: theme.ink }]}>
         {title}
       </Text>
       <View
@@ -5753,11 +5753,12 @@ const styles = StyleSheet.create({
     marginBottom: 19,
   },
   settingsGroupTitle: {
-    fontFamily: "Poppins_700Bold",
-    fontWeight: "700",
-    fontSize: 12,
-    marginHorizontal: 4,
-    marginBottom: 8,
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 19,
+    letterSpacing: -0.4,
+    marginHorizontal: 2,
+    marginBottom: 10,
   },
   settingsGroupBox: {
     borderRadius: 22,
