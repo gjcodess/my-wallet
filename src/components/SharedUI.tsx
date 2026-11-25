@@ -427,7 +427,12 @@ export const DarkLeatherSurface = React.memo(function DarkLeatherSurface({
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <LinearGradient
-        colors={theme.leather.colors}
+        colors={[
+          theme.leather.colors[1],
+          theme.leather.colors[1],
+          theme.leather.colors[2],
+        ]}
+        locations={[0, 0.55, 1]}
         start={{ x: 0.1, y: 0 }}
         end={{ x: 0.9, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -964,7 +969,21 @@ function NavLeatherSurface({ theme, round = false }: { theme: ThemeColors; round
   const thread = round ? theme.leather.accent : theme.leather.thread;
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <LinearGradient colors={round ? ["#fffefa", "#f3eee5", "#e6ddcf"] : theme.leather.colors} style={StyleSheet.absoluteFill} />
+      <LinearGradient
+        colors={
+          round
+            ? ["#fffefa", "#f3eee5", "#e6ddcf"]
+            : [
+                theme.leather.colors[1],
+                theme.leather.colors[1],
+                theme.leather.colors[2],
+              ]
+        }
+        locations={round ? undefined : [0, 0.55, 1]}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       <Svg width="100%" height="100%" viewBox={round ? "0 0 62 62" : "0 0 300 62"} preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
         <Defs>
           <Pattern id={grainId} width={6} height={6} patternUnits="userSpaceOnUse">

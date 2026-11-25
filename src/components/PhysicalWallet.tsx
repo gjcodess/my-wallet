@@ -110,8 +110,8 @@ const LeatherPanel = React.memo(function LeatherPanel({
     >
       <Defs>
         <LinearGradient id={light} x1="10%" y1="0%" x2="90%" y2="100%">
-          <Stop offset="0" stopColor={finish.colors[0]} />
-          <Stop offset="0.42" stopColor={finish.colors[1]} />
+          <Stop offset="0" stopColor={finish.colors[1]} />
+          <Stop offset="0.55" stopColor={finish.colors[1]} />
           <Stop offset="1" stopColor={finish.colors[2]} />
         </LinearGradient>
         <Pattern id={grain} width={6} height={6} patternUnits="userSpaceOnUse">
@@ -836,7 +836,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
               <Pressable accessibilityRole="button" accessibilityLabel={"Update " + liftedWallet.name} disabled={busy} style={styles.focusMenu} onPress={() => { const wallet = liftedWallet; void move(async () => { if (await play(0, 260)) { setLiftedId(null); onOpenMenu(wallet); } }); }}>
                 <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
                   <Defs>
-                    <LinearGradient id="updateLeather" x1="0%" y1="0%" x2="100%" y2="100%"><Stop offset="0" stopColor={theme.leather.colors[0]} /><Stop offset="0.42" stopColor={theme.leather.colors[1]} /><Stop offset="1" stopColor={theme.leather.colors[2]} /></LinearGradient>
+                    <LinearGradient id="updateLeather" x1="0%" y1="0%" x2="100%" y2="100%"><Stop offset="0" stopColor={theme.leather.colors[1]} /><Stop offset="0.55" stopColor={theme.leather.colors[1]} /><Stop offset="1" stopColor={theme.leather.colors[2]} /></LinearGradient>
                     <Pattern id="updateGrain" width={6} height={6} patternUnits="userSpaceOnUse"><Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth="0.7" opacity="0.45" /><Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke="#a2b0bd" strokeWidth="0.65" opacity="0.26" /></Pattern>
                   </Defs>
                   <Rect x="1" y="1" width="98%" height="96%" rx="16" fill="url(#updateLeather)" stroke={theme.leather.edge} strokeWidth="1.5" />

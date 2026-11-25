@@ -3121,9 +3121,13 @@ export function SheetModal({
                           >
                             <LinearGradient
                               colors={[
-                                theme.leather.colors[0],
                                 theme.leather.colors[1],
+                                theme.leather.colors[1],
+                                theme.leather.colors[2],
                               ]}
+                              locations={[0, 0.55, 1]}
+                              start={{ x: 0.1, y: 0 }}
+                              end={{ x: 0.9, y: 1 }}
                               style={styles.transferSwapInner}
                             >
                               <Icon name="swap" size={16} color="#ffffff" />
