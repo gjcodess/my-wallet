@@ -5709,9 +5709,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   walletOverviewTitle: {
-    fontFamily: "Poppins_800ExtraBold",
-    fontWeight: "800",
-    fontSize: 16,
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 19,
+    letterSpacing: -0.4,
   },
   walletOverviewRangePill: {
     flexDirection: "row",

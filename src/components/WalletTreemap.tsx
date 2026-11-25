@@ -888,9 +888,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   title: {
-    fontFamily: "Poppins_800ExtraBold",
-    fontWeight: "800",
-    fontSize: 16,
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 19,
+    letterSpacing: -0.4,
   },
   sub: {
     fontFamily: "Poppins_600SemiBold",
