@@ -1689,7 +1689,18 @@ export const WalletsScreen = React.memo(function WalletsScreen({
       )}
 
       {hiddenWallets.length > 0 ? (
-        <View style={styles.hiddenWalletsSection}>
+        <View
+          style={[
+            styles.hiddenWalletsCard,
+            {
+              overflow: "hidden",
+              backgroundColor: theme.card,
+              borderColor: hexToRgba(theme.leather.accent, 0.24),
+            },
+            cardShadow(theme.dark),
+          ]}
+        >
+          <LightLeatherSurface theme={theme} radius={18} />
           <Pressable
             onPress={() => {
               LayoutAnimation.configureNext(
@@ -1699,16 +1710,9 @@ export const WalletsScreen = React.memo(function WalletsScreen({
             }}
             style={({ pressed }) => [
               styles.hiddenWalletsToggle,
-              {
-                overflow: "hidden",
-                backgroundColor: theme.card,
-                borderColor: hexToRgba(theme.leather.accent, 0.24),
-                opacity: pressed ? 0.85 : 1,
-              },
-              cardShadow(theme.dark),
+              { opacity: pressed ? 0.78 : 1 },
             ]}
           >
-            <LightLeatherSurface theme={theme} radius={16} />
             <Icon name="eye-off" size={15} color={theme.leather.accent} />
             <Text style={[styles.hiddenWalletsTitle, { color: theme.ink }]}>
               Hidden cards ({hiddenWallets.length})
@@ -1718,7 +1722,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
             </Text>
             <Icon
               name={showHiddenWallets ? "down" : "chevron"}
-              size={15}
+              size={14}
               color={theme.muted}
             />
           </Pressable>
@@ -1726,104 +1730,79 @@ export const WalletsScreen = React.memo(function WalletsScreen({
           {showHiddenWallets ? (
             <View style={styles.hiddenWalletsList}>
               {hiddenWallets.map((hw) => {
-                const pal = tonePalette[hw.tone] || tonePalette.blue;
-                const design = resolveWalletCardDesign(hw.logoKey, hw.name);
-                const badgeInk = design ? design.ink : pal.ink;
                 return (
-                  <Pressable
-                    key={hw.id}
-                    onPress={() => onWallet(hw)}
-                    style={({ pressed }) => [
-                      styles.hiddenWalletRow,
-                      {
-                        overflow: "hidden",
-                        backgroundColor: theme.card,
-                        borderColor: hexToRgba(theme.leather.accent, 0.2),
-                        transform: [{ scale: pressed ? 0.985 : 1 }],
-                      },
-                    ]}
-                  >
-                    <LightLeatherSurface theme={theme} radius={16} />
+                  <View key={hw.id}>
                     <View
                       style={[
-                        styles.hiddenWalletBadge,
-                        {
-                          overflow: "hidden",
-                          backgroundColor: design
-                            ? design.isDark
-                              ? "#090e17"
-                              : "#edf3ec"
-                            : pal.to,
-                        },
+                        styles.hiddenWalletsDivider,
+                        { backgroundColor: hexToRgba(theme.leather.accent, 0.14) },
+                      ]}
+                    />
+                    <Pressable
+                      onPress={() => onWallet(hw)}
+                      style={({ pressed }) => [
+                        styles.hiddenWalletRow,
+                        { opacity: pressed ? 0.78 : 1 },
                       ]}
                     >
-                      {design ? (
-                        <Svg width={36} height={36}>
-                          <SvgImage
-                            href={design.source}
-                            x={0}
-                            y={0}
-                            width={36}
-                            height={36}
-                            preserveAspectRatio="xMaxYMid slice"
-                          />
-                        </Svg>
-                      ) : (
-                        <TexturedGradientSurface
-                          fromColor={pal.from}
-                          toColor={pal.to}
-                          subtle
-                        />
-                      )}
                       <WalletLogoBadge
                         logoKey={hw.logoKey}
                         name={hw.name}
                         mark={hw.mark}
                         size={36}
                         radius={11}
-                        ink={badgeInk}
-                        fontSize={9}
+                        ink={theme.ink}
+                        fontSize={10}
                       />
-                    </View>
-                    <View style={{ flex: 1, gap: 1 }}>
-                      <Text
-                        style={[styles.hiddenWalletName, { color: theme.ink }]}
-                        numberOfLines={1}
-                      >
-                        {hw.name}
-                      </Text>
-                      <Text
-                        style={[styles.hiddenWalletBal, { color: theme.muted }]}
-                        numberOfLines={1}
-                      >
-                        {hidden ? "₱••••" : money(hw.balance)} · {hw.type}
-                      </Text>
-                    </View>
-                    {onToggleWalletHidden ? (
-                      <Pressable
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          LayoutAnimation.configureNext(
-                            LayoutAnimation.Presets.easeInEaseOut
-                          );
-                          onToggleWalletHidden(hw);
-                        }}
-                        hitSlop={6}
-                        style={({ pressed }) => [
-                          styles.unhideBtn,
-                          {
-                            overflow: "hidden",
-                            borderColor: theme.leather.edge,
-                            transform: [{ scale: pressed ? 0.95 : 1 }],
-                          },
-                        ]}
-                      >
-                        <DarkLeatherSurface theme={theme} radius={11} />
-                        <Icon name="eye" size={12.5} color="#ffffff" />
-                        <Text style={styles.unhideBtnText}>Unhide</Text>
-                      </Pressable>
-                    ) : null}
-                  </Pressable>
+                      <View style={{ flex: 1, gap: 1 }}>
+                        <Text
+                          style={[styles.hiddenWalletName, { color: theme.ink }]}
+                          numberOfLines={1}
+                        >
+                          {hw.name}
+                        </Text>
+                        <Text
+                          style={[styles.hiddenWalletBal, { color: theme.muted }]}
+                          numberOfLines={1}
+                        >
+                          {hidden ? "₱••••" : money(hw.balance)} · {hw.type}
+                        </Text>
+                      </View>
+                      {onToggleWalletHidden ? (
+                        <Pressable
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            LayoutAnimation.configureNext(
+                              LayoutAnimation.Presets.easeInEaseOut
+                            );
+                            onToggleWalletHidden(hw);
+                          }}
+                          hitSlop={6}
+                          style={({ pressed }) => [
+                            styles.unhideBtn,
+                            {
+                              backgroundColor: hexToRgba(
+                                theme.leather.accent,
+                                theme.dark ? 0.22 : 0.12
+                              ),
+                              borderColor: hexToRgba(theme.leather.accent, 0.28),
+                              transform: [{ scale: pressed ? 0.95 : 1 }],
+                            },
+                          ]}
+                        >
+                          <Icon name="eye" size={13} color={theme.leather.accent} />
+                          <Text
+                            style={[
+                              styles.unhideBtnText,
+                              { color: theme.leather.accent },
+                            ]}
+                          >
+                            Unhide
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </Pressable>
+                  </View>
                 );
               })}
             </View>
@@ -3974,15 +3953,15 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     includeFontPadding: false,
   },
-  hiddenWalletsSection: {
+  hiddenWalletsCard: {
     marginTop: 14,
-    gap: 8,
+    borderRadius: 18,
+    borderWidth: 1,
   },
   hiddenWalletsToggle: {
-    height: 44,
-    borderRadius: 16,
-    borderWidth: 1,
+    minHeight: 48,
     paddingHorizontal: 14,
+    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -3990,7 +3969,7 @@ const styles = StyleSheet.create({
   hiddenWalletsTitle: {
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
-    fontSize: 12.5,
+    fontSize: 13,
     includeFontPadding: false,
     marginTop: 1,
   },
@@ -4004,23 +3983,19 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   hiddenWalletsList: {
-    gap: 8,
+    paddingBottom: 4,
+  },
+  hiddenWalletsDivider: {
+    height: 1,
+    marginHorizontal: 14,
   },
   hiddenWalletRow: {
-    height: 60,
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingHorizontal: 12,
+    minHeight: 58,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-  },
-  hiddenWalletBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
+    gap: 11,
   },
   hiddenWalletName: {
     fontFamily: "Poppins_700Bold",
@@ -4030,23 +4005,22 @@ const styles = StyleSheet.create({
   hiddenWalletBal: {
     fontFamily: "Poppins_500Medium",
     fontWeight: "500",
-    fontSize: 11,
+    fontSize: 11.5,
   },
   unhideBtn: {
-    height: 30,
-    borderRadius: 11,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 1,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
   },
   unhideBtnText: {
-    color: "#ffffff",
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 11.5,
+    lineHeight: 15,
     includeFontPadding: false,
     marginTop: 1,
   },
