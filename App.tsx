@@ -62,19 +62,24 @@ import {
   deleteSchedule,
   recordWalletActivity,
   saveSchedule,
-  queueDeletedActivityIds,
-  queueDeletedWalletIds,
   saveActivitiesToSQLite,
   saveSettingToSQLite,
   saveWalletsToSQLite,
-  syncWithSupabase,
+  restoreLocalStateToSQLite,
+  eraseAllLocalData,
 } from "./src/lib/sqlite";
-import { supabase } from "./src/lib/supabase";
+import {
+  buildBackupPayload,
+  exportBackupJsonFile,
+  pickAndParseBackupFile,
+  PitakaBackupPayload,
+} from "./src/lib/backup";
 import {
   LeatherFinishId,
   resolveLeatherFinish,
   BottomNav,
   cardShadow,
+  ConfirmBottomSheet,
   DarkLeatherSurface,
   EdgeFade,
   getThemeColors,
@@ -158,9 +163,12 @@ export default function App() {
     setIntroDismissing(true);
     setShowIntro(false);
   }, []);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [confirmExportOpen, setConfirmExportOpen] = useState(false);
+  const [pendingRestore, setPendingRestore] = useState<{
+    payload: PitakaBackupPayload;
+    fileName: string;
+  } | null>(null);
+  const [confirmEraseOpen, setConfirmEraseOpen] = useState(false);
   const [appLockPin, setAppLockPin] = useState<string | null>(null);
   const [biometricsSupported, setBiometricsSupported] = useState(false);
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
@@ -295,7 +303,6 @@ export default function App() {
   walletsRef.current = wallets;
   const activitiesRef = useRef(activityItems);
   activitiesRef.current = activityItems;
-  const syncScheduledRef = useRef(false);
 
   const handleStackDragChange = useCallback((dragging: boolean) => {
     if (stackDraggingRef.current === dragging) return;
@@ -517,7 +524,6 @@ export default function App() {
         setLeatherFinish(resolveLeatherFinish(state.leatherFinish).id);
         setHidden(state.hidden);
         setProfile(state.profile);
-        setLastSyncedAt(state.lastSyncedAt);
         setAppLockPin(state.appLockPin);
         setBiometricsEnabled(state.biometricsEnabled);
         setMonthlyBudget(state.monthlyBudget);
@@ -574,26 +580,7 @@ export default function App() {
     return () => listener.remove();
   }, [dbReady, schedules, activityItems]);
 
-  // 2. Listen to Supabase Auth session
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUserId(session?.user?.id ?? null);
-      setUserEmail(session?.user?.email ?? null);
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUserId(session?.user?.id ?? null);
-        setUserEmail(session?.user?.email ?? null);
-      }
-    );
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
-  // 2b. Re-lock when app goes to background while App Lock PIN is active
+  // 2. Re-lock when app goes to background while App Lock PIN is active
   useEffect(() => {
     const sub = AppState.addEventListener("change", (nextState) => {
       if (nextState === "background" && appLockPinRef.current) {
@@ -648,46 +635,89 @@ export default function App() {
     if (dbReady) saveSettingToSQLite("leather_finish", leatherFinish).catch(() => {});
   }, [leatherFinish, dbReady]);
 
-  // 4. Cloud Sync helper with Supabase PostgreSQL
-  const handleSyncNow = useCallback(async () => {
-    if (!userId) return;
-    const res = await syncWithSupabase({
-      userId,
-      wallets,
-      activities: activityItems,
-      dark,
-      hidden,
-      profile,
-    });
-    if (res.ok) {
-      if (res.wallets) setWallets(res.wallets);
-      if (res.activities) setActivityItems(res.activities);
-      if (res.syncedAt) setLastSyncedAt(res.syncedAt);
-      setToast(res.message);
-    } else {
-      setToast(res.message);
-    }
-  }, [userId, wallets, activityItems, dark, hidden, profile]);
-
-  // Trigger sync automatically when user signs in
-  useEffect(() => {
-    if (dbReady && userId) {
-      syncWithSupabase({
-        userId,
-        wallets,
-        activities: activityItems,
-        dark,
-        hidden,
+  // 2. Local JSON backup, restore & erase handlers
+  const handleConfirmExportBackup = useCallback(async () => {
+    setConfirmExportOpen(false);
+    try {
+      const payload = buildBackupPayload({
+        wallets: walletsRef.current,
+        activities: activitiesRef.current,
+        schedules,
         profile,
-      }).then((res) => {
-        if (res.ok) {
-          if (res.wallets) setWallets(res.wallets);
-          if (res.activities) setActivityItems(res.activities);
-          if (res.syncedAt) setLastSyncedAt(res.syncedAt);
-        }
+        leatherFinish,
+        hidden,
+        monthlyBudget,
+        categoryLimits,
+        favorites,
       });
+      const res = await exportBackupJsonFile(payload);
+      setToast(res.ok ? "Backup exported" : res.error || "Could not export backup");
+    } catch {
+      setToast("Could not export backup");
     }
-  }, [userId, dbReady]);
+  }, [schedules, profile, leatherFinish, hidden, monthlyBudget, categoryLimits, favorites]);
+
+  const handlePickRestoreBackup = useCallback(async () => {
+    const res = await pickAndParseBackupFile();
+    if (res.canceled) return;
+    if (!res.payload) {
+      setToast(res.error || "Could not read backup file");
+      return;
+    }
+    setPendingRestore({
+      payload: res.payload,
+      fileName: res.fileName || "backup.json",
+    });
+  }, []);
+
+  const handleConfirmRestoreBackup = useCallback(async () => {
+    const target = pendingRestore;
+    setPendingRestore(null);
+    if (!target) return;
+    try {
+      await restoreLocalStateToSQLite(target.payload);
+      const p = target.payload.data;
+      walletsRef.current = p.wallets;
+      setWallets(p.wallets);
+      activitiesRef.current = p.activities;
+      setActivityItems(p.activities);
+      setSchedules(p.schedules);
+      setProfile(p.profile);
+      setLeatherFinish(resolveLeatherFinish(p.leatherFinish).id);
+      setHidden(p.hidden);
+      setMonthlyBudget(p.monthlyBudget);
+      setCategoryLimits(p.categoryLimits);
+      setFavorites(p.favorites);
+      setSelectedId(null);
+      setToast("Backup restored");
+    } catch {
+      setToast("Could not restore backup");
+    }
+  }, [pendingRestore]);
+
+  const handleConfirmEraseData = useCallback(async () => {
+    setConfirmEraseOpen(false);
+    try {
+      await eraseAllLocalData();
+      walletsRef.current = [];
+      setWallets([]);
+      activitiesRef.current = [];
+      setActivityItems([]);
+      setSchedules([]);
+      setProfile({ fullName: "My Wallet", initials: "MW" });
+      setLeatherFinish(resolveLeatherFinish(undefined).id);
+      setHidden(false);
+      setMonthlyBudget(null);
+      setCategoryLimits({});
+      setFavorites([]);
+      setSelectedId(null);
+      setAppLockPin(null);
+      setBiometricsEnabled(false);
+      setToast("All local data erased");
+    } catch {
+      setToast("Could not erase data");
+    }
+  }, []);
 
   // 5. Auto-hide Toast after 2.4s
   useEffect(() => {
@@ -757,22 +787,6 @@ export default function App() {
     });
   }, [detailAnim]);
 
-  const scheduleCloudSync = useCallback(() => {
-    if (!userId || syncScheduledRef.current) return;
-    syncScheduledRef.current = true;
-    Promise.resolve().then(() => {
-      syncScheduledRef.current = false;
-      syncWithSupabase({
-        userId,
-        wallets: walletsRef.current,
-        activities: activitiesRef.current,
-        dark,
-        hidden,
-        profile,
-      }).catch(() => {});
-    });
-  }, [userId, dark, hidden, profile]);
-
   const buildActivity = (item: Omit<ActivityItem, "id" | "date">): ActivityItem => {
     const nowIso = item.occurredAt || new Date().toISOString();
     const timeStr = new Intl.DateTimeFormat("en-PH", {
@@ -796,7 +810,6 @@ export default function App() {
     const nextActivities = [item, ...activitiesRef.current];
     activitiesRef.current = nextActivities;
     setActivityItems(nextActivities);
-    scheduleCloudSync();
   };
 
   const recordActivity = (item: Omit<ActivityItem, "id" | "date">) => {
@@ -891,7 +904,6 @@ export default function App() {
     });
     activitiesRef.current = nextActivities;
     setActivityItems(nextActivities);
-    scheduleCloudSync();
   };
 
   const handleUpdateActivity = (
@@ -916,7 +928,6 @@ export default function App() {
     setSheetActivity((prev) =>
       prev && prev.id === updatedItem.id ? updatedItem : prev
     );
-    scheduleCloudSync();
   };
 
   const handleDeleteActivity = (
@@ -931,9 +942,6 @@ export default function App() {
     );
     activitiesRef.current = nextActivities;
     setActivityItems(nextActivities);
-    const localId = deletedItem.localId || `tx-${deletedItem.id}`;
-    queueDeletedActivityIds([localId]).catch(() => {});
-    scheduleCloudSync();
   };
 
   const handleDeleteWallet = (targetWallet: Wallet) => {
@@ -947,8 +955,6 @@ export default function App() {
     if (selectedId === targetWallet.id) {
       setSelectedId(null);
     }
-    queueDeletedWalletIds([getWalletLocalId(targetWallet)]).catch(() => {});
-    scheduleCloudSync();
   };
 
   const handleReorderWallets = useCallback((nextWallets: Wallet[]) => {
@@ -960,8 +966,7 @@ export default function App() {
     }));
     walletsRef.current = stamped;
     setWallets(stamped);
-    scheduleCloudSync();
-  }, [scheduleCloudSync]);
+  }, []);
 
   const [pendingHideWallet, setPendingHideWallet] = useState<Wallet | null>(null);
   const [renderedHideWallet, setRenderedHideWallet] = useState<Wallet | null>(null);
@@ -1055,6 +1060,9 @@ export default function App() {
   );
 
   const backHandlerStateRef = useRef({
+    confirmExportOpen: false,
+    pendingRestore: null as { payload: PitakaBackupPayload; fileName: string } | null,
+    confirmEraseOpen: false,
     renderedExitConfirm: false,
     renderedHideWallet: null as Wallet | null,
     lockModalMode: null as AppLockMode | null,
@@ -1063,6 +1071,9 @@ export default function App() {
     tab: "home" as Tab,
   });
   backHandlerStateRef.current = {
+    confirmExportOpen,
+    pendingRestore,
+    confirmEraseOpen,
     renderedExitConfirm,
     renderedHideWallet,
     lockModalMode,
@@ -1071,11 +1082,28 @@ export default function App() {
     tab,
   };
 
-  const hasTopConfirmModal = renderedHideWallet !== null || renderedExitConfirm;
+  const hasTopConfirmModal =
+    renderedHideWallet !== null ||
+    renderedExitConfirm ||
+    confirmExportOpen ||
+    pendingRestore !== null ||
+    confirmEraseOpen;
 
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
       const s = backHandlerStateRef.current;
+      if (s.confirmEraseOpen) {
+        setConfirmEraseOpen(false);
+        return true;
+      }
+      if (s.pendingRestore !== null) {
+        setPendingRestore(null);
+        return true;
+      }
+      if (s.confirmExportOpen) {
+        setConfirmExportOpen(false);
+        return true;
+      }
       if (s.renderedExitConfirm) {
         dismissExitConfirm();
         return true;
@@ -1119,14 +1147,13 @@ export default function App() {
       if (nextHidden && selectedId === targetWallet.id) {
         handleCloseWalletDetail();
       }
-      scheduleCloudSync();
       setToast(
         nextHidden
           ? `${targetWallet.name} hidden from totals`
           : `${targetWallet.name} restored to wallet`
       );
     },
-    [handleCloseWalletDetail, scheduleCloudSync, selectedId]
+    [handleCloseWalletDetail, selectedId]
   );
 
   const handleToggleWalletHidden = useCallback((targetWallet: Wallet) => {
@@ -1468,16 +1495,16 @@ export default function App() {
                         setHidden={setHidden}
                         showToast={setToast}
                         profile={profile}
-                        userEmail={userEmail}
-                        lastSyncedAt={lastSyncedAt}
                         appLockEnabled={Boolean(appLockPin)}
                         biometricsSupported={biometricsSupported}
                         biometricsEnabled={biometricsEnabled}
                         onToggleAppLock={handleToggleAppLock}
                         onChangeAppLockPin={handleChangeAppLockPin}
                         onToggleBiometrics={handleToggleBiometrics}
-                        onOpenAuth={handleOpenAuthSheet}
-                        onSyncNow={handleSyncNow}
+                        onOpenProfile={handleOpenAuthSheet}
+                        onRequestExportBackup={() => setConfirmExportOpen(true)}
+                        onRequestRestoreBackup={handlePickRestoreBackup}
+                        onRequestEraseData={() => setConfirmEraseOpen(true)}
                         monthlyBudget={monthlyBudget}
                         walletCount={wallets.length}
                         activityCount={activityItems.length}
@@ -1692,7 +1719,6 @@ export default function App() {
           onSaveWallets={(nextWallets) => {
             walletsRef.current = nextWallets;
             setWallets(nextWallets);
-            scheduleCloudSync();
           }}
           onDeleteWallet={handleDeleteWallet}
           onToggleWalletHidden={handleToggleWalletHidden}
@@ -1727,8 +1753,6 @@ export default function App() {
               next && next > 0 ? String(next) : ""
             ).catch(() => {});
           }}
-          userEmail={userEmail}
-          onSyncNow={handleSyncNow}
           theme={theme}
         />
       )}
@@ -1971,6 +1995,42 @@ export default function App() {
           </Animated.View>
         </View>
       ) : null}
+      <ConfirmBottomSheet
+        visible={confirmExportOpen}
+        icon="download"
+        title="Export local backup?"
+        message={`Save a JSON snapshot of your ${wallets.length} ${wallets.length === 1 ? "card" : "cards"}, ${activityItems.length} ${activityItems.length === 1 ? "entry" : "entries"}, schedules, and settings to your device.`}
+        confirmLabel="Export JSON"
+        onConfirm={handleConfirmExportBackup}
+        onCancel={() => setConfirmExportOpen(false)}
+        theme={theme}
+      />
+      <ConfirmBottomSheet
+        visible={pendingRestore !== null}
+        icon="upload"
+        title="Restore from backup?"
+        message={
+          pendingRestore
+            ? `Replace your current local data with "${pendingRestore.fileName}" (${pendingRestore.payload.data.wallets.length} ${pendingRestore.payload.data.wallets.length === 1 ? "card" : "cards"}, ${pendingRestore.payload.data.activities.length} ${pendingRestore.payload.data.activities.length === 1 ? "entry" : "entries"})?`
+            : ""
+        }
+        confirmLabel="Restore data"
+        destructive
+        onConfirm={handleConfirmRestoreBackup}
+        onCancel={() => setPendingRestore(null)}
+        theme={theme}
+      />
+      <ConfirmBottomSheet
+        visible={confirmEraseOpen}
+        icon="trash"
+        title="Erase all local data?"
+        message="This permanently deletes all cards, transactions, schedules, attachments, and settings on this device. This cannot be undone."
+        confirmLabel="Erase everything"
+        destructive
+        onConfirm={handleConfirmEraseData}
+        onCancel={() => setConfirmEraseOpen(false)}
+        theme={theme}
+      />
       </View>
     </SafeAreaProvider>
   );

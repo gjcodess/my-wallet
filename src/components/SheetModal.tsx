@@ -79,7 +79,6 @@ import {
   WalletPresetGroup,
   walletPresets,
 } from "../data/walletPresets";
-import { supabase } from "../lib/supabase";
 
 const WALLET_CATEGORIES = ["E-wallet", "Bank", "Cash", "Savings"];
 const PRESET_GROUPS: ("All" | WalletPresetGroup)[] = [
@@ -132,8 +131,6 @@ export function SheetModal({
   budgetCategory,
   onSaveCategoryLimit,
   onSaveMonthlyBudget,
-  userEmail,
-  onSyncNow,
   theme,
 }: {
   type: Exclude<Sheet, null>;
@@ -177,8 +174,6 @@ export function SheetModal({
   budgetCategory: string | null;
   onSaveCategoryLimit: (category: string, limit: number | null) => Promise<void>;
   onSaveMonthlyBudget?: (next: number | null) => void;
-  userEmail: string | null;
-  onSyncNow: () => Promise<void>;
   theme: ThemeColors;
 }) {
   const insets = useSafeAreaInsets();
@@ -431,13 +426,8 @@ export function SheetModal({
     }
   }, [type, activity?.id]);
 
-  // Auth / Profile states
+  // Profile states
   const [fullNameInput, setFullNameInput] = useState(profile.fullName);
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState("");
 
   const activeWallets = useMemo(() => {
     const visible = wallets.filter((w) => !w.isHidden);
@@ -537,7 +527,7 @@ export function SheetModal({
         label: "Settings",
         sub: "Theme, accent color, PIN lock, sync",
         icon: "settings",
-        keywords: "dark mode theme accent pin lock biometrics backup supabase",
+        keywords: "dark mode theme accent pin lock biometrics backup json export offline",
         tab: "settings",
       },
     ];
@@ -982,43 +972,6 @@ export function SheetModal({
     }
   };
 
-  const handleAuthSubmit = async () => {
-    setAuthError("");
-    if (!email.trim() || !password.trim()) {
-      setAuthError("Please enter both email and password.");
-      return;
-    }
-    setAuthLoading(true);
-    try {
-      if (authMode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-        });
-        if (error) throw error;
-        onDone("Account ready & syncing with Supabase");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-        if (error) throw error;
-        onDone("Signed in & synced with Supabase");
-      }
-    } catch (err: any) {
-      setAuthError(err?.message || "Authentication failed");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    setAuthLoading(true);
-    await supabase.auth.signOut();
-    setAuthLoading(false);
-    onDone("Signed out · Offline SQLite active");
-  };
-
   const handleSaveProfileName = () => {
     const trimmed = fullNameInput.trim() || "Justin Santos";
     const parts = trimmed.split(/\s+/);
@@ -1055,7 +1008,7 @@ export function SheetModal({
                     ? "Search"
                     : type === "categories"
                       ? "All Categories"
-                      : type === "schedule" ? "Bills & paydays" : "Account & Cloud Sync";
+                      : type === "schedule" ? "Bills & paydays" : "Wallet Profile";
 
   const renderCategoryGrid = (
     items: [string, string][],
@@ -5338,10 +5291,9 @@ export function SheetModal({
               );
             })()}
 
-            {/* ==================== SUPABASE AUTH & PROFILE SHEET ==================== */}
+            {/* ==================== OFFLINE WALLET PROFILE SHEET ==================== */}
             {type === "auth" && (
               <View>
-                {/* Local Profile Customization */}
                 <Text
                   style={[
                     styles.formTitle,
@@ -5379,275 +5331,20 @@ export function SheetModal({
                     styles.txWalletCtaBtn,
                     {
                       overflow: "hidden",
-                      backgroundColor: theme.card,
-                      borderColor: hexToRgba(theme.leather.accent, 0.28),
-                      marginTop: 0,
-                      marginBottom: 18,
+                      backgroundColor: theme.leather.colors[1],
+                      borderColor: theme.leather.edge,
+                      marginTop: 4,
                       transform: [{ scale: pressed ? 0.98 : 1 }],
                     },
                     cardShadow(theme.dark),
                   ]}
                 >
-                  <LightLeatherSurface theme={theme} radius={16} />
-                  <Icon name="check" size={16} color={theme.leather.accent} />
-                  <Text style={[styles.secondaryButtonText, { color: theme.ink }]}>
+                  <DarkLeatherSurface theme={theme} radius={16} />
+                  <Icon name="check" size={16} color="#ffffff" />
+                  <Text style={[styles.secondaryButtonText, { color: "#ffffff" }]}>
                     Update Display Name
                   </Text>
                 </Pressable>
-
-                {/* Cloud Backup Section */}
-                <Text style={[styles.formTitle, { color: theme.ink }]}>
-                  Cloud Backup
-                </Text>
-
-                {userEmail ? (
-                  <View style={{ gap: 10 }}>
-                    <View
-                      style={[
-                        styles.confirmPanel,
-                        {
-                          overflow: "hidden",
-                          backgroundColor: theme.leather.colors[1],
-                          borderWidth: 1,
-                          borderColor: theme.leather.edge,
-                          borderRadius: 20,
-                        },
-                        cardShadow(theme.dark),
-                      ]}
-                    >
-                      <DarkLeatherSurface theme={theme} radius={20} />
-                      <Text style={[styles.confirmSub, { color: theme.heroMuted }]}>
-                        Signed in as
-                      </Text>
-                      <Text
-                        style={[
-                          styles.confirmAmount,
-                          { fontSize: 18, marginVertical: 4, color: "#ffffff" },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {userEmail}
-                      </Text>
-                      <Text style={[styles.confirmSub, { color: theme.heroMuted }]}>
-                        Encrypted cloud sync active
-                      </Text>
-                    </View>
-
-                    <Pressable
-                      disabled={authLoading}
-                      onPress={async () => {
-                        setAuthLoading(true);
-                        await onSyncNow();
-                        setAuthLoading(false);
-                        onClose();
-                      }}
-                      style={({ pressed }) => [
-                        styles.txWalletCtaBtn,
-                        {
-                          overflow: "hidden",
-                          backgroundColor: theme.leather.colors[1],
-                          borderColor: theme.leather.edge,
-                          marginTop: 0,
-                          opacity: authLoading ? 0.65 : 1,
-                          transform: [{ scale: pressed && !authLoading ? 0.98 : 1 }],
-                        },
-                        cardShadow(theme.dark),
-                      ]}
-                    >
-                      <DarkLeatherSurface theme={theme} radius={16} />
-                      <Icon name="cloud" size={16} color="#ffffff" />
-                      <Text style={[styles.secondaryButtonText, { color: "#ffffff" }]}>
-                        {authLoading ? "Syncing…" : "Sync Now"}
-                      </Text>
-                    </Pressable>
-
-                    <Pressable
-                      onPress={handleSignOut}
-                      style={({ pressed }) => [
-                        styles.txWalletCtaBtn,
-                        {
-                          overflow: "hidden",
-                          backgroundColor: theme.card,
-                          borderColor: hexToRgba("#9e3c42", 0.34),
-                          marginTop: 0,
-                          transform: [{ scale: pressed ? 0.98 : 1 }],
-                        },
-                        cardShadow(theme.dark),
-                      ]}
-                    >
-                      <LightLeatherSurface theme={theme} radius={16} />
-                      <Icon
-                        name="logout"
-                        size={15}
-                        color={theme.dark ? "#f28b82" : "#9e3c42"}
-                      />
-                      <Text
-                        style={[
-                          styles.secondaryButtonText,
-                          { color: theme.dark ? "#f28b82" : "#9e3c42" },
-                        ]}
-                      >
-                        Sign Out
-                      </Text>
-                    </Pressable>
-                  </View>
-                ) : (
-                  <View>
-                    <View
-                      style={[
-                        styles.entryToggle,
-                        {
-                          overflow: "hidden",
-                          backgroundColor: theme.card,
-                          borderColor: hexToRgba(theme.leather.accent, 0.24),
-                        },
-                      ]}
-                    >
-                      <LightLeatherSurface theme={theme} radius={16} />
-                      {(["signin", "signup"] as const).map((m) => {
-                        const active = authMode === m;
-                        return (
-                          <Pressable
-                            key={m}
-                            onPress={() => {
-                              setAuthMode(m);
-                              setAuthError("");
-                            }}
-                            style={[
-                              styles.entryToggleBtn,
-                              { overflow: "hidden" },
-                              active && {
-                                backgroundColor: theme.leather.colors[1],
-                              },
-                            ]}
-                          >
-                            {active ? (
-                              <DarkLeatherSurface theme={theme} radius={12} />
-                            ) : null}
-                            <Text
-                              style={[
-                                styles.entryToggleText,
-                                { color: active ? "#ffffff" : theme.muted },
-                              ]}
-                            >
-                              {m === "signin" ? "Sign In" : "Create Account"}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-
-                    <View
-                      style={[
-                        styles.softField,
-                        {
-                          overflow: "hidden",
-                          backgroundColor: theme.card,
-                          borderColor: hexToRgba(theme.leather.accent, 0.24),
-                        },
-                        cardShadow(theme.dark),
-                      ]}
-                    >
-                      <LightLeatherSurface theme={theme} radius={16} />
-                      <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                        Email address
-                      </Text>
-                      <TextInput
-                        value={email}
-                        onChangeText={setEmail}
-                        autoCapitalize="none"
-                        keyboardType="email-address"
-                        placeholder="you@example.com"
-                        placeholderTextColor={theme.muted}
-                        style={[styles.fieldInput, { color: theme.ink }]}
-                      />
-                    </View>
-
-                    <View
-                      style={[
-                        styles.softField,
-                        {
-                          overflow: "hidden",
-                          backgroundColor: theme.card,
-                          borderColor: hexToRgba(theme.leather.accent, 0.24),
-                        },
-                        cardShadow(theme.dark),
-                      ]}
-                    >
-                      <LightLeatherSurface theme={theme} radius={16} />
-                      <Text style={[styles.fieldLabel, { color: theme.muted }]}>
-                        Password
-                      </Text>
-                      <TextInput
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry
-                        placeholder="••••••••"
-                        placeholderTextColor={theme.muted}
-                        style={[styles.fieldInput, { color: theme.ink }]}
-                      />
-                    </View>
-
-                    {authError ? (
-                      <Text style={styles.errorText}>{authError}</Text>
-                    ) : null}
-
-                    {authLoading ? (
-                      <ActivityIndicator
-                        size="small"
-                        color={theme.leather.accent}
-                        style={{ marginVertical: 14 }}
-                      />
-                    ) : (
-                      (() => {
-                        const authDisabled = !email.trim() || !password.trim();
-                        return (
-                          <Pressable
-                            disabled={authDisabled}
-                            onPress={handleAuthSubmit}
-                            style={({ pressed }) => [
-                              styles.txWalletCtaBtn,
-                              {
-                                overflow: "hidden",
-                                backgroundColor: authDisabled
-                                  ? theme.soft
-                                  : theme.leather.colors[1],
-                                borderColor: authDisabled
-                                  ? theme.line
-                                  : theme.leather.edge,
-                                marginTop: 4,
-                                opacity: authDisabled ? 0.65 : 1,
-                                transform: [
-                                  { scale: pressed && !authDisabled ? 0.98 : 1 },
-                                ],
-                              },
-                              !authDisabled && cardShadow(theme.dark),
-                            ]}
-                          >
-                            {!authDisabled ? (
-                              <DarkLeatherSurface theme={theme} radius={16} />
-                            ) : null}
-                            <Icon
-                              name="cloud"
-                              size={16}
-                              color={authDisabled ? theme.muted : "#ffffff"}
-                            />
-                            <Text
-                              style={[
-                                styles.secondaryButtonText,
-                                { color: authDisabled ? theme.muted : "#ffffff" },
-                              ]}
-                            >
-                              {authMode === "signin"
-                                ? "Sign In & Sync"
-                                : "Create Account & Backup"}
-                            </Text>
-                          </Pressable>
-                        );
-                      })()
-                    )}
-                  </View>
-                )}
               </View>
             )}
 

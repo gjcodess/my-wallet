@@ -39,7 +39,8 @@
         {
           "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID to unlock your wallets."
         }
-      ]
+      ],
+      "expo-sharing"
     ]
   }
 }

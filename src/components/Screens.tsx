@@ -558,63 +558,63 @@ export const HomeScreen = React.memo(function HomeScreen({
           offsetY={8}
           duration={220}
         >
-        <View style={styles.heroTopRow}>
-          <View
-            style={styles.heroBrandRow}
-            accessible
-            accessibilityRole="header"
-            accessibilityLabel="Pitaka"
-          >
-            <Image
-              source={titleAsset}
-              style={styles.heroBrandTitle}
-              resizeMode="contain"
-            />
+          <View style={styles.heroTopRow}>
+            <View
+              style={styles.heroBrandRow}
+              accessible
+              accessibilityRole="header"
+              accessibilityLabel="Pitaka"
+            >
+              <Image
+                source={titleAsset}
+                style={styles.heroBrandTitle}
+                resizeMode="contain"
+              />
+            </View>
+            <View style={styles.heroHeaderActions}>
+              <ScalePressable
+                onPress={handleToggleHidden}
+                accessibilityRole="button"
+                accessibilityLabel={hidden ? "Show balances" : "Hide balances"}
+                scaleTo={0.91}
+                style={[styles.heroIconBtn, heroControlStyle(theme)]}
+              >
+                <Icon name={hidden ? "eye-off" : "eye"} size={17} color={theme.heroInk} />
+              </ScalePressable>
+              <ScalePressable
+                onPress={handleOpenSearch}
+                accessibilityLabel="Search"
+                scaleTo={0.91}
+                style={[styles.heroIconBtn, heroControlStyle(theme)]}
+              >
+                <Icon name="search" size={17} color={theme.heroInk} />
+              </ScalePressable>
+              <ScalePressable
+                onPress={onSettings}
+                accessibilityRole="button"
+                accessibilityLabel="Settings"
+                scaleTo={0.91}
+                style={[styles.heroIconBtn, heroControlStyle(theme)]}
+              >
+                <Icon name="settings" size={17} color={theme.heroInk} />
+              </ScalePressable>
+            </View>
           </View>
-          <View style={styles.heroHeaderActions}>
-            <ScalePressable
-              onPress={handleToggleHidden}
-              accessibilityRole="button"
-              accessibilityLabel={hidden ? "Show balances" : "Hide balances"}
-              scaleTo={0.91}
-              style={[styles.heroIconBtn, heroControlStyle(theme)]}
-            >
-              <Icon name={hidden ? "eye-off" : "eye"} size={17} color={theme.heroInk} />
-            </ScalePressable>
-            <ScalePressable
-              onPress={handleOpenSearch}
-              accessibilityLabel="Search"
-              scaleTo={0.91}
-              style={[styles.heroIconBtn, heroControlStyle(theme)]}
-            >
-              <Icon name="search" size={17} color={theme.heroInk} />
-            </ScalePressable>
-            <ScalePressable
-              onPress={onSettings}
-              accessibilityRole="button"
-              accessibilityLabel="Settings"
-              scaleTo={0.91}
-              style={[styles.heroIconBtn, heroControlStyle(theme)]}
-            >
-              <Icon name="settings" size={17} color={theme.heroInk} />
-            </ScalePressable>
-          </View>
-        </View>
 
-        <View style={styles.heroGreetingBlock}>
-          <Text
-            style={[styles.heroGreetingTitle, { color: theme.heroInk }]}
-            numberOfLines={1}
-          >
-            {headerClock.greeting}
-          </Text>
-          <Text
-            style={[styles.heroGreetingSub, { color: theme.heroMuted, opacity: 1 }]}
-            numberOfLines={1}
-          >
-            {headerClock.dateLabel}
-          </Text>
-        </View>
+          <View style={styles.heroGreetingBlock}>
+            <Text
+              style={[styles.heroGreetingTitle, { color: theme.heroInk }]}
+              numberOfLines={1}
+            >
+              {headerClock.greeting}
+            </Text>
+            <Text
+              style={[styles.heroGreetingSub, { color: theme.heroMuted, opacity: 1 }]}
+              numberOfLines={1}
+            >
+              {headerClock.dateLabel}
+            </Text>
+          </View>
         </StaggerReveal>
       </HeroHeaderSurface>
 
@@ -626,21 +626,21 @@ export const HomeScreen = React.memo(function HomeScreen({
         startOpacity={1}
         duration={220}
       >
-      <PhysicalWallet
-        shouldOpen={walletOpen}
-        scrollY={walletScrollY}
-        wallets={wallets}
-        total={total}
-        hidden={hidden}
-        monthlySummary={monthlySummary}
-        walletFlows={walletFlows}
-        onWallet={onWallet}
-        onOpenAdd={handleOpenAdd}
-        onOpenMenu={handleOpenMenu}
-        onStackDragChange={onStackDragChange}
-        onHingeOffset={handleHingeOffset}
-        theme={theme}
-      />
+        <PhysicalWallet
+          shouldOpen={walletOpen}
+          scrollY={walletScrollY}
+          wallets={wallets}
+          total={total}
+          hidden={hidden}
+          monthlySummary={monthlySummary}
+          walletFlows={walletFlows}
+          onWallet={onWallet}
+          onOpenAdd={handleOpenAdd}
+          onOpenMenu={handleOpenMenu}
+          onStackDragChange={onStackDragChange}
+          onHingeOffset={handleHingeOffset}
+          theme={theme}
+        />
       </StaggerReveal>
 
       <Animated.View style={{ transform: [{ translateY: belowWalletTranslateY }] }}>
@@ -653,205 +653,205 @@ export const HomeScreen = React.memo(function HomeScreen({
           startOpacity={0.72}
           duration={240}
         >
-        <View
-          style={[
-            styles.homeDashCard,
-            {
-              overflow: "hidden",
-              backgroundColor: theme.leather.edge,
-              borderColor: theme.leather.edge,
-            },
-            cardShadow(theme.dark),
-          ]}
-        >
-          <DarkLeatherSurface theme={theme} radius={20} />
-          <View style={styles.homePulseRow}>
-            <View style={styles.homePulseCell}>
-              <Text
-                style={[styles.homePulseLabel, { color: theme.leather.thread }]}
-              >
-                Spent today
-              </Text>
-              <Text
-                style={[
-                  styles.homePulseVal,
-                  {
-                    color:
-                      monthlySummary.todaySpent > 0 ? "#fda4af" : "#ffffff",
-                  },
-                ]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-              >
-                {hidden
-                  ? "₱•••"
-                  : monthlySummary.todaySpent > 0
-                    ? `-${money(monthlySummary.todaySpent)}`
-                    : money(0)}
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.homePulseDivider,
-                { backgroundColor: "rgba(255, 255, 255, 0.16)" },
-              ]}
-            />
-            <View style={styles.homePulseCell}>
-              <Text
-                style={[styles.homePulseLabel, { color: theme.leather.thread }]}
-              >
-                {monthlySummary.monthLabel} net
-              </Text>
-              <Text
-                style={[
-                  styles.homePulseVal,
-                  {
-                    color: netMonth >= 0 ? "#6ee7b7" : "#fda4af",
-                  },
-                ]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-              >
-                {hidden
-                  ? "₱•••"
-                  : `${netMonth >= 0 ? "+" : "-"}${money(Math.abs(netMonth))}`}
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.homePulseDivider,
-                { backgroundColor: "rgba(255, 255, 255, 0.16)" },
-              ]}
-            />
-            <View style={styles.homePulseCell}>
-              <Text
-                style={[styles.homePulseLabel, { color: theme.leather.thread }]}
-              >
-                Saved
-              </Text>
-              <Text
-                style={[
-                  styles.homePulseVal,
-                  {
-                    color:
-                      savedRate !== null ? "#ffffff" : theme.leather.thread,
-                  },
-                ]}
-              >
-                {hidden ? "••" : savedRate !== null ? `${savedRate}%` : "—"}
-              </Text>
-            </View>
-          </View>
-
-          <ScalePressable
-            onPress={handleOpenBudget}
-            scaleTo={0.985}
-            pressOpacity={0.86}
+          <View
             style={[
-              styles.homeBudgetSection,
+              styles.homeDashCard,
               {
-                borderTopColor: "rgba(255, 255, 255, 0.14)",
+                overflow: "hidden",
+                backgroundColor: theme.leather.edge,
+                borderColor: theme.leather.edge,
               },
+              cardShadow(theme.dark),
             ]}
           >
-            {budgetLimit > 0 ? (
-              <>
-                <View style={styles.homeBudgetTopRow}>
-                  <View style={styles.homeBudgetTitleGroup}>
-                    <Text style={[styles.homeBudgetLabel, { color: "#ffffff" }]}>
-                      Monthly budget
+            <DarkLeatherSurface theme={theme} radius={20} />
+            <View style={styles.homePulseRow}>
+              <View style={styles.homePulseCell}>
+                <Text
+                  style={[styles.homePulseLabel, { color: theme.leather.thread }]}
+                >
+                  Spent today
+                </Text>
+                <Text
+                  style={[
+                    styles.homePulseVal,
+                    {
+                      color:
+                        monthlySummary.todaySpent > 0 ? "#fda4af" : "#ffffff",
+                    },
+                  ]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
+                  {hidden
+                    ? "₱•••"
+                    : monthlySummary.todaySpent > 0
+                      ? `-${money(monthlySummary.todaySpent)}`
+                      : money(0)}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.homePulseDivider,
+                  { backgroundColor: "rgba(255, 255, 255, 0.16)" },
+                ]}
+              />
+              <View style={styles.homePulseCell}>
+                <Text
+                  style={[styles.homePulseLabel, { color: theme.leather.thread }]}
+                >
+                  {monthlySummary.monthLabel} net
+                </Text>
+                <Text
+                  style={[
+                    styles.homePulseVal,
+                    {
+                      color: netMonth >= 0 ? "#6ee7b7" : "#fda4af",
+                    },
+                  ]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
+                  {hidden
+                    ? "₱•••"
+                    : `${netMonth >= 0 ? "+" : "-"}${money(Math.abs(netMonth))}`}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.homePulseDivider,
+                  { backgroundColor: "rgba(255, 255, 255, 0.16)" },
+                ]}
+              />
+              <View style={styles.homePulseCell}>
+                <Text
+                  style={[styles.homePulseLabel, { color: theme.leather.thread }]}
+                >
+                  Saved
+                </Text>
+                <Text
+                  style={[
+                    styles.homePulseVal,
+                    {
+                      color:
+                        savedRate !== null ? "#ffffff" : theme.leather.thread,
+                    },
+                  ]}
+                >
+                  {hidden ? "••" : savedRate !== null ? `${savedRate}%` : "—"}
+                </Text>
+              </View>
+            </View>
+
+            <ScalePressable
+              onPress={handleOpenBudget}
+              scaleTo={0.985}
+              pressOpacity={0.86}
+              style={[
+                styles.homeBudgetSection,
+                {
+                  borderTopColor: "rgba(255, 255, 255, 0.14)",
+                },
+              ]}
+            >
+              {budgetLimit > 0 ? (
+                <>
+                  <View style={styles.homeBudgetTopRow}>
+                    <View style={styles.homeBudgetTitleGroup}>
+                      <Text style={[styles.homeBudgetLabel, { color: "#ffffff" }]}>
+                        Monthly budget
+                      </Text>
+                      <Text
+                        style={[
+                          styles.homeBudgetPct,
+                          {
+                            color:
+                              budgetPct >= 100
+                                ? "#fda4af"
+                                : budgetPct >= 80
+                                  ? "#fcd34d"
+                                  : "#6ee7b7",
+                          },
+                        ]}
+                      >
+                        {budgetPct}%
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.homeBudgetRatio,
+                        { color: theme.leather.thread },
+                      ]}
+                    >
+                      {hidden ? "₱•••" : money(monthlySummary.spent, true)} /{" "}
+                      {hidden ? "₱•••" : money(budgetLimit, true)}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.homeProgressTrack,
+                      { backgroundColor: "rgba(255, 255, 255, 0.14)" },
+                    ]}
+                  >
+                    <AnimatedBarFill
+                      pct={budgetPct}
+                      active={entranceActive}
+                      animateKey={`${entranceReplayKey}-${budgetPct}`}
+                      delayMs={180}
+                      style={[
+                        styles.homeProgressFill,
+                        {
+                          backgroundColor:
+                            budgetPct >= 100
+                              ? "#fb7185"
+                              : budgetPct >= 80
+                                ? "#fbbf24"
+                                : "#34d399",
+                        },
+                      ]}
+                    />
+                  </View>
+                  <View style={styles.homeBudgetSubRow}>
+                    <Text
+                      style={[
+                        styles.homeBudgetSub,
+                        { color: theme.leather.thread },
+                      ]}
+                    >
+                      {budgetRemaining >= 0
+                        ? `${hidden ? "₱•••" : money(budgetRemaining)} left this month`
+                        : `Over budget by ${hidden ? "₱•••" : money(Math.abs(budgetRemaining))}`}
                     </Text>
                     <Text
                       style={[
-                        styles.homeBudgetPct,
-                        {
-                          color:
-                            budgetPct >= 100
-                              ? "#fda4af"
-                              : budgetPct >= 80
-                                ? "#fcd34d"
-                                : "#6ee7b7",
-                        },
+                        styles.homeBudgetEditHint,
+                        { color: "#ffffff" },
                       ]}
                     >
-                      {budgetPct}%
+                      Edit
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <View style={styles.homeBudgetEmptyRow}>
+                  <View style={styles.homeBudgetTitleGroup}>
+                    <Icon name="pie" size={15} color={theme.leather.thread} />
+                    <Text style={[styles.homeBudgetLabel, { color: "#ffffff" }]}>
+                      Set monthly budget
                     </Text>
                   </View>
                   <Text
                     style={[
-                      styles.homeBudgetRatio,
-                      { color: theme.leather.thread },
-                    ]}
-                  >
-                    {hidden ? "₱•••" : money(monthlySummary.spent, true)} /{" "}
-                    {hidden ? "₱•••" : money(budgetLimit, true)}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.homeProgressTrack,
-                    { backgroundColor: "rgba(255, 255, 255, 0.14)" },
-                  ]}
-                >
-                  <AnimatedBarFill
-                    pct={budgetPct}
-                    active={entranceActive}
-                    animateKey={`${entranceReplayKey}-${budgetPct}`}
-                    delayMs={180}
-                    style={[
-                      styles.homeProgressFill,
-                      {
-                        backgroundColor:
-                          budgetPct >= 100
-                            ? "#fb7185"
-                            : budgetPct >= 80
-                              ? "#fbbf24"
-                              : "#34d399",
-                      },
-                    ]}
-                  />
-                </View>
-                <View style={styles.homeBudgetSubRow}>
-                  <Text
-                    style={[
-                      styles.homeBudgetSub,
-                      { color: theme.leather.thread },
-                    ]}
-                  >
-                    {budgetRemaining >= 0
-                      ? `${hidden ? "₱•••" : money(budgetRemaining)} left this month`
-                      : `Over budget by ${hidden ? "₱•••" : money(Math.abs(budgetRemaining))}`}
-                  </Text>
-                  <Text
-                    style={[
                       styles.homeBudgetEditHint,
-                      { color: "#ffffff" },
+                      { color: theme.leather.thread },
                     ]}
                   >
-                    Edit
+                    Tap to set ›
                   </Text>
                 </View>
-              </>
-            ) : (
-              <View style={styles.homeBudgetEmptyRow}>
-                <View style={styles.homeBudgetTitleGroup}>
-                  <Icon name="pie" size={15} color={theme.leather.thread} />
-                  <Text style={[styles.homeBudgetLabel, { color: "#ffffff" }]}>
-                    Set monthly budget
-                  </Text>
-                </View>
-                <Text
-                  style={[
-                    styles.homeBudgetEditHint,
-                    { color: theme.leather.thread },
-                  ]}
-                >
-                  Tap to set ›
-                </Text>
-              </View>
-            )}
-          </ScalePressable>
-        </View>
+              )}
+            </ScalePressable>
+          </View>
         </StaggerReveal>
 
         {/* Top Spending Categories Peek */}
@@ -864,103 +864,103 @@ export const HomeScreen = React.memo(function HomeScreen({
             startOpacity={0.72}
             duration={240}
           >
-          <View style={[styles.section, { marginTop: 14 }]}>
-            <SectionTitle
-              title="Top Spending"
-              action="Overview"
-              actionIcon="chevron"
-              actionColor={theme.accentText}
-              onPress={handleGoOverview}
-              theme={theme}
-            />
-            <View
-              style={[
-                styles.homeDashCard,
-                {
-                  overflow: "hidden",
-                  backgroundColor: theme.card,
-                  borderColor: hexToRgba(theme.leather.accent, 0.22),
-                  gap: 11,
-                },
-                cardShadow(theme.dark),
-              ]}
-            >
-              <LightLeatherSurface theme={theme} radius={20} />
-              {topCategories.map((cat, idx) => {
-                const maxAmt = topCategories[0]?.amount || 1;
-                const fillPct =
-                  cat.limit > 0
-                    ? Math.min(100, (cat.amount / cat.limit) * 100)
-                    : Math.min(100, (cat.amount / maxAmt) * 100);
-                const overLimit = cat.limit > 0 && cat.amount > cat.limit;
-                const sharePct =
-                  monthlySummary.spent > 0
-                    ? Math.round((cat.amount / monthlySummary.spent) * 100)
-                    : 0;
-                const catTint = overLimit ? "#e11d48" : theme.leather.accent;
-                return (
-                  <ScalePressable
-                    key={cat.category}
-                    onPress={() =>
-                      onOpenCategoryBudget
-                        ? onOpenCategoryBudget(cat.category)
-                        : handleGoOverview()
-                    }
-                    scaleTo={0.985}
-                    pressOpacity={0.82}
-                    style={styles.homeCatRow}
-                  >
-                    <View style={styles.homeCatTop}>
-                      <View style={styles.homeCatLeft}>
-                        <Icon name={cat.icon} size={15} color={catTint} />
+            <View style={[styles.section, { marginTop: 14 }]}>
+              <SectionTitle
+                title="Top Spending"
+                action="Overview"
+                actionIcon="chevron"
+                actionColor={theme.accentText}
+                onPress={handleGoOverview}
+                theme={theme}
+              />
+              <View
+                style={[
+                  styles.homeDashCard,
+                  {
+                    overflow: "hidden",
+                    backgroundColor: theme.card,
+                    borderColor: hexToRgba(theme.leather.accent, 0.22),
+                    gap: 11,
+                  },
+                  cardShadow(theme.dark),
+                ]}
+              >
+                <LightLeatherSurface theme={theme} radius={20} />
+                {topCategories.map((cat, idx) => {
+                  const maxAmt = topCategories[0]?.amount || 1;
+                  const fillPct =
+                    cat.limit > 0
+                      ? Math.min(100, (cat.amount / cat.limit) * 100)
+                      : Math.min(100, (cat.amount / maxAmt) * 100);
+                  const overLimit = cat.limit > 0 && cat.amount > cat.limit;
+                  const sharePct =
+                    monthlySummary.spent > 0
+                      ? Math.round((cat.amount / monthlySummary.spent) * 100)
+                      : 0;
+                  const catTint = overLimit ? "#e11d48" : theme.leather.accent;
+                  return (
+                    <ScalePressable
+                      key={cat.category}
+                      onPress={() =>
+                        onOpenCategoryBudget
+                          ? onOpenCategoryBudget(cat.category)
+                          : handleGoOverview()
+                      }
+                      scaleTo={0.985}
+                      pressOpacity={0.82}
+                      style={styles.homeCatRow}
+                    >
+                      <View style={styles.homeCatTop}>
+                        <View style={styles.homeCatLeft}>
+                          <Icon name={cat.icon} size={15} color={catTint} />
+                          <Text
+                            style={[styles.homeCatName, { color: theme.ink }]}
+                            numberOfLines={1}
+                          >
+                            {cat.category}
+                          </Text>
+                          <Text
+                            style={[styles.homeCatShare, { color: catTint }]}
+                          >
+                            {cat.limit > 0
+                              ? `of ${hidden ? "₱••" : money(cat.limit, true)}`
+                              : `${sharePct}%`}
+                          </Text>
+                        </View>
                         <Text
-                          style={[styles.homeCatName, { color: theme.ink }]}
-                          numberOfLines={1}
+                          style={[
+                            styles.homeCatAmount,
+                            { color: overLimit ? "#e11d48" : theme.ink },
+                          ]}
                         >
-                          {cat.category}
-                        </Text>
-                        <Text
-                          style={[styles.homeCatShare, { color: catTint }]}
-                        >
-                          {cat.limit > 0
-                            ? `of ${hidden ? "₱••" : money(cat.limit, true)}`
-                            : `${sharePct}%`}
+                          {hidden ? "₱•••" : money(cat.amount)}
                         </Text>
                       </View>
-                      <Text
+                      <View
                         style={[
-                          styles.homeCatAmount,
-                          { color: overLimit ? "#e11d48" : theme.ink },
+                          styles.homeProgressTrack,
+                          {
+                            height: 5,
+                            backgroundColor: hexToRgba(catTint, 0.16),
+                          },
                         ]}
                       >
-                        {hidden ? "₱•••" : money(cat.amount)}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.homeProgressTrack,
-                        {
-                          height: 5,
-                          backgroundColor: hexToRgba(catTint, 0.16),
-                        },
-                      ]}
-                    >
-                      <AnimatedBarFill
-                        pct={Math.max(4, fillPct)}
-                        active={entranceActive}
-                        animateKey={`${entranceReplayKey}-${cat.category}-${fillPct}`}
-                        delayMs={200 + idx * 45}
-                        style={[
-                          styles.homeProgressFill,
-                          { backgroundColor: catTint },
-                        ]}
-                      />
-                    </View>
-                  </ScalePressable>
-                );
-              })}
+                        <AnimatedBarFill
+                          pct={Math.max(4, fillPct)}
+                          active={entranceActive}
+                          animateKey={`${entranceReplayKey}-${cat.category}-${fillPct}`}
+                          delayMs={200 + idx * 45}
+                          style={[
+                            styles.homeProgressFill,
+                            { backgroundColor: catTint },
+                          ]}
+                        />
+                      </View>
+                    </ScalePressable>
+                  );
+                })}
+              </View>
             </View>
-          </View>
           </StaggerReveal>
         ) : null}
 
@@ -971,8 +971,8 @@ export const HomeScreen = React.memo(function HomeScreen({
           offsetY={12}
           duration={260}
         >
-        <Upcoming schedules={schedules} wallets={wallets} hidden={hidden} theme={theme}
-          onRecord={onRecordScheduled} onManage={handleOpenSchedules} />
+          <Upcoming schedules={schedules} wallets={wallets} hidden={hidden} theme={theme}
+            onRecord={onRecordScheduled} onManage={handleOpenSchedules} />
         </StaggerReveal>
 
         {/* Recent Transactions */}
@@ -983,35 +983,35 @@ export const HomeScreen = React.memo(function HomeScreen({
           offsetY={12}
           duration={260}
         >
-        <View style={[styles.section, { marginTop: 10 }]}>
-          <SectionTitle
-            title="Recent Transactions"
-            action="View all"
-            actionIcon="chevron"
-            actionColor={theme.accentText}
-            onPress={handleGoActivity}
-            theme={theme}
-          />
-          <View style={styles.txList}>
-            {recentActivities.map((item, idx) => (
-              <StaggerReveal
-                key={item.id}
-                active={entranceActive}
-                replayKey={entranceReplayKey}
-                index={4.7 + idx * 0.45}
-                offsetY={10}
-                duration={240}
-              >
-              <TxRow
-                item={item}
-                hidden={hidden}
-                onPress={onTransaction ? () => onTransaction(item) : undefined}
-                theme={theme}
-              />
-              </StaggerReveal>
-            ))}
+          <View style={[styles.section, { marginTop: 10 }]}>
+            <SectionTitle
+              title="Recent Transactions"
+              action="View all"
+              actionIcon="chevron"
+              actionColor={theme.accentText}
+              onPress={handleGoActivity}
+              theme={theme}
+            />
+            <View style={styles.txList}>
+              {recentActivities.map((item, idx) => (
+                <StaggerReveal
+                  key={item.id}
+                  active={entranceActive}
+                  replayKey={entranceReplayKey}
+                  index={4.7 + idx * 0.45}
+                  offsetY={10}
+                  duration={240}
+                >
+                  <TxRow
+                    item={item}
+                    hidden={hidden}
+                    onPress={onTransaction ? () => onTransaction(item) : undefined}
+                    theme={theme}
+                  />
+                </StaggerReveal>
+              ))}
+            </View>
           </View>
-        </View>
         </StaggerReveal>
       </Animated.View>
     </View>
@@ -2396,7 +2396,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         esc(item.kind),
         esc(dir),
         esc(item.amount.toFixed(2)),
-        esc(item.synced ? "Supabase" : "Local"),
+        esc("Local"),
       ].join(",");
     });
     const csv = [header, ...rows].join("\n");
@@ -2499,958 +2499,958 @@ export const ActivityScreen = React.memo(function ActivityScreen({
       </HeroHeaderSurface>
 
       {mode === "overview" ? <>
-      {/* Stitched Dark Leather Cashflow Chart */}
-      <View
-        style={[
-          styles.overviewChartCard,
-          {
-            overflow: "hidden",
-            backgroundColor: theme.leather.colors[1],
-            borderColor: theme.leather.edge,
-          },
-          cardShadow(theme.dark),
-        ]}
-      >
-        <DarkLeatherSurface theme={theme} radius={22} />
-        <View style={styles.overviewChartHeader}>
-          <View style={{ flex: 1 }}>
-            {activeBucket ? (
-              <Text style={[styles.chartTabSummary, { color: "#ffffff" }]} numberOfLines={1}>
-                {activeBucket.label}: +
-                {hidden ? "••" : money(activeBucket.income, true)} / -
-                {hidden ? "••" : money(activeBucket.expense, true)}
-              </Text>
-            ) : (
-              <View style={styles.chartLegendPills}>
-                <View style={styles.chartLegendItem}>
-                  <View
-                    style={[
-                      styles.chartLegendDot,
-                      { backgroundColor: "#6ee7b7" },
-                    ]}
-                  />
-                  <Text style={[styles.chartLegendText, { color: theme.heroMuted, opacity: 1 }]}>Income</Text>
-                </View>
-                <View style={styles.chartLegendItem}>
-                  <View
-                    style={[
-                      styles.chartLegendDot,
-                      { backgroundColor: "rgba(255, 255, 255, 0.88)" },
-                    ]}
-                  />
-                  <Text style={[styles.chartLegendText, { color: theme.heroMuted, opacity: 1 }]}>Expense</Text>
-                </View>
-              </View>
-            )}
-          </View>
-          <Pressable
-            onPress={() => {
-              setSelectedBucketIdx(null);
-              setRange(range === "Month" ? "Week" : "Month");
-            }}
-            style={({ pressed }) => [
-              styles.overviewRangeChip,
-              {
-                backgroundColor: "rgba(255, 255, 255, 0.12)",
-                borderColor: "rgba(255, 255, 255, 0.18)",
-                opacity: pressed ? 0.78 : 1,
-              },
-            ]}
-          >
-            <Text style={[styles.rangePillText, { color: "#ffffff" }]}>{range}</Text>
-            <Icon name="down" size={12} color="rgba(255, 255, 255, 0.85)" />
-          </Pressable>
-        </View>
-
-        {/* Chart Grid & Bars */}
-        <View style={[styles.chartBody, { marginTop: 10 }]}>
-          <View style={styles.chartGrid}>
-            {chartData.gridLabels.map((lvl, idx) => (
-              <View
-                key={`${idx}-${lvl}`}
-                style={[
-                  styles.chartGridLine,
-                  { borderBottomColor: "rgba(255, 255, 255, 0.1)" },
-                ]}
-              >
-                <Text style={[styles.chartGridText, { color: theme.heroMuted, opacity: 1 }]}>{lvl}</Text>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.barsContainer}>
-            {chartData.bars.map((b, i) => {
-              const isSelected = selectedBucketIdx === i;
-              return (
-                <Pressable
-                  key={b.key}
-                  onPress={() =>
-                    setSelectedBucketIdx(isSelected ? null : i)
-                  }
-                  style={[
-                    styles.barGroup,
-                    isSelected && styles.barGroupActive,
-                  ]}
-                >
-                  <View style={styles.barPair}>
-                    <Animated.View
-                      style={[
-                        styles.bar,
-                        {
-                          height: barProgress.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: ["0%", `${b.inPct}%`],
-                          }),
-                          backgroundColor: "#6ee7b7",
-                        },
-                      ]}
-                    />
-                    <Animated.View
-                      style={[
-                        styles.bar,
-                        {
-                          height: barProgress.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: ["0%", `${b.outPct}%`],
-                          }),
-                          backgroundColor: "rgba(255, 255, 255, 0.88)",
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.barLabel,
-                      { color: theme.heroMuted },
-                      isSelected && { color: "#ffffff", fontWeight: "800" },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {b.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      </View>
-
-      {/* Expense / Income Breakdown Donut Chart */}
-      <View
-        style={[
-          styles.donutCard,
-          {
-            overflow: "hidden",
-            backgroundColor: theme.card,
-            borderColor: hexToRgba(theme.leather.accent, 0.24),
-          },
-          cardShadow(theme.dark),
-        ]}
-      >
-        <LightLeatherSurface theme={theme} radius={20} />
-        <View style={styles.donutHeader}>
-          <Text style={[styles.donutTitle, { color: theme.ink }]}>
-            {categoryMode} breakdown
-          </Text>
-          <View
-            style={[
-              styles.walletOverviewRangePill,
-              {
-                overflow: "hidden",
-                backgroundColor: theme.page,
-                borderColor: hexToRgba(theme.leather.accent, 0.24),
-              },
-            ]}
-          >
-            {(["Expense", "Income"] as const).map((m) => {
-              const active = categoryMode === m;
-              return (
-                <Pressable
-                  key={m}
-                  onPress={() => {
-                    setCategoryMode(m);
-                    setSelectedCategory(null);
-                    setPage(1);
-                  }}
-                  style={[
-                    styles.walletOverviewRangeChip,
-                    active && {
-                      backgroundColor:
-                        m === "Income" ? theme.positive : theme.leather.accent,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.walletOverviewRangeText,
-                      { color: active ? "#ffffff" : theme.muted },
-                    ]}
-                  >
-                    {m}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-        {breakdownDonut.segments.length > 0 ? (
-          <View style={styles.donutRow}>
-            <View style={styles.donutRingWrap}>
-              {(() => {
-                const size = 96;
-                const stroke = 11;
-                const r = (size - stroke) / 2;
-                const c = 2 * Math.PI * r;
-                let offsetAcc = 0;
-                return (
-                  <Svg width={size} height={size}>
-                    <SvgCircle
-                      cx={size / 2}
-                      cy={size / 2}
-                      r={r}
-                      stroke={hexToRgba(
-                        breakdownDonut.isIncome
-                          ? theme.positive
-                          : theme.leather.accent,
-                        0.12
-                      )}
-                      strokeWidth={stroke}
-                      fill="none"
-                    />
-                    {breakdownDonut.segments.map((seg) => {
-                      const len =
-                        breakdownDonut.total > 0
-                          ? (seg.amount / breakdownDonut.total) * c
-                          : 0;
-                      const dashOffset = -offsetAcc;
-                      offsetAcc += len;
-                      return (
-                        <SvgCircle
-                          key={seg.label}
-                          cx={size / 2}
-                          cy={size / 2}
-                          r={r}
-                          stroke={seg.color}
-                          strokeWidth={stroke}
-                          strokeDasharray={`${len} ${c}`}
-                          strokeDashoffset={dashOffset}
-                          strokeLinecap="butt"
-                          rotation={-90}
-                          origin={`${size / 2}, ${size / 2}`}
-                          fill="none"
-                        />
-                      );
-                    })}
-                  </Svg>
-                );
-              })()}
-              <View style={styles.donutCenter}>
-                <Text style={[styles.donutCenterLabel, { color: theme.muted }]}>
-                  {categoryMode}
-                </Text>
-                <Text
-                  style={[styles.donutCenterVal, { color: theme.ink }]}
-                  numberOfLines={1}
-                >
-                  {hidden ? "••••" : money(breakdownDonut.total, true)}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.donutLegend}>
-              {breakdownDonut.segments.map((seg) => (
-                <View key={seg.label} style={styles.donutLegendRow}>
-                  <View
-                    style={[styles.donutDot, { backgroundColor: seg.color }]}
-                  />
-                  <Text
-                    style={[styles.donutLegendName, { color: theme.ink }]}
-                    numberOfLines={1}
-                  >
-                    {seg.label}
-                  </Text>
-                  <Text style={[styles.donutLegendPct, { color: theme.muted }]}>
-                    {seg.pct}%
-                  </Text>
-                  <Text style={[styles.donutLegendAmt, { color: theme.ink }]}>
-                    {hidden ? "••" : money(seg.amount, true)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        ) : (
-          <Text style={[styles.donutSub, { color: theme.muted }]}>
-            No {categoryMode.toLowerCase()} transactions recorded yet.
-          </Text>
-        )}
-      </View>
-
-      {/* Monthly Spending Budget Target Card */}
-      {onEditBudget ? (
-        <Pressable
-          onPress={onEditBudget}
-          style={({ pressed }) => [
-            styles.budgetCard,
+        {/* Stitched Dark Leather Cashflow Chart */}
+        <View
+          style={[
+            styles.overviewChartCard,
             {
-              backgroundColor: theme.card,
-              borderWidth: 1,
-              borderColor: hexToRgba(theme.leather.accent, 0.24),
               overflow: "hidden",
-              transform: [{ scale: pressed ? 0.99 : 1 }],
+              backgroundColor: theme.leather.colors[1],
+              borderColor: theme.leather.edge,
             },
             cardShadow(theme.dark),
           ]}
         >
-          <LightLeatherSurface theme={theme} radius={18} />
-          {monthlyBudget && monthlyBudget > 0 ? (() => {
-            const pct = Math.min(
-              100,
-              Math.round((monthSpending.spent / monthlyBudget) * 100)
-            );
-            const rawRatio = monthSpending.spent / monthlyBudget;
-            const remaining = monthlyBudget - monthSpending.spent;
-            const overBudget = remaining < 0;
-
-            return (
-              <View>
-                <View style={styles.budgetTopRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.budgetTitle, { color: theme.ink }]}>
-                      {monthSpending.monthLabel} spending budget
-                    </Text>
-                    <Text style={[styles.budgetSub, { color: theme.muted }]}>
-                      {hidden
-                        ? "•••• spent of ••••"
-                        : `${money(monthSpending.spent)} spent of ${money(monthlyBudget)}`}
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.budgetEditPill,
-                      {
-                        overflow: "hidden",
-                        backgroundColor: overBudget
-                          ? "#c04444"
-                          : theme.leather.colors[1],
-                        borderWidth: 1,
-                        borderColor: overBudget
-                          ? "#a23434"
-                          : theme.leather.edge,
-                      },
-                    ]}
-                  >
-                    {!overBudget && <DarkLeatherSurface theme={theme} radius={12} />}
-                    <Text
-                      style={[styles.budgetEditText, { color: "#ffffff" }]}
-                    >
-                      {pct}% · Edit
-                    </Text>
-                  </View>
-                </View>
-
-                <View
-                  style={[
-                    styles.budgetTrack,
-                    {
-                      backgroundColor: hexToRgba(
-                        theme.leather.accent,
-                        theme.dark ? 0.22 : 0.12
-                      ),
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.budgetFill,
-                      {
-                        width: `${pct}%`,
-                        backgroundColor: overBudget
-                          ? "#c04444"
-                          : rawRatio >= 0.75
-                            ? "#d97706"
-                            : theme.leather.accent,
-                      },
-                    ]}
-                  />
-                </View>
-
-                <Text
-                  style={[
-                    styles.budgetFootText,
-                    { color: overBudget ? "#c04444" : theme.muted },
-                  ]}
-                >
-                  {hidden
-                    ? "••••"
-                    : overBudget
-                      ? `${money(Math.abs(remaining))} over monthly target`
-                      : `${money(remaining)} remaining this month`}
+          <DarkLeatherSurface theme={theme} radius={22} />
+          <View style={styles.overviewChartHeader}>
+            <View style={{ flex: 1 }}>
+              {activeBucket ? (
+                <Text style={[styles.chartTabSummary, { color: "#ffffff" }]} numberOfLines={1}>
+                  {activeBucket.label}: +
+                  {hidden ? "••" : money(activeBucket.income, true)} / -
+                  {hidden ? "••" : money(activeBucket.expense, true)}
                 </Text>
-              </View>
-            );
-          })() : (
-            <View style={styles.budgetTopRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.budgetTitle, { color: theme.ink }]}>
-                  Monthly spending budget
-                </Text>
-                <Text style={[styles.budgetSub, { color: theme.muted }]}>
-                  Set a {monthSpending.monthLabel} spending target to track pace
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.budgetEditPill,
-                  {
-                    overflow: "hidden",
-                    backgroundColor: theme.leather.colors[1],
-                    borderWidth: 1,
-                    borderColor: theme.leather.edge,
-                  },
-                ]}
-              >
-                <DarkLeatherSurface theme={theme} radius={12} />
-                <Text style={[styles.budgetEditText, { color: "#ffffff" }]}>
-                  Set target
-                </Text>
-              </View>
-            </View>
-          )}
-        </Pressable>
-      ) : null}
-
-      <CategoryBudgetOverview limits={categoryLimits} spending={monthSpending} hidden={hidden}
-        theme={theme} onOpen={onOpenCategoryBudget} />
-
-      {/* Squarified Categories Treemap */}
-      <CategoryTreemap
-        categories={categoryCards}
-        mode={categoryMode}
-        selectedCategory={selectedCategory}
-        hidden={hidden}
-        onSelectCategory={(label) => {
-          if (onCategorySelect) onCategorySelect(label);
-          else {
-            setSelectedCategory(selectedCategory === label ? null : label);
-            setPage(1);
-          }
-        }}
-        onToggleMode={() => {
-          setCategoryMode((prev) => (prev === "Expense" ? "Income" : "Expense"));
-          setSelectedCategory(null);
-          setPage(1);
-        }}
-        onViewAll={onViewAllCategories}
-        theme={theme}
-      />
-
-      {/* Squarified Wallet Distribution Treemap */}
-      <WalletTreemap
-        wallets={wallets}
-        hidden={hidden}
-        onSelectWallet={onOpenWallet}
-        onViewAll={onViewAllWallets}
-        theme={theme}
-      />
-
-      </> : null}
-
-      {mode === "transactions" ? <>
-      {/* All Transactions List (10 per page) */}
-      <View style={{ marginTop: 2 }}>
-        <SectionTitle
-          title={
-            activeCategory
-              ? `${activeCategory} transactions`
-              : typeFilter !== "All"
-                ? `${typeFilter}`
-                : "All transactions"
-          }
-          action={
-            hasFilter
-              ? "Clear filter"
-              : filteredActivities.length
-                ? `${pageStart + 1}–${pageEnd} of ${filteredActivities.length}`
-                : undefined
-          }
-          actionIcon={hasFilter ? "close" : null}
-          actionColor={hasFilter ? theme.accentText : undefined}
-          onPress={
-            hasFilter
-              ? () => {
-                setSelectedCategory(null);
-                onClearCategory?.();
-                setSelectedWalletFilter(null);
-                setSearchQuery("");
-                setTypeFilter("All");
-                setPage(1);
-              }
-              : undefined
-          }
-          theme={theme}
-        />
-
-        {/* Stitched Search Bar + Filter Button */}
-        <View style={styles.activitySearchRow}>
-          <View
-            style={[
-              styles.activitySearchBox,
-              {
-                flex: 1,
-                marginBottom: 0,
-                overflow: "hidden",
-                backgroundColor: theme.card,
-                borderColor: hexToRgba(theme.leather.accent, 0.24),
-              },
-              cardShadow(theme.dark),
-            ]}
-          >
-            <LightLeatherSurface theme={theme} radius={16} />
-            <Icon name="search" size={16} color={theme.leather.accent} />
-            <TextInput
-              value={searchQuery}
-              onChangeText={(t) => {
-                setSearchQuery(t);
-                setPage(1);
-              }}
-              placeholder="Search merchant, category, or wallet..."
-              placeholderTextColor={theme.muted}
-              style={[styles.activitySearchInput, { color: theme.ink }]}
-            />
-            {searchQuery ? (
-              <Pressable
-                onPress={() => {
-                  setSearchQuery("");
-                  setPage(1);
-                }}
-                hitSlop={8}
-              >
-                <Icon name="close" size={14} color={theme.muted} />
-              </Pressable>
-            ) : null}
-          </View>
-          {onToggleFilters ? (
-            <Pressable
-              onPress={onToggleFilters}
-              accessibilityRole="button"
-              accessibilityLabel="Wallet filters and export"
-              style={({ pressed }) => [
-                styles.activityFilterBtn,
-                {
-                  overflow: "hidden",
-                  backgroundColor:
-                    showFilters || selectedWalletFilter !== null
-                      ? theme.leather.colors[1]
-                      : theme.card,
-                  borderColor:
-                    showFilters || selectedWalletFilter !== null
-                      ? theme.leather.edge
-                      : hexToRgba(theme.leather.accent, 0.24),
-                  transform: [{ scale: pressed ? 0.95 : 1 }],
-                },
-                cardShadow(theme.dark),
-              ]}
-            >
-              {showFilters || selectedWalletFilter !== null ? (
-                <DarkLeatherSurface theme={theme} radius={16} />
               ) : (
-                <LightLeatherSurface theme={theme} radius={16} />
-              )}
-              <Icon
-                name="more"
-                size={18}
-                color={
-                  showFilters || selectedWalletFilter !== null
-                    ? "#ffffff"
-                    : theme.leather.accent
-                }
-              />
-            </Pressable>
-          ) : null}
-        </View>
-
-        {showFilters ? (
-          <View
-            style={[
-              styles.activityFilterPanel,
-              {
-                backgroundColor: theme.leather.colors[1],
-                borderWidth: 1,
-                borderColor: theme.leather.edge,
-                overflow: "hidden",
-                marginBottom: 10,
-              },
-              cardShadow(theme.dark),
-            ]}
-          >
-            <DarkLeatherSurface theme={theme} radius={18} />
-            <View style={styles.activityFilterHeader}>
-              <Text style={[styles.activityFilterTitle, { color: theme.heroMuted }]}>
-                WALLETS & EXPORT
-              </Text>
-              <Pressable
-                onPress={handleExportCsv}
-                style={({ pressed }) => [
-                  styles.exportCsvPill,
-                  {
-                    overflow: "hidden",
-                    backgroundColor: theme.card,
-                    borderWidth: 1,
-                    borderColor: hexToRgba(theme.leather.accent, 0.28),
-                    opacity: pressed ? 0.85 : 1,
-                  },
-                ]}
-              >
-                <LightLeatherSurface theme={theme} radius={12} />
-                <Icon name="arrow-out" size={12} color={theme.leather.accent} />
-                <Text style={[styles.exportCsvText, { color: theme.ink }]}>
-                  Export CSV ({filteredActivities.length})
-                </Text>
-              </Pressable>
-            </View>
-
-            {visibleWalletChips.length > 0 ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filterChipRow}
-              >
-                <Pressable
-                  onPress={() => {
-                    setSelectedWalletFilter(null);
-                    setPage(1);
-                  }}
-                  style={[
-                    styles.filterChip,
-                    {
-                      overflow: "hidden",
-                      backgroundColor:
-                        selectedWalletFilter === null
-                          ? theme.card
-                          : "rgba(255, 255, 255, 0.1)",
-                      borderColor:
-                        selectedWalletFilter === null
-                          ? hexToRgba(theme.leather.accent, 0.28)
-                          : "rgba(255, 255, 255, 0.18)",
-                    },
-                  ]}
-                >
-                  {selectedWalletFilter === null ? (
-                    <LightLeatherSurface theme={theme} radius={12} />
-                  ) : null}
-                  <Text
-                    style={[
-                      styles.filterChipText,
-                      {
-                        color:
-                          selectedWalletFilter === null
-                            ? theme.ink
-                            : "rgba(255, 255, 255, 0.88)",
-                      },
-                    ]}
-                  >
-                    All wallets
-                  </Text>
-                </Pressable>
-                {visibleWalletChips.map((w) => {
-                  const wKey = w.localId || `wallet-${w.id}`;
-                  const active = selectedWalletFilter === wKey;
-                  return (
-                    <Pressable
-                      key={w.id}
-                      onPress={() => {
-                        setSelectedWalletFilter(active ? null : wKey);
-                        setPage(1);
-                      }}
+                <View style={styles.chartLegendPills}>
+                  <View style={styles.chartLegendItem}>
+                    <View
                       style={[
-                        styles.filterChip,
-                        {
-                          overflow: "hidden",
-                          backgroundColor: active
-                            ? theme.card
-                            : "rgba(255, 255, 255, 0.1)",
-                          borderColor: active
-                            ? hexToRgba(theme.leather.accent, 0.28)
-                            : "rgba(255, 255, 255, 0.18)",
-                        },
+                        styles.chartLegendDot,
+                        { backgroundColor: "#6ee7b7" },
                       ]}
-                    >
-                      {active ? (
-                        <LightLeatherSurface theme={theme} radius={12} />
-                      ) : null}
-                      <Text
-                        style={[
-                          styles.filterChipText,
-                          {
-                            color: active
-                              ? theme.ink
-                              : "rgba(255, 255, 255, 0.88)",
-                          },
-                        ]}
-                      >
-                        {w.name}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            ) : null}
+                    />
+                    <Text style={[styles.chartLegendText, { color: theme.heroMuted, opacity: 1 }]}>Income</Text>
+                  </View>
+                  <View style={styles.chartLegendItem}>
+                    <View
+                      style={[
+                        styles.chartLegendDot,
+                        { backgroundColor: "rgba(255, 255, 255, 0.88)" },
+                      ]}
+                    />
+                    <Text style={[styles.chartLegendText, { color: theme.heroMuted, opacity: 1 }]}>Expense</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+            <Pressable
+              onPress={() => {
+                setSelectedBucketIdx(null);
+                setRange(range === "Month" ? "Week" : "Month");
+              }}
+              style={({ pressed }) => [
+                styles.overviewRangeChip,
+                {
+                  backgroundColor: "rgba(255, 255, 255, 0.12)",
+                  borderColor: "rgba(255, 255, 255, 0.18)",
+                  opacity: pressed ? 0.78 : 1,
+                },
+              ]}
+            >
+              <Text style={[styles.rangePillText, { color: "#ffffff" }]}>{range}</Text>
+              <Icon name="down" size={12} color="rgba(255, 255, 255, 0.85)" />
+            </Pressable>
           </View>
-        ) : null}
 
-        {/* Always-visible Quick Type Filter Pills */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.activityQuickFilterRow}
-        >
-          {(["All", "Expenses", "Income", "Transfers", "Adjusted"] as const).map(
-            (opt) => {
-              const active = typeFilter === opt;
-              return (
-                <ScalePressable
-                  key={opt}
-                  onPress={() => {
-                    setTypeFilter(opt);
-                    setPage(1);
-                  }}
-                  scaleTo={0.955}
+          {/* Chart Grid & Bars */}
+          <View style={[styles.chartBody, { marginTop: 10 }]}>
+            <View style={styles.chartGrid}>
+              {chartData.gridLabels.map((lvl, idx) => (
+                <View
+                  key={`${idx}-${lvl}`}
                   style={[
-                    styles.filterChip,
-                    {
-                      overflow: "hidden",
-                      backgroundColor: active
-                        ? theme.leather.colors[1]
-                        : theme.card,
-                      borderColor: active
-                        ? theme.leather.edge
-                        : hexToRgba(theme.leather.accent, 0.24),
-                    },
+                    styles.chartGridLine,
+                    { borderBottomColor: "rgba(255, 255, 255, 0.1)" },
                   ]}
                 >
-                  {active ? (
-                    <DarkLeatherSurface theme={theme} radius={12} />
-                  ) : (
-                    <LightLeatherSurface theme={theme} radius={12} />
-                  )}
-                  <Text
-                    style={[
-                      styles.filterChipText,
-                      { color: active ? "#ffffff" : theme.ink },
-                    ]}
-                  >
-                    {opt}
-                  </Text>
-                </ScalePressable>
-              );
-            }
-          )}
-        </ScrollView>
-
-        {hasFilter && filteredActivities.length > 0 ? (
-          <View
-            style={[
-              styles.activityFilteredSummary,
-              {
-                overflow: "hidden",
-                backgroundColor: theme.card,
-                borderColor: hexToRgba(theme.leather.accent, 0.2),
-              },
-            ]}
-          >
-            <LightLeatherSurface theme={theme} radius={14} />
-            <Text style={[styles.activityFilteredCount, { color: theme.muted }]}>
-              {filteredActivities.length}{" "}
-              {filteredActivities.length === 1 ? "match" : "matches"}
-            </Text>
-            <Text
-              style={[
-                styles.activityFilteredTotal,
-                {
-                  color:
-                    filteredNetTotal > 0 ? theme.positive : theme.ink,
-                },
-              ]}
-            >
-              {hidden
-                ? "••••"
-                : `${filteredNetTotal >= 0 ? "+" : "-"}${money(Math.abs(filteredNetTotal))}`}
-            </Text>
-          </View>
-        ) : null}
-
-        {groupedPageItems.length ? (
-          <View style={styles.activityDateGroups}>
-            {groupedPageItems.map((group) => (
-              <View key={group.dateLabel} style={styles.activityDateGroup}>
-                <View style={styles.activityDateHeader}>
-                  <Text style={[styles.activityDateTitle, { color: theme.muted }]}>
-                    {group.dateLabel}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.activityDateTotal,
-                      {
-                        color:
-                          group.dayNet > 0 ? theme.positive : theme.muted,
-                      },
-                    ]}
-                  >
-                    {hidden
-                      ? "••••"
-                      : `${group.dayNet >= 0 ? "+" : "-"}${money(Math.abs(group.dayNet))}`}
-                  </Text>
+                  <Text style={[styles.chartGridText, { color: theme.heroMuted, opacity: 1 }]}>{lvl}</Text>
                 </View>
-                <View style={styles.txList}>
-                  {group.items.map((item) => (
-                    <TxRow
-                      key={item.id}
-                      item={item}
-                      walletLabel={getDisplayActivityWallet(item, wallets).label}
-                      hidden={hidden}
-                      onPress={onTransaction ? () => onTransaction(item) : undefined}
-                      theme={theme}
-                    />
-                  ))}
-                </View>
-              </View>
-            ))}
-          </View>
-        ) : (
-          <View
-            style={[
-              styles.emptyState,
-              {
-                overflow: "hidden",
-                backgroundColor: theme.card,
-                borderColor: hexToRgba(theme.leather.accent, 0.24),
-              },
-              cardShadow(theme.dark),
-            ]}
-          >
-            <LightLeatherSurface theme={theme} radius={20} />
-            <View
-              style={[
-                styles.emptyStateIcon,
-                {
-                  backgroundColor: hexToRgba(
-                    theme.leather.accent,
-                    theme.dark ? 0.2 : 0.1
-                  ),
-                  borderWidth: 1,
-                  borderColor: hexToRgba(theme.leather.accent, 0.22),
-                },
-              ]}
-            >
-              <Icon name="activity" size={22} color={theme.leather.accent} />
+              ))}
             </View>
-            <Text style={[styles.emptyStateTitle, { color: theme.ink }]}>
-              No matching transactions
-            </Text>
-            <Text style={[styles.emptyStateSub, { color: theme.muted }]}>
-              Try clearing the filter or add a new transaction.
-            </Text>
-          </View>
-        )}
 
-        {totalPages > 1 ? (
-          <View style={styles.paginationBar}>
-            <Pressable
-              onPress={() => setPage(Math.max(1, safePage - 1))}
-              disabled={safePage === 1}
-              style={({ pressed }) => [
-                styles.pageNavBtn,
-                {
-                  backgroundColor: theme.card,
-                  overflow: "hidden",
-                  opacity: safePage === 1 ? 0.4 : pressed ? 0.8 : 1,
-                },
-                bevelStyle(theme.dark),
-                cardShadow(theme.dark),
-              ]}
-            >
-              <AccentSurfaceGlow theme={theme} intensity="medium" />
-              <Icon name="back" size={16} color={theme.accentText} />
-            </Pressable>
-
-            <View style={styles.pageNumsRow}>
-              {visiblePages.map((entry) => {
-                if (entry === "dots-l" || entry === "dots-r") {
-                  return (
-                    <Text
-                      key={entry}
-                      style={[styles.pageDots, { color: theme.muted }]}
-                    >
-                      …
-                    </Text>
-                  );
-                }
-                const active = entry === safePage;
-                if (active) {
-                  return (
-                    <LinearGradient
-                      key={entry}
-                      colors={theme.accentGradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.pageNumBtn}
-                    >
-                      <Text
-                        style={[
-                          styles.pageNumText,
-                          { color: theme.accentInk },
-                        ]}
-                      >
-                        {entry}
-                      </Text>
-                    </LinearGradient>
-                  );
-                }
+            <View style={styles.barsContainer}>
+              {chartData.bars.map((b, i) => {
+                const isSelected = selectedBucketIdx === i;
                 return (
                   <Pressable
-                    key={entry}
-                    onPress={() => setPage(entry)}
-                    style={({ pressed }) => [
-                      styles.pageNumBtn,
-                      {
-                        backgroundColor: theme.card,
-                        overflow: "hidden",
-                        transform: [{ scale: pressed ? 0.94 : 1 }],
-                      },
-                      bevelStyle(theme.dark),
-                      cardShadow(theme.dark),
+                    key={b.key}
+                    onPress={() =>
+                      setSelectedBucketIdx(isSelected ? null : i)
+                    }
+                    style={[
+                      styles.barGroup,
+                      isSelected && styles.barGroupActive,
                     ]}
                   >
-                    <AccentSurfaceGlow theme={theme} />
-                    <Text style={[styles.pageNumText, { color: theme.ink }]}>
-                      {entry}
+                    <View style={styles.barPair}>
+                      <Animated.View
+                        style={[
+                          styles.bar,
+                          {
+                            height: barProgress.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ["0%", `${b.inPct}%`],
+                            }),
+                            backgroundColor: "#6ee7b7",
+                          },
+                        ]}
+                      />
+                      <Animated.View
+                        style={[
+                          styles.bar,
+                          {
+                            height: barProgress.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ["0%", `${b.outPct}%`],
+                            }),
+                            backgroundColor: "rgba(255, 255, 255, 0.88)",
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.barLabel,
+                        { color: theme.heroMuted },
+                        isSelected && { color: "#ffffff", fontWeight: "800" },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {b.label}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
+          </View>
+        </View>
 
-            <Pressable
-              onPress={() => setPage(Math.min(totalPages, safePage + 1))}
-              disabled={safePage === totalPages}
-              style={({ pressed }) => [
-                styles.pageNavBtn,
+        {/* Expense / Income Breakdown Donut Chart */}
+        <View
+          style={[
+            styles.donutCard,
+            {
+              overflow: "hidden",
+              backgroundColor: theme.card,
+              borderColor: hexToRgba(theme.leather.accent, 0.24),
+            },
+            cardShadow(theme.dark),
+          ]}
+        >
+          <LightLeatherSurface theme={theme} radius={20} />
+          <View style={styles.donutHeader}>
+            <Text style={[styles.donutTitle, { color: theme.ink }]}>
+              {categoryMode} breakdown
+            </Text>
+            <View
+              style={[
+                styles.walletOverviewRangePill,
                 {
-                  backgroundColor: theme.card,
                   overflow: "hidden",
-                  opacity: safePage === totalPages ? 0.4 : pressed ? 0.8 : 1,
+                  backgroundColor: theme.page,
+                  borderColor: hexToRgba(theme.leather.accent, 0.24),
                 },
-                bevelStyle(theme.dark),
+              ]}
+            >
+              {(["Expense", "Income"] as const).map((m) => {
+                const active = categoryMode === m;
+                return (
+                  <Pressable
+                    key={m}
+                    onPress={() => {
+                      setCategoryMode(m);
+                      setSelectedCategory(null);
+                      setPage(1);
+                    }}
+                    style={[
+                      styles.walletOverviewRangeChip,
+                      active && {
+                        backgroundColor:
+                          m === "Income" ? theme.positive : theme.leather.accent,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.walletOverviewRangeText,
+                        { color: active ? "#ffffff" : theme.muted },
+                      ]}
+                    >
+                      {m}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          {breakdownDonut.segments.length > 0 ? (
+            <View style={styles.donutRow}>
+              <View style={styles.donutRingWrap}>
+                {(() => {
+                  const size = 96;
+                  const stroke = 11;
+                  const r = (size - stroke) / 2;
+                  const c = 2 * Math.PI * r;
+                  let offsetAcc = 0;
+                  return (
+                    <Svg width={size} height={size}>
+                      <SvgCircle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={r}
+                        stroke={hexToRgba(
+                          breakdownDonut.isIncome
+                            ? theme.positive
+                            : theme.leather.accent,
+                          0.12
+                        )}
+                        strokeWidth={stroke}
+                        fill="none"
+                      />
+                      {breakdownDonut.segments.map((seg) => {
+                        const len =
+                          breakdownDonut.total > 0
+                            ? (seg.amount / breakdownDonut.total) * c
+                            : 0;
+                        const dashOffset = -offsetAcc;
+                        offsetAcc += len;
+                        return (
+                          <SvgCircle
+                            key={seg.label}
+                            cx={size / 2}
+                            cy={size / 2}
+                            r={r}
+                            stroke={seg.color}
+                            strokeWidth={stroke}
+                            strokeDasharray={`${len} ${c}`}
+                            strokeDashoffset={dashOffset}
+                            strokeLinecap="butt"
+                            rotation={-90}
+                            origin={`${size / 2}, ${size / 2}`}
+                            fill="none"
+                          />
+                        );
+                      })}
+                    </Svg>
+                  );
+                })()}
+                <View style={styles.donutCenter}>
+                  <Text style={[styles.donutCenterLabel, { color: theme.muted }]}>
+                    {categoryMode}
+                  </Text>
+                  <Text
+                    style={[styles.donutCenterVal, { color: theme.ink }]}
+                    numberOfLines={1}
+                  >
+                    {hidden ? "••••" : money(breakdownDonut.total, true)}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.donutLegend}>
+                {breakdownDonut.segments.map((seg) => (
+                  <View key={seg.label} style={styles.donutLegendRow}>
+                    <View
+                      style={[styles.donutDot, { backgroundColor: seg.color }]}
+                    />
+                    <Text
+                      style={[styles.donutLegendName, { color: theme.ink }]}
+                      numberOfLines={1}
+                    >
+                      {seg.label}
+                    </Text>
+                    <Text style={[styles.donutLegendPct, { color: theme.muted }]}>
+                      {seg.pct}%
+                    </Text>
+                    <Text style={[styles.donutLegendAmt, { color: theme.ink }]}>
+                      {hidden ? "••" : money(seg.amount, true)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : (
+            <Text style={[styles.donutSub, { color: theme.muted }]}>
+              No {categoryMode.toLowerCase()} transactions recorded yet.
+            </Text>
+          )}
+        </View>
+
+        {/* Monthly Spending Budget Target Card */}
+        {onEditBudget ? (
+          <Pressable
+            onPress={onEditBudget}
+            style={({ pressed }) => [
+              styles.budgetCard,
+              {
+                backgroundColor: theme.card,
+                borderWidth: 1,
+                borderColor: hexToRgba(theme.leather.accent, 0.24),
+                overflow: "hidden",
+                transform: [{ scale: pressed ? 0.99 : 1 }],
+              },
+              cardShadow(theme.dark),
+            ]}
+          >
+            <LightLeatherSurface theme={theme} radius={18} />
+            {monthlyBudget && monthlyBudget > 0 ? (() => {
+              const pct = Math.min(
+                100,
+                Math.round((monthSpending.spent / monthlyBudget) * 100)
+              );
+              const rawRatio = monthSpending.spent / monthlyBudget;
+              const remaining = monthlyBudget - monthSpending.spent;
+              const overBudget = remaining < 0;
+
+              return (
+                <View>
+                  <View style={styles.budgetTopRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.budgetTitle, { color: theme.ink }]}>
+                        {monthSpending.monthLabel} spending budget
+                      </Text>
+                      <Text style={[styles.budgetSub, { color: theme.muted }]}>
+                        {hidden
+                          ? "•••• spent of ••••"
+                          : `${money(monthSpending.spent)} spent of ${money(monthlyBudget)}`}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.budgetEditPill,
+                        {
+                          overflow: "hidden",
+                          backgroundColor: overBudget
+                            ? "#c04444"
+                            : theme.leather.colors[1],
+                          borderWidth: 1,
+                          borderColor: overBudget
+                            ? "#a23434"
+                            : theme.leather.edge,
+                        },
+                      ]}
+                    >
+                      {!overBudget && <DarkLeatherSurface theme={theme} radius={12} />}
+                      <Text
+                        style={[styles.budgetEditText, { color: "#ffffff" }]}
+                      >
+                        {pct}% · Edit
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.budgetTrack,
+                      {
+                        backgroundColor: hexToRgba(
+                          theme.leather.accent,
+                          theme.dark ? 0.22 : 0.12
+                        ),
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.budgetFill,
+                        {
+                          width: `${pct}%`,
+                          backgroundColor: overBudget
+                            ? "#c04444"
+                            : rawRatio >= 0.75
+                              ? "#d97706"
+                              : theme.leather.accent,
+                        },
+                      ]}
+                    />
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.budgetFootText,
+                      { color: overBudget ? "#c04444" : theme.muted },
+                    ]}
+                  >
+                    {hidden
+                      ? "••••"
+                      : overBudget
+                        ? `${money(Math.abs(remaining))} over monthly target`
+                        : `${money(remaining)} remaining this month`}
+                  </Text>
+                </View>
+              );
+            })() : (
+              <View style={styles.budgetTopRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.budgetTitle, { color: theme.ink }]}>
+                    Monthly spending budget
+                  </Text>
+                  <Text style={[styles.budgetSub, { color: theme.muted }]}>
+                    Set a {monthSpending.monthLabel} spending target to track pace
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.budgetEditPill,
+                    {
+                      overflow: "hidden",
+                      backgroundColor: theme.leather.colors[1],
+                      borderWidth: 1,
+                      borderColor: theme.leather.edge,
+                    },
+                  ]}
+                >
+                  <DarkLeatherSurface theme={theme} radius={12} />
+                  <Text style={[styles.budgetEditText, { color: "#ffffff" }]}>
+                    Set target
+                  </Text>
+                </View>
+              </View>
+            )}
+          </Pressable>
+        ) : null}
+
+        <CategoryBudgetOverview limits={categoryLimits} spending={monthSpending} hidden={hidden}
+          theme={theme} onOpen={onOpenCategoryBudget} />
+
+        {/* Squarified Categories Treemap */}
+        <CategoryTreemap
+          categories={categoryCards}
+          mode={categoryMode}
+          selectedCategory={selectedCategory}
+          hidden={hidden}
+          onSelectCategory={(label) => {
+            if (onCategorySelect) onCategorySelect(label);
+            else {
+              setSelectedCategory(selectedCategory === label ? null : label);
+              setPage(1);
+            }
+          }}
+          onToggleMode={() => {
+            setCategoryMode((prev) => (prev === "Expense" ? "Income" : "Expense"));
+            setSelectedCategory(null);
+            setPage(1);
+          }}
+          onViewAll={onViewAllCategories}
+          theme={theme}
+        />
+
+        {/* Squarified Wallet Distribution Treemap */}
+        <WalletTreemap
+          wallets={wallets}
+          hidden={hidden}
+          onSelectWallet={onOpenWallet}
+          onViewAll={onViewAllWallets}
+          theme={theme}
+        />
+
+      </> : null}
+
+      {mode === "transactions" ? <>
+        {/* All Transactions List (10 per page) */}
+        <View style={{ marginTop: 2 }}>
+          <SectionTitle
+            title={
+              activeCategory
+                ? `${activeCategory} transactions`
+                : typeFilter !== "All"
+                  ? `${typeFilter}`
+                  : "All transactions"
+            }
+            action={
+              hasFilter
+                ? "Clear filter"
+                : filteredActivities.length
+                  ? `${pageStart + 1}–${pageEnd} of ${filteredActivities.length}`
+                  : undefined
+            }
+            actionIcon={hasFilter ? "close" : null}
+            actionColor={hasFilter ? theme.accentText : undefined}
+            onPress={
+              hasFilter
+                ? () => {
+                  setSelectedCategory(null);
+                  onClearCategory?.();
+                  setSelectedWalletFilter(null);
+                  setSearchQuery("");
+                  setTypeFilter("All");
+                  setPage(1);
+                }
+                : undefined
+            }
+            theme={theme}
+          />
+
+          {/* Stitched Search Bar + Filter Button */}
+          <View style={styles.activitySearchRow}>
+            <View
+              style={[
+                styles.activitySearchBox,
+                {
+                  flex: 1,
+                  marginBottom: 0,
+                  overflow: "hidden",
+                  backgroundColor: theme.card,
+                  borderColor: hexToRgba(theme.leather.accent, 0.24),
+                },
                 cardShadow(theme.dark),
               ]}
             >
-              <AccentSurfaceGlow theme={theme} intensity="medium" />
-              <Icon name="chevron" size={16} color={theme.accentText} />
-            </Pressable>
+              <LightLeatherSurface theme={theme} radius={16} />
+              <Icon name="search" size={16} color={theme.leather.accent} />
+              <TextInput
+                value={searchQuery}
+                onChangeText={(t) => {
+                  setSearchQuery(t);
+                  setPage(1);
+                }}
+                placeholder="Search merchant, category, or wallet..."
+                placeholderTextColor={theme.muted}
+                style={[styles.activitySearchInput, { color: theme.ink }]}
+              />
+              {searchQuery ? (
+                <Pressable
+                  onPress={() => {
+                    setSearchQuery("");
+                    setPage(1);
+                  }}
+                  hitSlop={8}
+                >
+                  <Icon name="close" size={14} color={theme.muted} />
+                </Pressable>
+              ) : null}
+            </View>
+            {onToggleFilters ? (
+              <Pressable
+                onPress={onToggleFilters}
+                accessibilityRole="button"
+                accessibilityLabel="Wallet filters and export"
+                style={({ pressed }) => [
+                  styles.activityFilterBtn,
+                  {
+                    overflow: "hidden",
+                    backgroundColor:
+                      showFilters || selectedWalletFilter !== null
+                        ? theme.leather.colors[1]
+                        : theme.card,
+                    borderColor:
+                      showFilters || selectedWalletFilter !== null
+                        ? theme.leather.edge
+                        : hexToRgba(theme.leather.accent, 0.24),
+                    transform: [{ scale: pressed ? 0.95 : 1 }],
+                  },
+                  cardShadow(theme.dark),
+                ]}
+              >
+                {showFilters || selectedWalletFilter !== null ? (
+                  <DarkLeatherSurface theme={theme} radius={16} />
+                ) : (
+                  <LightLeatherSurface theme={theme} radius={16} />
+                )}
+                <Icon
+                  name="more"
+                  size={18}
+                  color={
+                    showFilters || selectedWalletFilter !== null
+                      ? "#ffffff"
+                      : theme.leather.accent
+                  }
+                />
+              </Pressable>
+            ) : null}
           </View>
-        ) : null}
-      </View>
+
+          {showFilters ? (
+            <View
+              style={[
+                styles.activityFilterPanel,
+                {
+                  backgroundColor: theme.leather.colors[1],
+                  borderWidth: 1,
+                  borderColor: theme.leather.edge,
+                  overflow: "hidden",
+                  marginBottom: 10,
+                },
+                cardShadow(theme.dark),
+              ]}
+            >
+              <DarkLeatherSurface theme={theme} radius={18} />
+              <View style={styles.activityFilterHeader}>
+                <Text style={[styles.activityFilterTitle, { color: theme.heroMuted }]}>
+                  WALLETS & EXPORT
+                </Text>
+                <Pressable
+                  onPress={handleExportCsv}
+                  style={({ pressed }) => [
+                    styles.exportCsvPill,
+                    {
+                      overflow: "hidden",
+                      backgroundColor: theme.card,
+                      borderWidth: 1,
+                      borderColor: hexToRgba(theme.leather.accent, 0.28),
+                      opacity: pressed ? 0.85 : 1,
+                    },
+                  ]}
+                >
+                  <LightLeatherSurface theme={theme} radius={12} />
+                  <Icon name="arrow-out" size={12} color={theme.leather.accent} />
+                  <Text style={[styles.exportCsvText, { color: theme.ink }]}>
+                    Export CSV ({filteredActivities.length})
+                  </Text>
+                </Pressable>
+              </View>
+
+              {visibleWalletChips.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.filterChipRow}
+                >
+                  <Pressable
+                    onPress={() => {
+                      setSelectedWalletFilter(null);
+                      setPage(1);
+                    }}
+                    style={[
+                      styles.filterChip,
+                      {
+                        overflow: "hidden",
+                        backgroundColor:
+                          selectedWalletFilter === null
+                            ? theme.card
+                            : "rgba(255, 255, 255, 0.1)",
+                        borderColor:
+                          selectedWalletFilter === null
+                            ? hexToRgba(theme.leather.accent, 0.28)
+                            : "rgba(255, 255, 255, 0.18)",
+                      },
+                    ]}
+                  >
+                    {selectedWalletFilter === null ? (
+                      <LightLeatherSurface theme={theme} radius={12} />
+                    ) : null}
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        {
+                          color:
+                            selectedWalletFilter === null
+                              ? theme.ink
+                              : "rgba(255, 255, 255, 0.88)",
+                        },
+                      ]}
+                    >
+                      All wallets
+                    </Text>
+                  </Pressable>
+                  {visibleWalletChips.map((w) => {
+                    const wKey = w.localId || `wallet-${w.id}`;
+                    const active = selectedWalletFilter === wKey;
+                    return (
+                      <Pressable
+                        key={w.id}
+                        onPress={() => {
+                          setSelectedWalletFilter(active ? null : wKey);
+                          setPage(1);
+                        }}
+                        style={[
+                          styles.filterChip,
+                          {
+                            overflow: "hidden",
+                            backgroundColor: active
+                              ? theme.card
+                              : "rgba(255, 255, 255, 0.1)",
+                            borderColor: active
+                              ? hexToRgba(theme.leather.accent, 0.28)
+                              : "rgba(255, 255, 255, 0.18)",
+                          },
+                        ]}
+                      >
+                        {active ? (
+                          <LightLeatherSurface theme={theme} radius={12} />
+                        ) : null}
+                        <Text
+                          style={[
+                            styles.filterChipText,
+                            {
+                              color: active
+                                ? theme.ink
+                                : "rgba(255, 255, 255, 0.88)",
+                            },
+                          ]}
+                        >
+                          {w.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              ) : null}
+            </View>
+          ) : null}
+
+          {/* Always-visible Quick Type Filter Pills */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.activityQuickFilterRow}
+          >
+            {(["All", "Expenses", "Income", "Transfers", "Adjusted"] as const).map(
+              (opt) => {
+                const active = typeFilter === opt;
+                return (
+                  <ScalePressable
+                    key={opt}
+                    onPress={() => {
+                      setTypeFilter(opt);
+                      setPage(1);
+                    }}
+                    scaleTo={0.955}
+                    style={[
+                      styles.filterChip,
+                      {
+                        overflow: "hidden",
+                        backgroundColor: active
+                          ? theme.leather.colors[1]
+                          : theme.card,
+                        borderColor: active
+                          ? theme.leather.edge
+                          : hexToRgba(theme.leather.accent, 0.24),
+                      },
+                    ]}
+                  >
+                    {active ? (
+                      <DarkLeatherSurface theme={theme} radius={12} />
+                    ) : (
+                      <LightLeatherSurface theme={theme} radius={12} />
+                    )}
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        { color: active ? "#ffffff" : theme.ink },
+                      ]}
+                    >
+                      {opt}
+                    </Text>
+                  </ScalePressable>
+                );
+              }
+            )}
+          </ScrollView>
+
+          {hasFilter && filteredActivities.length > 0 ? (
+            <View
+              style={[
+                styles.activityFilteredSummary,
+                {
+                  overflow: "hidden",
+                  backgroundColor: theme.card,
+                  borderColor: hexToRgba(theme.leather.accent, 0.2),
+                },
+              ]}
+            >
+              <LightLeatherSurface theme={theme} radius={14} />
+              <Text style={[styles.activityFilteredCount, { color: theme.muted }]}>
+                {filteredActivities.length}{" "}
+                {filteredActivities.length === 1 ? "match" : "matches"}
+              </Text>
+              <Text
+                style={[
+                  styles.activityFilteredTotal,
+                  {
+                    color:
+                      filteredNetTotal > 0 ? theme.positive : theme.ink,
+                  },
+                ]}
+              >
+                {hidden
+                  ? "••••"
+                  : `${filteredNetTotal >= 0 ? "+" : "-"}${money(Math.abs(filteredNetTotal))}`}
+              </Text>
+            </View>
+          ) : null}
+
+          {groupedPageItems.length ? (
+            <View style={styles.activityDateGroups}>
+              {groupedPageItems.map((group) => (
+                <View key={group.dateLabel} style={styles.activityDateGroup}>
+                  <View style={styles.activityDateHeader}>
+                    <Text style={[styles.activityDateTitle, { color: theme.muted }]}>
+                      {group.dateLabel}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.activityDateTotal,
+                        {
+                          color:
+                            group.dayNet > 0 ? theme.positive : theme.muted,
+                        },
+                      ]}
+                    >
+                      {hidden
+                        ? "••••"
+                        : `${group.dayNet >= 0 ? "+" : "-"}${money(Math.abs(group.dayNet))}`}
+                    </Text>
+                  </View>
+                  <View style={styles.txList}>
+                    {group.items.map((item) => (
+                      <TxRow
+                        key={item.id}
+                        item={item}
+                        walletLabel={getDisplayActivityWallet(item, wallets).label}
+                        hidden={hidden}
+                        onPress={onTransaction ? () => onTransaction(item) : undefined}
+                        theme={theme}
+                      />
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.emptyState,
+                {
+                  overflow: "hidden",
+                  backgroundColor: theme.card,
+                  borderColor: hexToRgba(theme.leather.accent, 0.24),
+                },
+                cardShadow(theme.dark),
+              ]}
+            >
+              <LightLeatherSurface theme={theme} radius={20} />
+              <View
+                style={[
+                  styles.emptyStateIcon,
+                  {
+                    backgroundColor: hexToRgba(
+                      theme.leather.accent,
+                      theme.dark ? 0.2 : 0.1
+                    ),
+                    borderWidth: 1,
+                    borderColor: hexToRgba(theme.leather.accent, 0.22),
+                  },
+                ]}
+              >
+                <Icon name="activity" size={22} color={theme.leather.accent} />
+              </View>
+              <Text style={[styles.emptyStateTitle, { color: theme.ink }]}>
+                No matching transactions
+              </Text>
+              <Text style={[styles.emptyStateSub, { color: theme.muted }]}>
+                Try clearing the filter or add a new transaction.
+              </Text>
+            </View>
+          )}
+
+          {totalPages > 1 ? (
+            <View style={styles.paginationBar}>
+              <Pressable
+                onPress={() => setPage(Math.max(1, safePage - 1))}
+                disabled={safePage === 1}
+                style={({ pressed }) => [
+                  styles.pageNavBtn,
+                  {
+                    backgroundColor: theme.card,
+                    overflow: "hidden",
+                    opacity: safePage === 1 ? 0.4 : pressed ? 0.8 : 1,
+                  },
+                  bevelStyle(theme.dark),
+                  cardShadow(theme.dark),
+                ]}
+              >
+                <AccentSurfaceGlow theme={theme} intensity="medium" />
+                <Icon name="back" size={16} color={theme.accentText} />
+              </Pressable>
+
+              <View style={styles.pageNumsRow}>
+                {visiblePages.map((entry) => {
+                  if (entry === "dots-l" || entry === "dots-r") {
+                    return (
+                      <Text
+                        key={entry}
+                        style={[styles.pageDots, { color: theme.muted }]}
+                      >
+                        …
+                      </Text>
+                    );
+                  }
+                  const active = entry === safePage;
+                  if (active) {
+                    return (
+                      <LinearGradient
+                        key={entry}
+                        colors={theme.accentGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.pageNumBtn}
+                      >
+                        <Text
+                          style={[
+                            styles.pageNumText,
+                            { color: theme.accentInk },
+                          ]}
+                        >
+                          {entry}
+                        </Text>
+                      </LinearGradient>
+                    );
+                  }
+                  return (
+                    <Pressable
+                      key={entry}
+                      onPress={() => setPage(entry)}
+                      style={({ pressed }) => [
+                        styles.pageNumBtn,
+                        {
+                          backgroundColor: theme.card,
+                          overflow: "hidden",
+                          transform: [{ scale: pressed ? 0.94 : 1 }],
+                        },
+                        bevelStyle(theme.dark),
+                        cardShadow(theme.dark),
+                      ]}
+                    >
+                      <AccentSurfaceGlow theme={theme} />
+                      <Text style={[styles.pageNumText, { color: theme.ink }]}>
+                        {entry}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <Pressable
+                onPress={() => setPage(Math.min(totalPages, safePage + 1))}
+                disabled={safePage === totalPages}
+                style={({ pressed }) => [
+                  styles.pageNavBtn,
+                  {
+                    backgroundColor: theme.card,
+                    overflow: "hidden",
+                    opacity: safePage === totalPages ? 0.4 : pressed ? 0.8 : 1,
+                  },
+                  bevelStyle(theme.dark),
+                  cardShadow(theme.dark),
+                ]}
+              >
+                <AccentSurfaceGlow theme={theme} intensity="medium" />
+                <Icon name="chevron" size={16} color={theme.accentText} />
+              </Pressable>
+            </View>
+          ) : null}
+        </View>
       </> : null}
     </View>
   );
@@ -3463,16 +3463,16 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   setHidden,
   showToast,
   profile,
-  userEmail,
-  lastSyncedAt,
   appLockEnabled,
   biometricsSupported,
   biometricsEnabled,
   onToggleAppLock,
   onChangeAppLockPin,
   onToggleBiometrics,
-  onOpenAuth,
-  onSyncNow,
+  onOpenProfile,
+  onRequestExportBackup,
+  onRequestRestoreBackup,
+  onRequestEraseData,
   monthlyBudget = null,
   walletCount = 0,
   activityCount = 0,
@@ -3489,16 +3489,16 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   setHidden: (v: boolean) => void;
   showToast: (s: string) => void;
   profile: UserProfile;
-  userEmail: string | null;
-  lastSyncedAt: string | null;
   appLockEnabled: boolean;
   biometricsSupported: boolean;
   biometricsEnabled: boolean;
   onToggleAppLock: () => void;
   onChangeAppLockPin: () => void;
   onToggleBiometrics: () => void;
-  onOpenAuth: () => void;
-  onSyncNow: () => void;
+  onOpenProfile: () => void;
+  onRequestExportBackup: () => void;
+  onRequestRestoreBackup: () => void;
+  onRequestEraseData: () => void;
   monthlyBudget?: number | null;
   walletCount?: number;
   activityCount?: number;
@@ -3524,7 +3524,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
         </View>
 
         <ScalePressable
-          onPress={onOpenAuth}
+          onPress={onOpenProfile}
           scaleTo={0.985}
           pressOpacity={0.86}
           style={[styles.settingsHeroProfileRow, { marginTop: 12 }]}
@@ -3537,9 +3537,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
               {profile.fullName}
             </Text>
             <Text style={[styles.profileCardSub, { color: theme.heroMuted, opacity: 1 }]} numberOfLines={1}>
-              {userEmail
-                ? `${userEmail} · Synced`
-                : "Local profile · Sign in to sync"}
+              Tap to edit name
             </Text>
           </View>
           <Icon name="chevron" size={18} color={theme.heroInk} />
@@ -3548,195 +3546,206 @@ export const SettingsScreen = React.memo(function SettingsScreen({
 
       {/* Appearance Group */}
       <StaggerReveal index={0} offsetY={10} duration={230}>
-      <SettingsGroup title="Appearance" theme={theme}>
-        <View
-          style={[
-            styles.accentPickerBlock,
-            {
-              borderBottomWidth: 1,
-              borderBottomColor: hexToRgba(theme.leather.accent, 0.14),
-            },
-          ]}
-        >
-          <View style={styles.accentPickerHeader}>
-            <Icon name="palette" size={19} color={theme.leather.accent} />
-            <View style={styles.rowMain}>
-              <Text style={[styles.rowTitle, { color: theme.ink }]}>Leather finish</Text>
-              <Text style={[styles.rowSub, { color: theme.muted }]}>Wallet and app theme</Text>
+        <SettingsGroup title="Appearance" theme={theme}>
+          <View
+            style={[
+              styles.accentPickerBlock,
+              {
+                borderBottomWidth: 1,
+                borderBottomColor: hexToRgba(theme.leather.accent, 0.14),
+              },
+            ]}
+          >
+            <View style={styles.accentPickerHeader}>
+              <Icon name="palette" size={19} color={theme.leather.accent} />
+              <View style={styles.rowMain}>
+                <Text style={[styles.rowTitle, { color: theme.ink }]}>Leather finish</Text>
+                <Text style={[styles.rowSub, { color: theme.muted }]}>Wallet and app theme</Text>
+              </View>
+            </View>
+            <View style={styles.accentGrid}>
+              {[LEATHER_FINISHES.slice(0, 3), LEATHER_FINISHES.slice(3, 6)].map((row, index) => (
+                <View key={index} style={styles.accentGridRow}>
+                  {row.map((item) => (
+                    <ScalePressable key={item.id} scaleTo={0.94} accessibilityRole="radio" accessibilityState={{ checked: item.id === leatherFinish }} accessibilityLabel={item.label} onPress={() => { setLeatherFinish(item.id); showToast(`Leather finish set to ${item.label}`); }} style={[styles.accentTile, { borderColor: item.id === leatherFinish ? item.accent : item.edge }]}>
+                      <LinearGradient colors={item.colors} style={StyleSheet.absoluteFill} />
+                      <Svg pointerEvents="none" width="100%" height="100%" viewBox="0 0 100 72" preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
+                        <Defs>
+                          <Pattern id={`finishGrain${item.id}`} width={6} height={6} patternUnits="userSpaceOnUse">
+                            <Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth="0.7" opacity="0.45" />
+                            <Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke={item.thread} strokeWidth="0.65" opacity="0.26" />
+                          </Pattern>
+                        </Defs>
+                        <Rect width="100" height="72" fill={`url(#finishGrain${item.id})`} />
+                        <Rect x="5" y="5" width="90" height="62" rx="10" fill="none" stroke={item.thread} strokeWidth="1" strokeDasharray="3.5 3" opacity="0.85" />
+                        <Rect x="9" y="9" width="82" height="54" rx="7" fill="none" stroke={item.thread} strokeWidth="0.7" strokeDasharray="2 3" opacity="0.48" />
+                      </Svg>
+                      {item.id === leatherFinish && <View style={styles.accentTileCheck}><Icon name="check" size={14} color="#ffffff" /></View>}
+                      <Text style={styles.accentTileLabel} numberOfLines={1}>{item.label}</Text>
+                    </ScalePressable>
+                  ))}
+                </View>
+              ))}
             </View>
           </View>
-          <View style={styles.accentGrid}>
-            {[LEATHER_FINISHES.slice(0, 3), LEATHER_FINISHES.slice(3, 6)].map((row, index) => (
-              <View key={index} style={styles.accentGridRow}>
-                {row.map((item) => (
-                  <ScalePressable key={item.id} scaleTo={0.94} accessibilityRole="radio" accessibilityState={{ checked: item.id === leatherFinish }} accessibilityLabel={item.label} onPress={() => { setLeatherFinish(item.id); showToast(`Leather finish set to ${item.label}`); }} style={[styles.accentTile, { borderColor: item.id === leatherFinish ? item.accent : item.edge }]}>
-                    <LinearGradient colors={item.colors} style={StyleSheet.absoluteFill} />
-                    <Svg pointerEvents="none" width="100%" height="100%" viewBox="0 0 100 72" preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
-                      <Defs>
-                        <Pattern id={`finishGrain${item.id}`} width={6} height={6} patternUnits="userSpaceOnUse">
-                          <Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth="0.7" opacity="0.45" />
-                          <Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke={item.thread} strokeWidth="0.65" opacity="0.26" />
-                        </Pattern>
-                      </Defs>
-                      <Rect width="100" height="72" fill={`url(#finishGrain${item.id})`} />
-                      <Rect x="5" y="5" width="90" height="62" rx="10" fill="none" stroke={item.thread} strokeWidth="1" strokeDasharray="3.5 3" opacity="0.85" />
-                      <Rect x="9" y="9" width="82" height="54" rx="7" fill="none" stroke={item.thread} strokeWidth="0.7" strokeDasharray="2 3" opacity="0.48" />
-                    </Svg>
-                    {item.id === leatherFinish && <View style={styles.accentTileCheck}><Icon name="check" size={14} color="#ffffff" /></View>}
-                    <Text style={styles.accentTileLabel} numberOfLines={1}>{item.label}</Text>
-                  </ScalePressable>
-                ))}
-              </View>
-            ))}
-          </View>
-        </View>
 
-        <SettingRow
-          icon="eye"
-          title="Hide balances"
-          subtitle="Mask amounts across screens"
-          onPress={() => setHidden(!hidden)}
-          control={
-            <SwitchControl
-              on={hidden}
-              onPress={() => setHidden(!hidden)}
-              theme={theme}
-            />
-          }
-          isLast
-          theme={theme}
-        />
-      </SettingsGroup>
-      </StaggerReveal>
-
-      {/* Planning Group */}
-      <StaggerReveal index={1} offsetY={10} duration={230}>
-      <SettingsGroup title="Planning" theme={theme}>
-        {onOpenBudget ? (
           <SettingRow
-            icon="trend"
-            title="Monthly budget"
-            subtitle={
-              monthlyBudget && monthlyBudget > 0
-                ? `${hidden ? "••••" : money(monthlyBudget)} per month`
-                : "Not set"
-            }
-            onPress={onOpenBudget}
-            theme={theme}
-          />
-        ) : null}
-        {onOpenCategoryBudgets ? (
-          <SettingRow
-            icon="tag"
-            title="Category budgets"
-            subtitle="Monthly spending limits"
-            onPress={onOpenCategoryBudgets}
-            theme={theme}
-          />
-        ) : null}
-        {onOpenSchedules ? (
-          <SettingRow
-            icon="clock"
-            title="Bills & paydays"
-            subtitle={
-              scheduleCount > 0
-                ? `${scheduleCount} ${scheduleCount === 1 ? "schedule" : "schedules"} active`
-                : "No schedules yet"
-            }
-            onPress={onOpenSchedules}
-            isLast
-            theme={theme}
-          />
-        ) : null}
-      </SettingsGroup>
-      </StaggerReveal>
-
-      {/* Security Group */}
-      <StaggerReveal index={2} offsetY={10} duration={230}>
-      <SettingsGroup title="Security" theme={theme}>
-        <SettingRow
-          icon="lock"
-          title="App lock"
-          subtitle={
-            appLockEnabled
-              ? "4-digit PIN enabled"
-              : "Protect with a 4-digit PIN"
-          }
-          onPress={onToggleAppLock}
-          control={
-            <SwitchControl
-              on={appLockEnabled}
-              onPress={onToggleAppLock}
-              theme={theme}
-            />
-          }
-          isLast={!appLockEnabled}
-          theme={theme}
-        />
-        {appLockEnabled ? (
-          <SettingRow
-            icon="edit"
-            title="Change PIN"
-            subtitle="Update 4-digit PIN"
-            onPress={onChangeAppLockPin}
-            isLast={!biometricsSupported}
-            theme={theme}
-          />
-        ) : null}
-        {appLockEnabled && biometricsSupported ? (
-          <SettingRow
-            icon="fingerprint"
-            title="Biometric unlock"
-            subtitle={
-              biometricsEnabled
-                ? "Fingerprint or Face ID active"
-                : "Unlock faster with biometrics"
-            }
-            onPress={onToggleBiometrics}
+            icon="eye"
+            title="Hide balances"
+            subtitle="Mask amounts across screens"
+            onPress={() => setHidden(!hidden)}
             control={
               <SwitchControl
-                on={biometricsEnabled}
-                onPress={onToggleBiometrics}
+                on={hidden}
+                onPress={() => setHidden(!hidden)}
                 theme={theme}
               />
             }
             isLast
             theme={theme}
           />
-        ) : null}
-      </SettingsGroup>
+        </SettingsGroup>
       </StaggerReveal>
 
-      {/* Data & Sync Group */}
+      {/* Planning Group */}
+      <StaggerReveal index={1} offsetY={10} duration={230}>
+        <SettingsGroup title="Planning" theme={theme}>
+          {onOpenBudget ? (
+            <SettingRow
+              icon="trend"
+              title="Monthly budget"
+              subtitle={
+                monthlyBudget && monthlyBudget > 0
+                  ? `${hidden ? "••••" : money(monthlyBudget)} per month`
+                  : "Not set"
+              }
+              onPress={onOpenBudget}
+              theme={theme}
+            />
+          ) : null}
+          {onOpenCategoryBudgets ? (
+            <SettingRow
+              icon="tag"
+              title="Category budgets"
+              subtitle="Monthly spending limits"
+              onPress={onOpenCategoryBudgets}
+              theme={theme}
+            />
+          ) : null}
+          {onOpenSchedules ? (
+            <SettingRow
+              icon="clock"
+              title="Bills & paydays"
+              subtitle={
+                scheduleCount > 0
+                  ? `${scheduleCount} ${scheduleCount === 1 ? "schedule" : "schedules"} active`
+                  : "No schedules yet"
+              }
+              onPress={onOpenSchedules}
+              isLast
+              theme={theme}
+            />
+          ) : null}
+        </SettingsGroup>
+      </StaggerReveal>
+
+      {/* Security Group */}
+      <StaggerReveal index={2} offsetY={10} duration={230}>
+        <SettingsGroup title="Security" theme={theme}>
+          <SettingRow
+            icon="lock"
+            title="App lock"
+            subtitle={
+              appLockEnabled
+                ? "4-digit PIN enabled"
+                : "Protect with a 4-digit PIN"
+            }
+            onPress={onToggleAppLock}
+            control={
+              <SwitchControl
+                on={appLockEnabled}
+                onPress={onToggleAppLock}
+                theme={theme}
+              />
+            }
+            isLast={!appLockEnabled}
+            theme={theme}
+          />
+          {appLockEnabled ? (
+            <SettingRow
+              icon="edit"
+              title="Change PIN"
+              subtitle="Update 4-digit PIN"
+              onPress={onChangeAppLockPin}
+              isLast={!biometricsSupported}
+              theme={theme}
+            />
+          ) : null}
+          {appLockEnabled && biometricsSupported ? (
+            <SettingRow
+              icon="fingerprint"
+              title="Biometric unlock"
+              subtitle={
+                biometricsEnabled
+                  ? "Fingerprint or Face ID active"
+                  : "Unlock faster with biometrics"
+              }
+              onPress={onToggleBiometrics}
+              control={
+                <SwitchControl
+                  on={biometricsEnabled}
+                  onPress={onToggleBiometrics}
+                  theme={theme}
+                />
+              }
+              isLast
+              theme={theme}
+            />
+          ) : null}
+        </SettingsGroup>
+      </StaggerReveal>
+
+      {/* Data & Backup Group */}
       <StaggerReveal index={3} offsetY={10} duration={230}>
-      <SettingsGroup title="Data & sync" theme={theme}>
-        <SettingRow
-          icon="cloud"
-          title="Cloud backup"
-          subtitle={
-            userEmail
-              ? `Last synced ${lastSyncedAt || "just now"}`
-              : "Local only · Sign in to sync"
-          }
-          onPress={userEmail ? onSyncNow : onOpenAuth}
-          theme={theme}
-        />
-        <SettingRow
-          icon="wallet"
-          title="Stored data"
-          subtitle={`${walletCount} ${walletCount === 1 ? "wallet" : "wallets"} · ${activityCount} ${activityCount === 1 ? "transaction" : "transactions"}`}
-          onPress={() => showToast("All data saved locally on device")}
-          theme={theme}
-        />
-        <SettingRow
-          icon="info"
-          title="About Pitaka"
-          subtitle="Version 1.0"
-          onPress={() => showToast("You have the latest version")}
-          isLast
-          theme={theme}
-        />
-      </SettingsGroup>
+        <SettingsGroup title="Data & backup" theme={theme}>
+          <SettingRow
+            icon="download"
+            title="Export JSON backup"
+            subtitle="Save wallets, transactions & budgets"
+            onPress={onRequestExportBackup}
+            theme={theme}
+          />
+          <SettingRow
+            icon="upload"
+            title="Restore from backup"
+            subtitle="Import a saved JSON backup file"
+            onPress={onRequestRestoreBackup}
+            theme={theme}
+          />
+          <SettingRow
+            icon="wallet"
+            title="Stored data"
+            subtitle={`${walletCount} ${walletCount === 1 ? "wallet" : "wallets"} · ${activityCount} ${activityCount === 1 ? "transaction" : "transactions"} · On device`}
+            onPress={() => showToast("All data saved locally on device")}
+            theme={theme}
+          />
+          <SettingRow
+            icon="trash"
+            title="Erase all data"
+            subtitle="Reset app and delete all local records"
+            destructive
+            onPress={onRequestEraseData}
+            theme={theme}
+          />
+          <SettingRow
+            icon="info"
+            title="About Pitaka"
+            subtitle="Version 1.0 · Offline-first"
+            onPress={() => showToast("Offline-first · Data stays on your device")}
+            isLast
+            theme={theme}
+          />
+        </SettingsGroup>
       </StaggerReveal>
     </View>
   );
@@ -3781,6 +3790,7 @@ function SettingRow({
   subtitle,
   control,
   onPress,
+  destructive = false,
   isLast = false,
   theme,
 }: {
@@ -3789,9 +3799,11 @@ function SettingRow({
   subtitle: string;
   control?: React.ReactNode;
   onPress?: () => void;
+  destructive?: boolean;
   isLast?: boolean;
   theme: ThemeColors;
 }) {
+  const dangerColor = theme.dark ? "#f28b82" : "#9e3c42";
   return (
     <Pressable
       onPress={onPress}
@@ -3802,16 +3814,16 @@ function SettingRow({
           borderBottomColor: hexToRgba(theme.leather.accent, 0.14),
         },
         pressed && onPress
-          ? { backgroundColor: hexToRgba(theme.leather.accent, 0.05) }
+          ? { backgroundColor: hexToRgba(destructive ? "#9e3c42" : theme.leather.accent, 0.06) }
           : null,
       ]}
     >
-      <Icon name={icon} size={19} color={theme.leather.accent} />
+      <Icon name={icon} size={19} color={destructive ? dangerColor : theme.leather.accent} />
       <View style={styles.rowMain}>
-        <Text style={[styles.rowTitle, { color: theme.ink }]}>{title}</Text>
+        <Text style={[styles.rowTitle, { color: destructive ? dangerColor : theme.ink }]}>{title}</Text>
         <Text style={[styles.rowSub, { color: theme.muted }]}>{subtitle}</Text>
       </View>
-      {control || <Icon name="chevron" size={16} color={theme.muted} />}
+      {control || <Icon name="chevron" size={16} color={destructive ? dangerColor : theme.muted} />}
     </Pressable>
   );
 }

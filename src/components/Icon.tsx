@@ -347,6 +347,20 @@ export function Icon({
             <Circle cx="12" cy="12.5" r="3.2" />
           </>
         );
+      case "download":
+        return (
+          <>
+            <Path d="M12 4v11M7.5 10.5 12 15l4.5-4.5" />
+            <Path d="M4.5 17.5v1A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-1" />
+          </>
+        );
+      case "upload":
+        return (
+          <>
+            <Path d="M12 15V4M7.5 8.5 12 4l4.5 4.5" />
+            <Path d="M4.5 17.5v1A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-1" />
+          </>
+        );
       case "palette":
         return (
           <>

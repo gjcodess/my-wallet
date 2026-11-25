@@ -1,11 +1,12 @@
 import * as SQLite from "expo-sqlite";
 import { Platform } from "react-native";
+import { Directory, Paths } from "expo-file-system";
 import type { Schedule } from "../types/schedule";
-import { readCategoryLimits } from "../types/budget";
+import { categoryLimitKey, readCategoryLimits } from "../types/budget";
 import type { CategoryLimits } from "../types/budget";
-import { readFavorites } from "../types/favorite";
+import { favoriteKey, readFavorites } from "../types/favorite";
 import type { Favorite } from "../types/favorite";
-import { supabase } from "./supabase";
+import type { PitakaBackupPayload } from "./backup";
 import { AccentPaletteId, isAccentPaletteId } from "../components/SharedUI";
 import {
   ActivityItem,
@@ -178,7 +179,6 @@ export async function loadLocalState(): Promise<{
   accentColor: AccentPaletteId;
   leatherFinish: string | null;
   profile: UserProfile;
-  lastSyncedAt: string | null;
   appLockPin: string | null;
   biometricsEnabled: boolean;
   monthlyBudget: number | null;
@@ -277,7 +277,6 @@ export async function loadLocalState(): Promise<{
       fullName: settingsMap.get("full_name") || "Justin Santos",
       initials: settingsMap.get("initials") || "JS",
     },
-    lastSyncedAt: settingsMap.get("last_synced_at") || null,
     appLockPin: settingsMap.get("app_lock_pin") || null,
     biometricsEnabled: settingsMap.get("app_lock_biometrics") === "true",
     monthlyBudget,
@@ -451,186 +450,148 @@ export async function queueDeletedWalletIds(localIds: string[]): Promise<void> {
   await saveSettingToSQLite("deleted_wallet_ids", JSON.stringify(merged));
 }
 
-export async function syncWithSupabase(params: {
-  userId: string;
-  wallets: Wallet[];
-  activities: ActivityItem[];
-  dark: boolean;
-  hidden: boolean;
-  profile: UserProfile;
-}): Promise<{
-  ok: boolean;
-  message: string;
-  wallets?: Wallet[];
-  activities?: ActivityItem[];
-  syncedAt?: string;
-}> {
-  const { userId, wallets, activities, dark, hidden, profile } = params;
+export async function restoreLocalStateToSQLite(
+  payload: PitakaBackupPayload
+): Promise<void> {
+  const db = await getDb();
   const now = new Date().toISOString();
+  const {
+    wallets,
+    activities,
+    schedules,
+    profile,
+    leatherFinish,
+    hidden,
+    monthlyBudget,
+    categoryLimits,
+    favorites,
+  } = payload.data;
 
-  try {
-    // 1. Upsert user profile
-    const { error: profileError } = await supabase.from("profiles").upsert(
-      {
-        id: userId,
-        full_name: profile.fullName,
-        initials: profile.initials,
-        dark_mode: dark,
-        hide_balances: hidden,
-        updated_at: now,
-      },
-      { onConflict: "id" }
+  await db.withTransactionAsync(async () => {
+    await db.execAsync(`
+      DELETE FROM wallets;
+      DELETE FROM activities;
+      DELETE FROM schedules;
+      DELETE FROM kv_settings;
+    `);
+
+    await db.runAsync(
+      "INSERT OR REPLACE INTO kv_settings (key, value) VALUES ('seeded', '1')"
     );
-    if (profileError) throw profileError;
+    await db.runAsync(
+      "INSERT OR REPLACE INTO kv_settings (key, value) VALUES ('full_name', ?)",
+      [profile.fullName]
+    );
+    await db.runAsync(
+      "INSERT OR REPLACE INTO kv_settings (key, value) VALUES ('initials', ?)",
+      [profile.initials]
+    );
+    await db.runAsync(
+      "INSERT OR REPLACE INTO kv_settings (key, value) VALUES ('leather_finish', ?)",
+      [leatherFinish]
+    );
+    await db.runAsync(
+      "INSERT OR REPLACE INTO kv_settings (key, value) VALUES ('hide_balances', ?)",
+      [hidden ? "true" : "false"]
+    );
+    await db.runAsync(
+      "INSERT OR REPLACE INTO kv_settings (key, value) VALUES ('monthly_budget', ?)",
+      [monthlyBudget && monthlyBudget > 0 ? String(monthlyBudget) : ""]
+    );
 
-    // 2. Upsert local wallets to Supabase PostgreSQL
-    const walletPayload = wallets.map((w, index) => ({
-      user_id: userId,
-      local_id: w.localId || `wallet-${w.id}`,
-      name: w.name,
-      type: w.type,
-      balance: w.balance,
-      mark: w.mark,
-      tone: w.tone,
-      account: w.account,
-      logo_key: w.logoKey || "",
-      sort_order: index,
-      updated_at: w.updatedAt || now,
-    }));
-
-    if (walletPayload.length > 0) {
-      const { error: walletError } = await supabase
-        .from("wallets")
-        .upsert(walletPayload, { onConflict: "user_id,local_id" });
-      if (walletError) throw walletError;
-    }
-
-    // 3. Upsert local activities to Supabase PostgreSQL
-    const activityPayload = activities.map((a) => ({
-      user_id: userId,
-      local_id: a.localId || `tx-${a.id}`,
-      wallet_local_id: a.walletLocalId || "",
-      title: a.title,
-      wallet: a.wallet,
-      date_label: a.date,
-      amount: a.amount,
-      icon: a.icon,
-      kind: a.kind,
-      occurred_at: a.occurredAt || now,
-      updated_at: a.updatedAt || now,
-    }));
-
-    if (activityPayload.length > 0) {
-      const { error: activityError } = await supabase
-        .from("activities")
-        .upsert(activityPayload, { onConflict: "user_id,local_id" });
-      if (activityError) throw activityError;
-    }
-
-    // 3b. Soft-delete any locally removed wallets & activities in Supabase
-    const deletedWalletIds = await getQueuedDeletedIds("deleted_wallet_ids");
-    if (deletedWalletIds.length > 0) {
-      const { error: delWalletErr } = await supabase
-        .from("wallets")
-        .update({ deleted_at: now, updated_at: now })
-        .eq("user_id", userId)
-        .in("local_id", deletedWalletIds);
-      if (delWalletErr) throw delWalletErr;
-      await saveSettingToSQLite("deleted_wallet_ids", "[]");
-    }
-
-    const deletedActIds = await getQueuedDeletedIds("deleted_activity_ids");
-    if (deletedActIds.length > 0) {
-      const { error: delActErr } = await supabase
-        .from("activities")
-        .update({ deleted_at: now, updated_at: now })
-        .eq("user_id", userId)
-        .in("local_id", deletedActIds);
-      if (delActErr) throw delActErr;
-      await saveSettingToSQLite("deleted_activity_ids", "[]");
-    }
-
-    // 4. Fetch canonical merged wallets & activities from Supabase PostgreSQL
-    const { data: remoteWallets, error: fetchWalletsErr } = await supabase
-      .from("wallets")
-      .select("*")
-      .eq("user_id", userId)
-      .is("deleted_at", null)
-      .order("sort_order", { ascending: true });
-    if (fetchWalletsErr) throw fetchWalletsErr;
-
-    const { data: remoteActivities, error: fetchActErr } = await supabase
-      .from("activities")
-      .select("*")
-      .eq("user_id", userId)
-      .is("deleted_at", null)
-      .order("occurred_at", { ascending: false });
-    if (fetchActErr) throw fetchActErr;
-
-    const mergedWallets: Wallet[] = (remoteWallets || []).map((rw, idx) => {
-      const existing = wallets.find(
-        (lw) => (lw.localId || `wallet-${lw.id}`) === rw.local_id
-      );
-      return {
-        id: existing ? existing.id : idx + 100,
-        localId: rw.local_id,
-        name: rw.name,
-        type: rw.type,
-        balance: Number(rw.balance),
-        mark: rw.mark,
-        tone: (rw.tone as Tone) || "blue",
-        account: rw.account,
-        logoKey: rw.logo_key || undefined,
-        isHidden: existing?.isHidden,
-        updatedAt: rw.updated_at,
-        synced: true,
-      };
-    });
-
-    const mergedActivities: ActivityItem[] = (remoteActivities || []).map(
-      (ra, idx) => {
-        const existing = activities.find(
-          (la) => (la.localId || `tx-${la.id}`) === ra.local_id
+    for (const [cat, limit] of Object.entries(categoryLimits)) {
+      if (limit > 0) {
+        await db.runAsync(
+          "INSERT OR REPLACE INTO kv_settings (key, value) VALUES (?, ?)",
+          [categoryLimitKey(cat), String(limit)]
         );
-        return {
-          id: existing ? existing.id : Date.now() + idx,
-          localId: ra.local_id,
-          walletLocalId: ra.wallet_local_id,
-          destWalletLocalId: existing?.destWalletLocalId,
-          title: ra.title,
-          wallet: ra.wallet,
-          date: ra.date_label,
-          amount: Number(ra.amount),
-          icon: ra.icon,
-          kind: ra.kind,
-          attachments: existing?.attachments,
-          occurredAt: ra.occurred_at,
-          updatedAt: ra.updated_at,
-          synced: true,
-        };
       }
+    }
+
+    for (const fav of favorites) {
+      await db.runAsync(
+        "INSERT OR REPLACE INTO kv_settings (key, value) VALUES (?, ?)",
+        [favoriteKey(fav.id), JSON.stringify(fav)]
+      );
+    }
+
+    for (let i = 0; i < wallets.length; i++) {
+      const w = wallets[i];
+      await db.runAsync(
+        `INSERT OR REPLACE INTO wallets (id, local_id, name, type, balance, mark, tone, account, logo_key, is_hidden, sort_order, updated_at, synced)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+        [
+          w.id,
+          w.localId || `wallet-${w.id}`,
+          w.name,
+          w.type,
+          w.balance,
+          w.mark,
+          w.tone,
+          w.account,
+          w.logoKey || "",
+          w.isHidden ? 1 : 0,
+          i,
+          w.updatedAt || now,
+        ]
+      );
+    }
+
+    for (const a of activities) {
+      await db.runAsync(
+        `INSERT OR REPLACE INTO activities (id, local_id, wallet_local_id, dest_wallet_local_id, title, wallet, date, amount, icon, kind, attachments, occurred_at, updated_at, synced)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+        [
+          a.id,
+          a.localId || `tx-${a.id}`,
+          a.walletLocalId || "",
+          a.destWalletLocalId || "",
+          a.title,
+          a.wallet,
+          a.date,
+          a.amount,
+          a.icon,
+          a.kind,
+          JSON.stringify(a.attachments ?? []),
+          a.occurredAt || now,
+          a.updatedAt || now,
+        ]
+      );
+    }
+
+    for (const s of schedules) {
+      await db.runAsync(
+        "INSERT OR REPLACE INTO schedules (id, details) VALUES (?, ?)",
+        [s.id, JSON.stringify(s)]
+      );
+    }
+  });
+}
+
+export async function eraseAllLocalData(): Promise<void> {
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    await db.execAsync(`
+      DELETE FROM wallets;
+      DELETE FROM activities;
+      DELETE FROM schedules;
+      DELETE FROM kv_settings;
+    `);
+    await db.runAsync(
+      "INSERT OR REPLACE INTO kv_settings (key, value) VALUES ('seeded', '1')"
     );
+  });
 
-    await saveWalletsToSQLite(mergedWallets);
-    await saveActivitiesToSQLite(mergedActivities);
-
-    const syncedTimeLabel = new Intl.DateTimeFormat("en-PH", {
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(new Date());
-    await saveSettingToSQLite("last_synced_at", syncedTimeLabel);
-
-    return {
-      ok: true,
-      message: "Synced with Supabase Cloud",
-      wallets: mergedWallets,
-      activities: mergedActivities,
-      syncedAt: syncedTimeLabel,
-    };
-  } catch (err: any) {
-    return {
-      ok: false,
-      message: err?.message || "Saved offline to SQLite",
-    };
+  if (Platform.OS !== "web") {
+    for (const folder of ["attachments", "card_bgs"]) {
+      try {
+        const dir = new Directory(Paths.document, folder);
+        if (dir.exists) {
+          dir.delete();
+        }
+      } catch {
+        // Ignore directory cleanup errors
+      }
+    }
   }
 }
