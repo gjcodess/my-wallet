@@ -100,6 +100,14 @@ import {
   ScalePressable,
 } from "./src/lib/motion";
 
+const TAB_ORDER: Record<Tab, number> = {
+  home: 0,
+  wallets: 1,
+  activity: 2,
+  overview: 3,
+  settings: 4,
+};
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -228,8 +236,22 @@ export default function App() {
   );
 
   // Scroll-reactive bottom navbar & screen/toast animations
-  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const tabScrollRefs = useRef<
+    Record<Tab, React.ComponentRef<typeof ScrollView> | null>
+  >({
+    home: null,
+    wallets: null,
+    activity: null,
+    overview: null,
+    settings: null,
+  });
+  const tabScrollYs = useRef<Record<Tab, Animated.Value>>({
+    home: new Animated.Value(0),
+    wallets: new Animated.Value(0),
+    activity: new Animated.Value(0),
+    overview: new Animated.Value(0),
+    settings: new Animated.Value(0),
+  }).current;
   const lastScrollY = useRef(0);
   const navVisibleRef = useRef(true);
   const [navVisible, setNavVisible] = useState(true);
@@ -242,19 +264,16 @@ export default function App() {
     overview: 170,
     settings: 170,
   });
-  const activeHeroHeight = heroHeights[tab];
-  const heroClearY = Math.max(56, activeHeroHeight - 48);
-  const heroFadeOutStart = Math.max(
-    24,
-    Math.min(heroClearY - 24, activeHeroHeight - 76)
-  );
   const { width: windowWidth } = useWindowDimensions();
   const [stackDragging, setStackDragging] = useState(false);
   const stackDraggingRef = useRef(false);
   const navAnim = useRef(new Animated.Value(1)).current;
   const tabAnim = useRef(new Animated.Value(1)).current;
+  const tabDirAnim = useRef(new Animated.Value(1)).current;
+  const [outgoingTab, setOutgoingTab] = useState<Tab | null>(null);
   const pendingTabAnimRef = useRef(false);
   const tabAnimRunningRef = useRef<Animated.CompositeAnimation | null>(null);
+  const tabRafRef = useRef<number | null>(null);
   const tabRef = useRef<Tab>(tab);
   tabRef.current = tab;
   const detailAnim = useRef(new Animated.Value(0)).current;
@@ -270,7 +289,8 @@ export default function App() {
     if (stackDraggingRef.current === dragging) return;
     stackDraggingRef.current = dragging;
     setStackDragging(dragging);
-    const nativeScroll = (scrollRef.current as any)?.getNativeScrollRef?.();
+    const activeScroll = tabScrollRefs.current[tabRef.current];
+    const nativeScroll = (activeScroll as any)?.getNativeScrollRef?.();
     nativeScroll?.setNativeProps?.({ scrollEnabled: !dragging });
   }, []);
 
@@ -296,12 +316,22 @@ export default function App() {
       if (nextTab !== "settings") {
         prevNonSettingsTabRef.current = nextTab;
       }
-      const changing = nextTab !== tabRef.current;
-      if (changing) {
+      const prevTab = tabRef.current;
+      if (nextTab !== prevTab) {
+        if (tabRafRef.current !== null) {
+          cancelAnimationFrame(tabRafRef.current);
+          tabRafRef.current = null;
+        }
         tabAnimRunningRef.current?.stop();
+        tabAnimRunningRef.current = null;
+
+        const dir = TAB_ORDER[nextTab] > TAB_ORDER[prevTab] ? 1 : -1;
+        tabDirAnim.setValue(dir);
         tabAnim.setValue(0);
         pendingTabAnimRef.current = true;
+        setOutgoingTab(prevTab);
       }
+
       setTab(nextTab);
       setVisitedTabs((prev) =>
         prev[nextTab] ? prev : { ...prev, [nextTab]: true }
@@ -309,11 +339,11 @@ export default function App() {
       lastScrollY.current = 0;
       setHeaderAtTop(true);
       setWalletInteractive(true);
-      scrollY.setValue(0);
-      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      tabScrollYs[nextTab].setValue(0);
+      tabScrollRefs.current[nextTab]?.scrollTo({ y: 0, animated: false });
       setNavbarVisible(true);
     },
-    [setNavbarVisible, scrollY, tabAnim]
+    [setNavbarVisible, tabAnim, tabDirAnim, tabScrollYs]
   );
 
   const handleOpenSettings = useCallback(
@@ -325,12 +355,18 @@ export default function App() {
 
   useLayoutEffect(() => {
     if (!showingTabs) {
+      if (tabRafRef.current !== null) {
+        cancelAnimationFrame(tabRafRef.current);
+        tabRafRef.current = null;
+      }
       tabAnimRunningRef.current?.stop();
+      tabAnimRunningRef.current = null;
       pendingTabAnimRef.current = false;
       tabAnim.setValue(1);
+      setOutgoingTab(null);
       lastScrollY.current = 0;
       setHeaderAtTop(true);
-      scrollY.setValue(0);
+      tabScrollYs[tabRef.current].setValue(0);
       setNavbarVisible(true);
       return;
     }
@@ -339,22 +375,33 @@ export default function App() {
     }
     pendingTabAnimRef.current = false;
     tabAnimRunningRef.current?.stop();
-    const anim = Animated.timing(tabAnim, {
-      toValue: 1,
-      duration: 155,
-      easing: MOTION_EASE,
-      useNativeDriver: true,
-    });
-    tabAnimRunningRef.current = anim;
-    anim.start(({ finished }) => {
-      if (finished) {
-        tabAnimRunningRef.current = null;
-      }
+    if (tabRafRef.current !== null) {
+      cancelAnimationFrame(tabRafRef.current);
+    }
+    tabRafRef.current = requestAnimationFrame(() => {
+      tabRafRef.current = null;
+      const anim = Animated.timing(tabAnim, {
+        toValue: 1,
+        duration: 255,
+        easing: MOTION_EASE,
+        useNativeDriver: true,
+      });
+      tabAnimRunningRef.current = anim;
+      anim.start(({ finished }) => {
+        if (finished) {
+          tabAnimRunningRef.current = null;
+          setOutgoingTab(null);
+        }
+      });
     });
     return () => {
-      anim.stop();
+      if (tabRafRef.current !== null) {
+        cancelAnimationFrame(tabRafRef.current);
+        tabRafRef.current = null;
+      }
+      tabAnimRunningRef.current?.stop();
     };
-  }, [tab, showingTabs, tabAnim, scrollY, setNavbarVisible]);
+  }, [tab, showingTabs, tabAnim, tabScrollYs, setNavbarVisible]);
 
   useEffect(() => {
     if (toast) {
@@ -394,27 +441,43 @@ export default function App() {
     [updateHeroHeight]
   );
 
-  const handleScroll = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const y = e.nativeEvent.contentOffset.y;
-      setHeaderAtTop(y < 30);
-      setWalletInteractive(y < 140);
-      if (y <= 12) {
-        lastScrollY.current = y;
-        setNavbarVisible(true);
-        return;
-      }
-      const delta = y - lastScrollY.current;
-      if (delta > 6 && y > 24) {
-        setNavbarVisible(false);
-        lastScrollY.current = y;
-      } else if (delta < -6) {
-        setNavbarVisible(true);
-        lastScrollY.current = y;
-      }
-    },
-    [setNavbarVisible]
-  );
+  const tabOnScrollEvents = useMemo(() => {
+    const makeScrollEvent = (forTab: Tab) =>
+      Animated.event(
+        [{ nativeEvent: { contentOffset: { y: tabScrollYs[forTab] } } }],
+        {
+          useNativeDriver: true,
+          listener: (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+            if (forTab !== tabRef.current) return;
+            const y = e.nativeEvent.contentOffset.y;
+            setHeaderAtTop(y < 30);
+            if (forTab === "home") {
+              setWalletInteractive(y < 140);
+            }
+            if (y <= 12) {
+              lastScrollY.current = y;
+              setNavbarVisible(true);
+              return;
+            }
+            const delta = y - lastScrollY.current;
+            if (delta > 6 && y > 24) {
+              setNavbarVisible(false);
+              lastScrollY.current = y;
+            } else if (delta < -6) {
+              setNavbarVisible(true);
+              lastScrollY.current = y;
+            }
+          },
+        }
+      );
+    return {
+      home: makeScrollEvent("home"),
+      wallets: makeScrollEvent("wallets"),
+      activity: makeScrollEvent("activity"),
+      overview: makeScrollEvent("overview"),
+      settings: makeScrollEvent("settings"),
+    };
+  }, [setNavbarVisible, tabScrollYs]);
 
   // 1. Load offline-first state from SQLite on mount
   useEffect(() => {
@@ -1239,193 +1302,231 @@ export default function App() {
                 : [],
             }}
           >
-            <View style={{ flex: 1 }}>
-              <Animated.ScrollView
-                ref={scrollRef}
-                style={{ flex: 1 }}
-                scrollEnabled={!stackDragging}
-                bounces={false}
-                overScrollMode="never"
-                showsVerticalScrollIndicator={false}
-                onScroll={Animated.event(
-                  [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                  { useNativeDriver: true, listener: handleScroll }
-                )}
-                scrollEventThrottle={16}
-              >
-              <Animated.View
-                style={{
-                  opacity: tabAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.86, 1],
-                  }),
-                }}
-              >
-                {visitedTabs.home ? (
-                  <View style={{ display: tab === "home" ? "flex" : "none" }}>
-                    <HomeScreen
-                      wallets={visibleWallets}
-                      activities={visibleActivities}
-                      total={total}
-                      hidden={hidden}
-                      setHidden={setHidden}
-                      onWallet={handleSelectWallet}
-                      onTransaction={openTransactionSheet}
-                      onSheet={openSheet}
-                      schedules={dueSchedules}
-                      onRecordScheduled={handleOpenScheduledEntry}
-                      monthlyBudget={monthlyBudget}
-                      monthlySpending={monthlySpending}
-                      categoryLimits={categoryLimits}
-                      onEditBudget={handleOpenBudgetSheet}
-                      onOpenCategoryBudget={handleOpenCategoryBudget}
-                      setTab={handleTabChange}
-                      onSettings={handleOpenSettings}
-                      onStackDragChange={handleStackDragChange}
-                      walletOpen={walletInteractive}
-                      walletScrollY={scrollY}
-                      onHeroHeight={handleHomeHeroHeight}
-                      entranceActive={introDismissing || !showIntro}
-                      entranceReplayKey={entranceReplayKey}
-                      theme={theme}
-                    />
-                  </View>
-                ) : null}
+            <View style={{ flex: 1, overflow: "hidden" }}>
+              {(
+                [
+                  {
+                    forTab: "home" as Tab,
+                    node: (
+                      <HomeScreen
+                        wallets={visibleWallets}
+                        activities={visibleActivities}
+                        total={total}
+                        hidden={hidden}
+                        setHidden={setHidden}
+                        onWallet={handleSelectWallet}
+                        onTransaction={openTransactionSheet}
+                        onSheet={openSheet}
+                        schedules={dueSchedules}
+                        onRecordScheduled={handleOpenScheduledEntry}
+                        monthlyBudget={monthlyBudget}
+                        monthlySpending={monthlySpending}
+                        categoryLimits={categoryLimits}
+                        onEditBudget={handleOpenBudgetSheet}
+                        onOpenCategoryBudget={handleOpenCategoryBudget}
+                        setTab={handleTabChange}
+                        onSettings={handleOpenSettings}
+                        onStackDragChange={handleStackDragChange}
+                        walletOpen={walletInteractive}
+                        walletScrollY={tabScrollYs.home}
+                        onHeroHeight={handleHomeHeroHeight}
+                        entranceActive={introDismissing || !showIntro}
+                        entranceReplayKey={entranceReplayKey}
+                        theme={theme}
+                      />
+                    ),
+                  },
+                  {
+                    forTab: "wallets" as Tab,
+                    node: (
+                      <WalletsScreen
+                        wallets={wallets}
+                        activities={visibleActivities}
+                        total={total}
+                        hidden={hidden}
+                        onToggleHidden={handleToggleHidden}
+                        onToggleWalletHidden={handleToggleWalletHidden}
+                        onWallet={handleSelectWallet}
+                        onReorderWallets={handleReorderWallets}
+                        onAddWallet={handleAddWalletSheet}
+                        onSearch={handleOpenSearch}
+                        onSettings={handleOpenSettings}
+                        onDragChange={handleStackDragChange}
+                        onHeroHeight={handleWalletsHeroHeight}
+                        theme={theme}
+                      />
+                    ),
+                  },
+                  {
+                    forTab: "activity" as Tab,
+                    node: (
+                      <ActivityScreen
+                        mode="transactions"
+                        activities={activityItems}
+                        wallets={wallets}
+                        hidden={hidden}
+                        onToggleHidden={handleToggleHidden}
+                        onSearch={handleOpenSearch}
+                        onSettings={handleOpenSettings}
+                        monthlyBudget={monthlyBudget}
+                        monthlySpending={monthlySpending}
+                        categoryLimits={categoryLimits}
+                        onOpenCategoryBudget={handleOpenCategoryBudget}
+                        onEditBudget={handleOpenBudgetSheet}
+                        onTransaction={openTransactionSheet}
+                        onShowToast={setToast}
+                        showFilters={showActivityFilters}
+                        onToggleFilters={handleToggleActivityFilter}
+                        isActive={tab === "activity"}
+                        categoryFilter={transactionCategory}
+                        onClearCategory={() => setTransactionCategory(null)}
+                        onHeroHeight={handleActivityHeroHeight}
+                        theme={theme}
+                      />
+                    ),
+                  },
+                  {
+                    forTab: "overview" as Tab,
+                    node: (
+                      <ActivityScreen
+                        mode="overview"
+                        activities={visibleActivities}
+                        wallets={visibleWallets}
+                        hidden={hidden}
+                        onToggleHidden={handleToggleHidden}
+                        onSearch={handleOpenSearch}
+                        onSettings={handleOpenSettings}
+                        onOpenWallet={handleSelectWallet}
+                        onViewAllWallets={() => handleTabChange("wallets")}
+                        monthlyBudget={monthlyBudget}
+                        monthlySpending={monthlySpending}
+                        categoryLimits={categoryLimits}
+                        onOpenCategoryBudget={handleOpenCategoryBudget}
+                        onEditBudget={handleOpenBudgetSheet}
+                        onCategorySelect={(category) => {
+                          setTransactionCategory({ category });
+                          handleTabChange("activity");
+                        }}
+                        onViewAllCategories={() => openSheet("categories")}
+                        isActive={tab === "overview"}
+                        onHeroHeight={handleOverviewHeroHeight}
+                        theme={theme}
+                      />
+                    ),
+                  },
+                  {
+                    forTab: "settings" as Tab,
+                    node: (
+                      <SettingsScreen
+                        leatherFinish={leatherFinish}
+                        setLeatherFinish={setLeatherFinish}
+                        hidden={hidden}
+                        setHidden={setHidden}
+                        showToast={setToast}
+                        profile={profile}
+                        userEmail={userEmail}
+                        lastSyncedAt={lastSyncedAt}
+                        appLockEnabled={Boolean(appLockPin)}
+                        biometricsSupported={biometricsSupported}
+                        biometricsEnabled={biometricsEnabled}
+                        onToggleAppLock={handleToggleAppLock}
+                        onChangeAppLockPin={handleChangeAppLockPin}
+                        onToggleBiometrics={handleToggleBiometrics}
+                        onOpenAuth={handleOpenAuthSheet}
+                        onSyncNow={handleSyncNow}
+                        monthlyBudget={monthlyBudget}
+                        walletCount={wallets.length}
+                        activityCount={activityItems.length}
+                        scheduleCount={schedules.length}
+                        onOpenBudget={handleOpenBudgetSheet}
+                        onOpenCategoryBudgets={() => handleOpenCategoryBudget(null)}
+                        onOpenSchedules={() => openSheet("schedule")}
+                        onHeroHeight={handleSettingsHeroHeight}
+                        theme={theme}
+                      />
+                    ),
+                  },
+                ]
+              ).map(({ forTab, node }) => {
+                if (!visitedTabs[forTab]) return null;
+                const isCurrent = tab === forTab;
+                const isOutgoing = outgoingTab === forTab;
+                const isVisible = isCurrent || isOutgoing;
+                const slotHeroHeight = heroHeights[forTab];
+                const slotClearY = Math.max(56, slotHeroHeight - 48);
+                const slotFadeOutStart = Math.max(
+                  24,
+                  Math.min(slotClearY - 24, slotHeroHeight - 76)
+                );
+                const slotScrollY = tabScrollYs[forTab];
+                const slotTranslateX = isCurrent
+                  ? Animated.multiply(
+                      tabDirAnim,
+                      tabAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [windowWidth, 0],
+                      })
+                    )
+                  : isOutgoing
+                    ? Animated.multiply(
+                        tabDirAnim,
+                        tabAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -windowWidth],
+                        })
+                      )
+                    : 0;
 
-                {visitedTabs.wallets ? (
-                  <View style={{ display: tab === "wallets" ? "flex" : "none" }}>
-                    <WalletsScreen
-                      wallets={wallets}
-                      activities={visibleActivities}
-                      total={total}
-                      hidden={hidden}
-                      onToggleHidden={handleToggleHidden}
-                      onToggleWalletHidden={handleToggleWalletHidden}
-                      onWallet={handleSelectWallet}
-                      onReorderWallets={handleReorderWallets}
-                      onAddWallet={handleAddWalletSheet}
-                      onSearch={handleOpenSearch}
-                      onSettings={handleOpenSettings}
-                      onDragChange={handleStackDragChange}
-                      onHeroHeight={handleWalletsHeroHeight}
-                      theme={theme}
-                    />
-                  </View>
-                ) : null}
-
-                {visitedTabs.activity ? (
-                  <View style={{ display: tab === "activity" ? "flex" : "none" }}>
-                    <ActivityScreen
-                      mode="transactions"
-                      activities={activityItems}
-                      wallets={wallets}
-                      hidden={hidden}
-                      onToggleHidden={handleToggleHidden}
-                      onSearch={handleOpenSearch}
-                      onSettings={handleOpenSettings}
-                      monthlyBudget={monthlyBudget}
-                      monthlySpending={monthlySpending}
-                      categoryLimits={categoryLimits}
-                      onOpenCategoryBudget={handleOpenCategoryBudget}
-                      onEditBudget={handleOpenBudgetSheet}
-                      onTransaction={openTransactionSheet}
-                      onShowToast={setToast}
-                      showFilters={showActivityFilters}
-                      onToggleFilters={handleToggleActivityFilter}
-                      isActive={tab === "activity"}
-                      categoryFilter={transactionCategory}
-                      onClearCategory={() => setTransactionCategory(null)}
-                      onHeroHeight={handleActivityHeroHeight}
-                      theme={theme}
-                    />
-                  </View>
-                ) : null}
-
-                {visitedTabs.overview ? (
-                  <View style={{ display: tab === "overview" ? "flex" : "none" }}>
-                    <ActivityScreen
-                      mode="overview"
-                      activities={visibleActivities}
-                      wallets={visibleWallets}
-                      hidden={hidden}
-                      onToggleHidden={handleToggleHidden}
-                      onSearch={handleOpenSearch}
-                      onSettings={handleOpenSettings}
-                      onOpenWallet={handleSelectWallet}
-                      onViewAllWallets={() => handleTabChange("wallets")}
-                      monthlyBudget={monthlyBudget}
-                      monthlySpending={monthlySpending}
-                      categoryLimits={categoryLimits}
-                      onOpenCategoryBudget={handleOpenCategoryBudget}
-                      onEditBudget={handleOpenBudgetSheet}
-                      onCategorySelect={(category) => {
-                        setTransactionCategory({ category });
-                        handleTabChange("activity");
+                return (
+                  <Animated.View
+                    key={forTab}
+                    pointerEvents={isCurrent ? "auto" : "none"}
+                    style={[
+                      StyleSheet.absoluteFill,
+                      {
+                        display: isVisible ? "flex" : "none",
+                        zIndex: isCurrent ? 2 : isOutgoing ? 1 : 0,
+                        transform: [{ translateX: slotTranslateX }],
+                      },
+                    ]}
+                  >
+                    <Animated.ScrollView
+                      ref={(nodeRef: React.ComponentRef<typeof ScrollView> | null) => {
+                        tabScrollRefs.current[forTab] = nodeRef;
                       }}
-                      onViewAllCategories={() => openSheet("categories")}
-                      isActive={tab === "overview"}
-                      onHeroHeight={handleOverviewHeroHeight}
-                      theme={theme}
+                      style={{ flex: 1 }}
+                      scrollEnabled={isCurrent && !stackDragging}
+                      bounces={false}
+                      overScrollMode="never"
+                      showsVerticalScrollIndicator={false}
+                      onScroll={tabOnScrollEvents[forTab]}
+                      scrollEventThrottle={16}
+                    >
+                      {node}
+                    </Animated.ScrollView>
+                    <EdgeFade
+                      position="top"
+                      color={theme.leather.colors[1]}
+                      size={76}
+                      opacity={slotScrollY.interpolate({
+                        inputRange: [0, 18, slotFadeOutStart, slotClearY],
+                        outputRange: [0, 1, 1, 0],
+                        extrapolate: "clamp",
+                      })}
                     />
-                  </View>
-                ) : null}
-
-                {visitedTabs.settings ? (
-                  <View style={{ display: tab === "settings" ? "flex" : "none" }}>
-                    <SettingsScreen
-                      leatherFinish={leatherFinish}
-                      setLeatherFinish={setLeatherFinish}
-                      hidden={hidden}
-                      setHidden={setHidden}
-                      showToast={setToast}
-                      profile={profile}
-                      userEmail={userEmail}
-                      lastSyncedAt={lastSyncedAt}
-                      appLockEnabled={Boolean(appLockPin)}
-                      biometricsSupported={biometricsSupported}
-                      biometricsEnabled={biometricsEnabled}
-                      onToggleAppLock={handleToggleAppLock}
-                      onChangeAppLockPin={handleChangeAppLockPin}
-                      onToggleBiometrics={handleToggleBiometrics}
-                      onOpenAuth={handleOpenAuthSheet}
-                      onSyncNow={handleSyncNow}
-                      monthlyBudget={monthlyBudget}
-                      walletCount={wallets.length}
-                      activityCount={activityItems.length}
-                      scheduleCount={schedules.length}
-                      onOpenBudget={handleOpenBudgetSheet}
-                      onOpenCategoryBudgets={() => handleOpenCategoryBudget(null)}
-                      onOpenSchedules={() => openSheet("schedule")}
-                      onHeroHeight={handleSettingsHeroHeight}
-                      theme={theme}
+                    <EdgeFade
+                      position="top"
+                      color={theme.page}
+                      size={76}
+                      opacity={slotScrollY.interpolate({
+                        inputRange: [slotFadeOutStart, slotClearY],
+                        outputRange: [0, 1],
+                        extrapolate: "clamp",
+                      })}
                     />
-                  </View>
-                ) : null}
-              </Animated.View>
-            </Animated.ScrollView>
-
-            {/* Adaptive Top Edge Fade: blends into hero accent while over hero, then page background once scrolled past */}
-            <EdgeFade
-              position="top"
-              color={theme.leather.colors[1]}
-              size={76}
-              opacity={scrollY.interpolate({
-                inputRange: [0, 18, heroFadeOutStart, heroClearY],
-                outputRange: [0, 1, 1, 0],
-                extrapolate: "clamp",
+                  </Animated.View>
+                );
               })}
-            />
-
-            <EdgeFade
-              position="top"
-              color={theme.page}
-              size={76}
-              opacity={scrollY.interpolate({
-                inputRange: [heroFadeOutStart, heroClearY],
-                outputRange: [0, 1],
-                extrapolate: "clamp",
-              })}
-            />
 
             <EdgeFade
               position="bottom"
