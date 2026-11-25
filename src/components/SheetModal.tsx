@@ -37,6 +37,7 @@ import {
   Wallet,
 } from "../types/wallet";
 import { Icon } from "./Icon";
+import { MOTION_DURATIONS, MOTION_EASE, MOTION_EASE_EXIT } from "../lib/motion";
 import {
   AccentSurfaceGlow,
   bevelStyle,
@@ -200,8 +201,8 @@ export function SheetModal({
       Keyboard.dismiss();
       Animated.timing(openAnim, {
         toValue: 0,
-        duration: 185,
-        easing: Easing.in(Easing.cubic),
+        duration: MOTION_DURATIONS.sheetOut,
+        easing: MOTION_EASE_EXIT,
         useNativeDriver: true,
       }).start(() => {
         cb();
@@ -329,8 +330,8 @@ export function SheetModal({
       const raf = requestAnimationFrame(() => {
         Animated.timing(contentAnim, {
           toValue: 1,
-          duration: 210,
-          easing: Easing.out(Easing.cubic),
+          duration: 215,
+          easing: MOTION_EASE,
           useNativeDriver: true,
         }).start();
       });
@@ -601,8 +602,8 @@ export function SheetModal({
     const raf = requestAnimationFrame(() => {
       Animated.timing(openAnim, {
         toValue: 1,
-        duration: 250,
-        easing: Easing.out(Easing.cubic),
+        duration: MOTION_DURATIONS.sheetIn,
+        easing: MOTION_EASE,
         useNativeDriver: true,
       }).start();
     });
@@ -1291,6 +1292,12 @@ export function SheetModal({
                   translateY: openAnim.interpolate({
                     inputRange: [0, 1],
                     outputRange: [sheetStartY, 0],
+                  }),
+                },
+                {
+                  scale: openAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.982, 1],
                   }),
                 },
               ],

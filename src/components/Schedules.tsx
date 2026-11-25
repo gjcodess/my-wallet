@@ -6,6 +6,7 @@ import type { DueSchedule, Schedule } from "../types/schedule";
 import { EXPENSE_CATEGORIES, getWalletLocalId, INCOME_CATEGORIES, money } from "../types/wallet";
 import type { Wallet } from "../types/wallet";
 import { Icon } from "./Icon";
+import { ScalePressable } from "../lib/motion";
 import {
   cardShadow,
   ConfirmBottomSheet,
@@ -62,7 +63,7 @@ function ScheduleRow({ item, wallets, hidden, theme, onPress }: {
   const wallet = wallets.find((value) => getWalletLocalId(value) === item.walletLocalId);
   const income = item.direction === "income";
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.row, pressed && { backgroundColor: theme.soft }]}>
+    <ScalePressable accessibilityRole="button" onPress={onPress} scaleTo={0.985} pressOpacity={0.86} style={styles.row}>
       <View style={[styles.icon, { backgroundColor: theme.accentSoft }]}>
         <Icon name={income ? "arrow-down" : "arrow-up"} size={17} color={income ? theme.positive : theme.accentText} />
       </View>
@@ -74,7 +75,7 @@ function ScheduleRow({ item, wallets, hidden, theme, onPress }: {
       </View>
       <Text style={[styles.label, { color: income ? theme.positive : theme.ink }]}>{hidden ? "••••" : money(item.amount)}</Text>
       <Icon name="chevron" size={15} color={theme.muted} />
-    </Pressable>
+    </ScalePressable>
   );
 }
 

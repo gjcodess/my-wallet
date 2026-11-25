@@ -10,6 +10,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as LocalAuthentication from "expo-local-authentication";
+import { MOTION_EASE, MOTION_SPRING_SNAPPY, ScalePressable } from "../lib/motion";
 import { Icon } from "./Icon";
 import {
   cardShadow,
@@ -60,6 +61,8 @@ export function AppLockModal({
   const [draftPin, setDraftPin] = useState("");
   const [error, setError] = useState("");
   const shakeX = useRef(new Animated.Value(0)).current;
+  const enterAnim = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const dotAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
   const biometricBusyRef = useRef(false);
 
   const triggerBiometrics = async () => {
@@ -89,6 +92,13 @@ export function AppLockModal({
     setDigits("");
     setDraftPin("");
     setError("");
+    enterAnim.setValue(0);
+    Animated.timing(enterAnim, {
+      toValue: 1,
+      duration: 240,
+      easing: MOTION_EASE,
+      useNativeDriver: true,
+    }).start();
     if (mode === "unlock" || mode === "disable" || mode === "change") {
       setStep("verify");
     } else {
@@ -100,7 +110,16 @@ export function AppLockModal({
       }, 150);
       return () => clearTimeout(t);
     }
-  }, [visible, mode, biometricsEnabled]);
+  }, [visible, mode, biometricsEnabled, enterAnim]);
+
+  useEffect(() => {
+    dotAnims.forEach((dotAnim, idx) => {
+      Animated.spring(dotAnim, {
+        toValue: idx < digits.length ? 1 : 0,
+        ...MOTION_SPRING_SNAPPY,
+      }).start();
+    });
+  }, [digits.length, dotAnims]);
 
   const triggerShake = (message: string) => {
     setError(message);
@@ -224,7 +243,22 @@ export function AppLockModal({
   })();
 
   const content = (
-    <View style={styles.contentWrap}>
+    <Animated.View
+      style={[
+        styles.contentWrap,
+        {
+          opacity: enterAnim,
+          transform: [
+            {
+              translateY: enterAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [14, 0],
+              }),
+            },
+          ],
+        },
+      ]}
+    >
       <View
         style={[
           styles.vaultCard,
@@ -250,8 +284,12 @@ export function AppLockModal({
         >
           {[0, 1, 2, 3].map((idx) => {
             const filled = idx < digits.length;
+            const dotScale = dotAnims[idx].interpolate({
+              inputRange: [0, 1],
+              outputRange: [1, 1.24],
+            });
             return (
-              <View
+              <Animated.View
                 key={idx}
                 style={[
                   styles.pinDot,
@@ -266,7 +304,7 @@ export function AppLockModal({
                       : filled
                         ? "#ffffff"
                         : "rgba(255, 255, 255, 0.32)",
-                    transform: [{ scale: filled ? 1.15 : 1 }],
+                    transform: [{ scale: dotScale }],
                   },
                 ]}
               />
@@ -285,16 +323,16 @@ export function AppLockModal({
                 if (mode === "unlock") {
                   if (biometricsEnabled) {
                     return (
-                      <Pressable
+                      <ScalePressable
                         key={key}
                         onPress={triggerBiometrics}
-                        style={({ pressed }) => [
+                        scaleTo={0.93}
+                        style={[
                           styles.keyBtn,
                           {
                             overflow: "hidden",
                             backgroundColor: theme.card,
                             borderColor: hexToRgba(theme.leather.accent, 0.28),
-                            transform: [{ scale: pressed ? 0.94 : 1 }],
                           },
                           cardShadow(theme.dark),
                         ]}
@@ -305,16 +343,17 @@ export function AppLockModal({
                           size={24}
                           color={theme.leather.accent}
                         />
-                      </Pressable>
+                      </ScalePressable>
                     );
                   }
                   return <View key={key} style={styles.keySpacer} />;
                 }
                 return (
-                  <Pressable
+                  <ScalePressable
                     key={key}
                     onPress={() => handlePressKey(key)}
-                    style={({ pressed }) => [
+                    scaleTo={0.93}
+                    style={[
                       styles.keyBtn,
                       {
                         overflow: "hidden",
@@ -322,7 +361,6 @@ export function AppLockModal({
                           ? theme.soft
                           : theme.leather.soft,
                         borderColor: hexToRgba(theme.leather.accent, 0.32),
-                        transform: [{ scale: pressed ? 0.94 : 1 }],
                       },
                       cardShadow(theme.dark),
                     ]}
@@ -337,15 +375,16 @@ export function AppLockModal({
                     <Text style={[styles.cancelText, { color: theme.leather.accent }]}>
                       Cancel
                     </Text>
-                  </Pressable>
+                  </ScalePressable>
                 );
               }
               const isBack = key === "backspace";
               return (
-                <Pressable
+                <ScalePressable
                   key={key}
                   onPress={() => handlePressKey(key)}
-                  style={({ pressed }) => [
+                  scaleTo={0.93}
+                  style={[
                     styles.keyBtn,
                     {
                       overflow: "hidden",
@@ -355,7 +394,6 @@ export function AppLockModal({
                       borderColor: isBack
                         ? theme.leather.edge
                         : hexToRgba(theme.leather.accent, 0.24),
-                      transform: [{ scale: pressed ? 0.94 : 1 }],
                     },
                     cardShadow(theme.dark),
                   ]}
@@ -372,13 +410,13 @@ export function AppLockModal({
                       {key}
                     </Text>
                   )}
-                </Pressable>
+                </ScalePressable>
               );
             })}
           </View>
         ))}
       </View>
-    </View>
+    </Animated.View>
   );
 
   if (inline) {

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   AppState,
@@ -11,6 +11,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -92,6 +93,12 @@ import { SheetModal } from "./src/components/SheetModal";
 import { AppLockModal, AppLockMode } from "./src/components/AppLockModal";
 import { LaunchIntro } from "./src/components/LaunchIntro";
 import { Icon } from "./src/components/Icon";
+import {
+  MOTION_DURATIONS,
+  MOTION_EASE,
+  MOTION_EASE_EXIT,
+  ScalePressable,
+} from "./src/lib/motion";
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -133,7 +140,13 @@ export default function App() {
   const [toast, setToast] = useState("");
   const [dbReady, setDbReady] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
-  const handleFinishIntro = useCallback(() => setShowIntro(false), []);
+  const [introDismissing, setIntroDismissing] = useState(false);
+  const [entranceReplayKey, setEntranceReplayKey] = useState(0);
+  const handleIntroDismissStart = useCallback(() => setIntroDismissing(true), []);
+  const handleFinishIntro = useCallback(() => {
+    setIntroDismissing(true);
+    setShowIntro(false);
+  }, []);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
@@ -235,10 +248,17 @@ export default function App() {
     24,
     Math.min(heroClearY - 24, activeHeroHeight - 76)
   );
+  const { width: windowWidth } = useWindowDimensions();
   const [stackDragging, setStackDragging] = useState(false);
   const stackDraggingRef = useRef(false);
   const navAnim = useRef(new Animated.Value(1)).current;
   const tabAnim = useRef(new Animated.Value(1)).current;
+  const pendingTabAnimRef = useRef(false);
+  const tabAnimRunningRef = useRef<Animated.CompositeAnimation | null>(null);
+  const tabRef = useRef<Tab>(tab);
+  tabRef.current = tab;
+  const detailAnim = useRef(new Animated.Value(0)).current;
+  const detailClosingRef = useRef(false);
   const toastAnim = useRef(new Animated.Value(0)).current;
   const walletsRef = useRef(wallets);
   walletsRef.current = wallets;
@@ -261,8 +281,8 @@ export default function App() {
       setNavVisible(show);
       Animated.timing(navAnim, {
         toValue: show ? 1 : 0,
-        duration: show ? 240 : 210,
-        easing: Easing.out(Easing.cubic),
+        duration: show ? MOTION_DURATIONS.base : 190,
+        easing: MOTION_EASE,
         useNativeDriver: true,
       }).start();
     },
@@ -276,6 +296,12 @@ export default function App() {
       if (nextTab !== "settings") {
         prevNonSettingsTabRef.current = nextTab;
       }
+      const changing = nextTab !== tabRef.current;
+      if (changing) {
+        tabAnimRunningRef.current?.stop();
+        tabAnim.setValue(0);
+        pendingTabAnimRef.current = true;
+      }
       setTab(nextTab);
       setVisitedTabs((prev) =>
         prev[nextTab] ? prev : { ...prev, [nextTab]: true }
@@ -287,7 +313,7 @@ export default function App() {
       scrollRef.current?.scrollTo({ y: 0, animated: false });
       setNavbarVisible(true);
     },
-    [setNavbarVisible, scrollY]
+    [setNavbarVisible, scrollY, tabAnim]
   );
 
   const handleOpenSettings = useCallback(
@@ -295,10 +321,12 @@ export default function App() {
     [handleTabChange]
   );
 
-  const showingTabs = fontsLoaded && dbReady && !isLocked && !selected;
+  const showingTabs = fontsLoaded && dbReady && !isLocked;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!showingTabs) {
+      tabAnimRunningRef.current?.stop();
+      pendingTabAnimRef.current = false;
       tabAnim.setValue(1);
       lastScrollY.current = 0;
       setHeaderAtTop(true);
@@ -306,15 +334,26 @@ export default function App() {
       setNavbarVisible(true);
       return;
     }
-    tabAnim.setValue(0);
+    if (!pendingTabAnimRef.current) {
+      return;
+    }
+    pendingTabAnimRef.current = false;
+    tabAnimRunningRef.current?.stop();
     const anim = Animated.timing(tabAnim, {
       toValue: 1,
-      duration: 210,
-      easing: Easing.out(Easing.cubic),
+      duration: 155,
+      easing: MOTION_EASE,
       useNativeDriver: true,
     });
-    anim.start();
-    return () => anim.stop();
+    tabAnimRunningRef.current = anim;
+    anim.start(({ finished }) => {
+      if (finished) {
+        tabAnimRunningRef.current = null;
+      }
+    });
+    return () => {
+      anim.stop();
+    };
   }, [tab, showingTabs, tabAnim, scrollY, setNavbarVisible]);
 
   useEffect(() => {
@@ -597,9 +636,38 @@ export default function App() {
     setSheet("tx");
   }, []);
 
-  const handleSelectWallet = useCallback((w: Wallet) => {
-    setSelectedId(w.id);
-  }, []);
+  const handleSelectWallet = useCallback(
+    (w: Wallet) => {
+      detailClosingRef.current = false;
+      detailAnim.stopAnimation();
+      detailAnim.setValue(0);
+      setSelectedId(w.id);
+      requestAnimationFrame(() => {
+        Animated.timing(detailAnim, {
+          toValue: 1,
+          duration: MOTION_DURATIONS.detailIn,
+          easing: MOTION_EASE,
+          useNativeDriver: true,
+        }).start();
+      });
+    },
+    [detailAnim]
+  );
+
+  const handleCloseWalletDetail = useCallback(() => {
+    if (detailClosingRef.current) return;
+    detailClosingRef.current = true;
+    detailAnim.stopAnimation();
+    Animated.timing(detailAnim, {
+      toValue: 0,
+      duration: MOTION_DURATIONS.detailOut,
+      easing: MOTION_EASE_EXIT,
+      useNativeDriver: true,
+    }).start(() => {
+      detailClosingRef.current = false;
+      setSelectedId(null);
+    });
+  }, [detailAnim]);
 
   const scheduleCloudSync = useCallback(() => {
     if (!userId || syncScheduledRef.current) return;
@@ -806,8 +874,8 @@ export default function App() {
       setRenderedHideWallet(pendingHideWallet);
       Animated.timing(hideSheetAnim, {
         toValue: 1,
-        duration: 210,
-        easing: Easing.out(Easing.cubic),
+        duration: MOTION_DURATIONS.base,
+        easing: MOTION_EASE,
         useNativeDriver: true,
       }).start();
       return;
@@ -815,8 +883,8 @@ export default function App() {
       hideSheetAnim.stopAnimation();
       Animated.timing(hideSheetAnim, {
         toValue: 0,
-        duration: 170,
-        easing: Easing.in(Easing.cubic),
+        duration: 175,
+        easing: MOTION_EASE_EXIT,
         useNativeDriver: true,
       }).start(({ finished }) => {
         if (finished) setRenderedHideWallet(null);
@@ -827,8 +895,8 @@ export default function App() {
   const dismissHideConfirm = useCallback((onDone?: () => void) => {
     Animated.timing(hideSheetAnim, {
       toValue: 0,
-      duration: 170,
-      easing: Easing.in(Easing.cubic),
+      duration: 175,
+      easing: MOTION_EASE_EXIT,
       useNativeDriver: true,
     }).start(() => {
       setPendingHideWallet(null);
@@ -850,8 +918,8 @@ export default function App() {
       setRenderedExitConfirm(true);
       Animated.timing(exitSheetAnim, {
         toValue: 1,
-        duration: 210,
-        easing: Easing.out(Easing.cubic),
+        duration: MOTION_DURATIONS.base,
+        easing: MOTION_EASE,
         useNativeDriver: true,
       }).start();
       return;
@@ -859,8 +927,8 @@ export default function App() {
       exitSheetAnim.stopAnimation();
       Animated.timing(exitSheetAnim, {
         toValue: 0,
-        duration: 170,
-        easing: Easing.in(Easing.cubic),
+        duration: 175,
+        easing: MOTION_EASE_EXIT,
         useNativeDriver: true,
       }).start(({ finished }) => {
         if (finished) setRenderedExitConfirm(false);
@@ -872,8 +940,8 @@ export default function App() {
     (onDone?: () => void) => {
       Animated.timing(exitSheetAnim, {
         toValue: 0,
-        duration: 170,
-        easing: Easing.in(Easing.cubic),
+        duration: 175,
+        easing: MOTION_EASE_EXIT,
         useNativeDriver: true,
       }).start(() => {
         setExitConfirmOpen(false);
@@ -922,7 +990,7 @@ export default function App() {
         return false;
       }
       if (s.selectedId !== null) {
-        setSelectedId(null);
+        handleCloseWalletDetail();
         return true;
       }
       if (s.tab === "settings") {
@@ -933,7 +1001,7 @@ export default function App() {
       return true;
     });
     return () => sub.remove();
-  }, [hasTopConfirmModal, dismissExitConfirm, dismissHideConfirm, handleTabChange]);
+  }, [hasTopConfirmModal, dismissExitConfirm, dismissHideConfirm, handleCloseWalletDetail, handleTabChange]);
 
   const applyToggleWalletHidden = useCallback(
     (targetWallet: Wallet) => {
@@ -947,7 +1015,7 @@ export default function App() {
       walletsRef.current = nextWallets;
       setWallets(nextWallets);
       if (nextHidden && selectedId === targetWallet.id) {
-        setSelectedId(null);
+        handleCloseWalletDetail();
       }
       scheduleCloudSync();
       setToast(
@@ -956,7 +1024,7 @@ export default function App() {
           : `${targetWallet.name} restored to wallet`
       );
     },
-    [scheduleCloudSync, selectedId]
+    [handleCloseWalletDetail, scheduleCloudSync, selectedId]
   );
 
   const handleToggleWalletHidden = useCallback((targetWallet: Wallet) => {
@@ -1047,12 +1115,15 @@ export default function App() {
     setSheetActivity(null);
     setToast(message);
   }, []);
-  const handleOpenWalletFromSheet = useCallback((w: Wallet) => {
-    setSheet(null);
-    setSheetWalletId(null);
-    setSheetActivity(null);
-    setSelectedId(w.id);
-  }, []);
+  const handleOpenWalletFromSheet = useCallback(
+    (w: Wallet) => {
+      setSheet(null);
+      setSheetWalletId(null);
+      setSheetActivity(null);
+      handleSelectWallet(w);
+    },
+    [handleSelectWallet]
+  );
 
   const handleToggleBiometrics = async () => {
     if (!appLockPin) return;
@@ -1138,26 +1209,36 @@ export default function App() {
             biometricsEnabled={
               !showIntro && biometricsSupported && biometricsEnabled
             }
-            onUnlock={() => setIsLocked(false)}
+            onUnlock={() => {
+              setIsLocked(false);
+              setEntranceReplayKey((k) => k + 1);
+            }}
             theme={theme}
           />
         ) : (
           <>
-            {selected ? (
-          <WalletDetailScreen
-            wallet={selected}
-            activities={activityItems}
-            hidden={hidden}
-            onBack={() => setSelectedId(null)}
-            onUpdate={() => openSheet("update", selected)}
-            onTransfer={() => openSheet("transfer", selected)}
-            onEdit={() => openSheet("edit", selected)}
-            onToggleWalletHidden={handleToggleWalletHidden}
-            onTransaction={openTransactionSheet}
-            theme={theme}
-          />
-        ) : (
-          <View style={{ flex: 1 }}>
+          <Animated.View
+            pointerEvents={selected ? "none" : "auto"}
+            style={{
+              flex: 1,
+              opacity: selected
+                ? detailAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 0.88],
+                  })
+                : 1,
+              transform: selected
+                ? [
+                    {
+                      scale: detailAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1, 0.968],
+                      }),
+                    },
+                  ]
+                : [],
+            }}
+          >
             <View style={{ flex: 1 }}>
               <Animated.ScrollView
                 ref={scrollRef}
@@ -1176,16 +1257,8 @@ export default function App() {
                 style={{
                   opacity: tabAnim.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [0.35, 1],
+                    outputRange: [0.86, 1],
                   }),
-                  transform: [
-                    {
-                      translateY: tabAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [10, 0],
-                      }),
-                    },
-                  ],
                 }}
               >
                 {visitedTabs.home ? (
@@ -1212,6 +1285,8 @@ export default function App() {
                       walletOpen={walletInteractive}
                       walletScrollY={scrollY}
                       onHeroHeight={handleHomeHeroHeight}
+                      entranceActive={introDismissing || !showIntro}
+                      entranceReplayKey={entranceReplayKey}
                       theme={theme}
                     />
                   </View>
@@ -1367,8 +1442,44 @@ export default function App() {
               theme={theme}
             />
             </View>
-          </View>
-        )}
+          </Animated.View>
+          {selected ? (
+            <Animated.View
+              renderToHardwareTextureAndroid
+              style={[
+                StyleSheet.absoluteFill,
+                {
+                  zIndex: 30,
+                  backgroundColor: theme.page,
+                  opacity: detailAnim.interpolate({
+                    inputRange: [0, 0.2, 1],
+                    outputRange: [0.05, 1, 1],
+                  }),
+                  transform: [
+                    {
+                      translateX: detailAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [Math.round(windowWidth * 0.18), 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <WalletDetailScreen
+                wallet={selected}
+                activities={activityItems}
+                hidden={hidden}
+                onBack={handleCloseWalletDetail}
+                onUpdate={() => openSheet("update", selected)}
+                onTransfer={() => openSheet("transfer", selected)}
+                onEdit={() => openSheet("edit", selected)}
+                onToggleWalletHidden={handleToggleWalletHidden}
+                onTransaction={openTransactionSheet}
+                theme={theme}
+              />
+            </Animated.View>
+          ) : null}
 
         {toast ? (
           <Animated.View
@@ -1496,6 +1607,7 @@ export default function App() {
       {showIntro && (
         <LaunchIntro
           theme={theme}
+          onDismissStart={handleIntroDismissStart}
           onFinish={handleFinishIntro}
         />
       )}
@@ -1525,6 +1637,12 @@ export default function App() {
                     translateY: hideSheetAnim.interpolate({
                       inputRange: [0, 1],
                       outputRange: [340, 0],
+                    }),
+                  },
+                  {
+                    scale: hideSheetAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.97, 1],
                     }),
                   },
                 ],
@@ -1568,15 +1686,15 @@ export default function App() {
                 : 'This card will be excluded from your total balance, Home stack, and monthly stats. Past transactions stay in Activity as "Hidden wallet".'}
             </Text>
             <View style={styles.confirmBtnRow}>
-              <Pressable
+              <ScalePressable
                 onPress={() => dismissHideConfirm()}
-                style={({ pressed }) => [
+                scaleTo={0.965}
+                style={[
                   styles.confirmBtn,
                   {
                     overflow: "hidden",
                     backgroundColor: theme.card,
                     borderColor: hexToRgba(theme.leather.accent, 0.26),
-                    transform: [{ scale: pressed ? 0.97 : 1 }],
                   },
                 ]}
               >
@@ -1584,21 +1702,21 @@ export default function App() {
                 <Text style={[styles.confirmCancelText, { color: theme.ink }]}>
                   Cancel
                 </Text>
-              </Pressable>
-              <Pressable
+              </ScalePressable>
+              <ScalePressable
                 onPress={() => {
                   const target = renderedHideWallet;
                   dismissHideConfirm(() => {
                     if (target) applyToggleWalletHidden(target);
                   });
                 }}
-                style={({ pressed }) => [
+                scaleTo={0.965}
+                style={[
                   styles.confirmBtn,
                   {
                     overflow: "hidden",
                     backgroundColor: theme.leather.colors[1],
                     borderColor: theme.leather.edge,
-                    transform: [{ scale: pressed ? 0.97 : 1 }],
                   },
                   cardShadow(theme.dark),
                 ]}
@@ -1612,7 +1730,7 @@ export default function App() {
                 <Text style={styles.confirmPrimaryText}>
                   {renderedHideWallet.isHidden ? "Unhide card" : "Hide card"}
                 </Text>
-              </Pressable>
+              </ScalePressable>
             </View>
           </Animated.View>
         </View>
@@ -1643,6 +1761,12 @@ export default function App() {
                     translateY: exitSheetAnim.interpolate({
                       inputRange: [0, 1],
                       outputRange: [340, 0],
+                    }),
+                  },
+                  {
+                    scale: exitSheetAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.97, 1],
                     }),
                   },
                 ],
@@ -1678,15 +1802,15 @@ export default function App() {
               Are you sure you want to close the app?
             </Text>
             <View style={styles.confirmBtnRow}>
-              <Pressable
+              <ScalePressable
                 onPress={() => dismissExitConfirm()}
-                style={({ pressed }) => [
+                scaleTo={0.965}
+                style={[
                   styles.confirmBtn,
                   {
                     overflow: "hidden",
                     backgroundColor: theme.card,
                     borderColor: hexToRgba(theme.leather.accent, 0.26),
-                    transform: [{ scale: pressed ? 0.97 : 1 }],
                   },
                 ]}
               >
@@ -1694,27 +1818,27 @@ export default function App() {
                 <Text style={[styles.confirmCancelText, { color: theme.ink }]}>
                   Stay
                 </Text>
-              </Pressable>
-              <Pressable
+              </ScalePressable>
+              <ScalePressable
                 onPress={() => {
                   dismissExitConfirm(() => {
                     BackHandler.exitApp();
                   });
                 }}
-                style={({ pressed }) => [
+                scaleTo={0.965}
+                style={[
                   styles.confirmBtn,
                   {
                     overflow: "hidden",
                     backgroundColor: theme.leather.colors[1],
                     borderColor: theme.leather.edge,
-                    transform: [{ scale: pressed ? 0.97 : 1 }],
                   },
                   cardShadow(theme.dark),
                 ]}
               >
                 <DarkLeatherSurface theme={theme} radius={16} />
                 <Text style={styles.confirmPrimaryText}>Exit app</Text>
-              </Pressable>
+              </ScalePressable>
             </View>
           </Animated.View>
         </View>

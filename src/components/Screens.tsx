@@ -51,6 +51,12 @@ import {
 import { FolderSurface } from "./FolderSurface";
 import { Icon } from "./Icon";
 import {
+  AnimatedBarFill,
+  MOTION_EASE,
+  ScalePressable,
+  StaggerReveal,
+} from "../lib/motion";
+import {
   getWalletScale,
   PhysicalWallet,
   WALLET_CLOSE_SCROLL_DISTANCE,
@@ -364,6 +370,8 @@ export const HomeScreen = React.memo(function HomeScreen({
   walletOpen,
   walletScrollY,
   onHeroHeight,
+  entranceActive = true,
+  entranceReplayKey = 0,
   theme,
 }: {
   wallets: Wallet[];
@@ -387,6 +395,8 @@ export const HomeScreen = React.memo(function HomeScreen({
   walletOpen: boolean;
   walletScrollY: Animated.Value;
   onHeroHeight?: (height: number) => void;
+  entranceActive?: boolean;
+  entranceReplayKey?: number;
   theme: ThemeColors;
 }) {
   const { width: windowWidth } = useWindowDimensions();
@@ -511,6 +521,13 @@ export const HomeScreen = React.memo(function HomeScreen({
         onHeight={onHeroHeight}
         style={{ marginBottom: -18, zIndex: 2 }}
       >
+        <StaggerReveal
+          active={entranceActive}
+          replayKey={entranceReplayKey}
+          index={0}
+          offsetY={8}
+          duration={220}
+        >
         <View style={styles.heroTopRow}>
           <View
             style={styles.heroBrandRow}
@@ -525,32 +542,32 @@ export const HomeScreen = React.memo(function HomeScreen({
             />
           </View>
           <View style={styles.heroHeaderActions}>
-            <Pressable onPress={handleToggleHidden} accessibilityRole="button" accessibilityLabel={hidden ? "Show balances" : "Hide balances"} style={[styles.heroIconBtn, heroControlStyle(theme)]}>
+            <ScalePressable
+              onPress={handleToggleHidden}
+              accessibilityRole="button"
+              accessibilityLabel={hidden ? "Show balances" : "Hide balances"}
+              scaleTo={0.91}
+              style={[styles.heroIconBtn, heroControlStyle(theme)]}
+            >
               <Icon name={hidden ? "eye-off" : "eye"} size={17} color={theme.heroInk} />
-            </Pressable>
-            <Pressable
+            </ScalePressable>
+            <ScalePressable
               onPress={handleOpenSearch}
               accessibilityLabel="Search"
-              style={({ pressed }) => [
-                styles.heroIconBtn,
-                heroControlStyle(theme),
-                { transform: [{ scale: pressed ? 0.92 : 1 }] },
-              ]}
+              scaleTo={0.91}
+              style={[styles.heroIconBtn, heroControlStyle(theme)]}
             >
               <Icon name="search" size={17} color={theme.heroInk} />
-            </Pressable>
-            <Pressable
+            </ScalePressable>
+            <ScalePressable
               onPress={onSettings}
               accessibilityRole="button"
               accessibilityLabel="Settings"
-              style={({ pressed }) => [
-                styles.heroIconBtn,
-                heroControlStyle(theme),
-                { transform: [{ scale: pressed ? 0.92 : 1 }] },
-              ]}
+              scaleTo={0.91}
+              style={[styles.heroIconBtn, heroControlStyle(theme)]}
             >
               <Icon name="settings" size={17} color={theme.heroInk} />
-            </Pressable>
+            </ScalePressable>
           </View>
         </View>
 
@@ -568,8 +585,16 @@ export const HomeScreen = React.memo(function HomeScreen({
             {headerClock.dateLabel}
           </Text>
         </View>
+        </StaggerReveal>
       </HeroHeaderSurface>
 
+      <StaggerReveal
+        active={entranceActive}
+        replayKey={entranceReplayKey}
+        index={1}
+        offsetY={12}
+        duration={260}
+      >
       <PhysicalWallet
         shouldOpen={walletOpen}
         scrollY={walletScrollY}
@@ -584,9 +609,17 @@ export const HomeScreen = React.memo(function HomeScreen({
         onHingeOffset={handleHingeOffset}
         theme={theme}
       />
+      </StaggerReveal>
 
       <Animated.View style={{ transform: [{ translateY: belowWalletTranslateY }] }}>
         {/* Cashflow & Monthly Budget Pulse (Dark Stitched Leather) */}
+        <StaggerReveal
+          active={entranceActive}
+          replayKey={entranceReplayKey}
+          index={2}
+          offsetY={12}
+          duration={260}
+        >
         <View
           style={[
             styles.homeDashCard,
@@ -667,13 +700,14 @@ export const HomeScreen = React.memo(function HomeScreen({
             </View>
           </View>
 
-          <Pressable
+          <ScalePressable
             onPress={handleOpenBudget}
-            style={({ pressed }) => [
+            scaleTo={0.985}
+            pressOpacity={0.86}
+            style={[
               styles.homeBudgetSection,
               {
                 borderTopColor: "rgba(255, 255, 255, 0.14)",
-                opacity: pressed ? 0.78 : 1,
               },
             ]}
           >
@@ -716,11 +750,14 @@ export const HomeScreen = React.memo(function HomeScreen({
                     { backgroundColor: "rgba(255, 255, 255, 0.14)" },
                   ]}
                 >
-                  <View
+                  <AnimatedBarFill
+                    pct={budgetPct}
+                    active={entranceActive}
+                    animateKey={`${entranceReplayKey}-${budgetPct}`}
+                    delayMs={180}
                     style={[
                       styles.homeProgressFill,
                       {
-                        width: `${Math.min(100, Math.max(0, budgetPct))}%`,
                         backgroundColor:
                           budgetPct >= 100
                             ? "#fb7185"
@@ -770,11 +807,19 @@ export const HomeScreen = React.memo(function HomeScreen({
                 </Text>
               </View>
             )}
-          </Pressable>
+          </ScalePressable>
         </View>
+        </StaggerReveal>
 
         {/* Top Spending Categories Peek */}
         {topCategories.length > 0 ? (
+          <StaggerReveal
+            active={entranceActive}
+            replayKey={entranceReplayKey}
+            index={3}
+            offsetY={12}
+            duration={260}
+          >
           <View style={[styles.section, { marginTop: 14 }]}>
             <SectionTitle
               title="Top Spending"
@@ -797,7 +842,7 @@ export const HomeScreen = React.memo(function HomeScreen({
               ]}
             >
               <LightLeatherSurface theme={theme} radius={20} />
-              {topCategories.map((cat) => {
+              {topCategories.map((cat, idx) => {
                 const maxAmt = topCategories[0]?.amount || 1;
                 const fillPct =
                   cat.limit > 0
@@ -810,17 +855,16 @@ export const HomeScreen = React.memo(function HomeScreen({
                     : 0;
                 const catTint = overLimit ? "#e11d48" : theme.leather.accent;
                 return (
-                  <Pressable
+                  <ScalePressable
                     key={cat.category}
                     onPress={() =>
                       onOpenCategoryBudget
                         ? onOpenCategoryBudget(cat.category)
                         : handleGoOverview()
                     }
-                    style={({ pressed }) => [
-                      styles.homeCatRow,
-                      { opacity: pressed ? 0.72 : 1 },
-                    ]}
+                    scaleTo={0.985}
+                    pressOpacity={0.82}
+                    style={styles.homeCatRow}
                   >
                     <View style={styles.homeCatTop}>
                       <View style={styles.homeCatLeft}>
@@ -857,27 +901,44 @@ export const HomeScreen = React.memo(function HomeScreen({
                         },
                       ]}
                     >
-                      <View
+                      <AnimatedBarFill
+                        pct={Math.max(4, fillPct)}
+                        active={entranceActive}
+                        animateKey={`${entranceReplayKey}-${cat.category}-${fillPct}`}
+                        delayMs={200 + idx * 45}
                         style={[
                           styles.homeProgressFill,
-                          {
-                            width: `${Math.max(4, fillPct)}%`,
-                            backgroundColor: catTint,
-                          },
+                          { backgroundColor: catTint },
                         ]}
                       />
                     </View>
-                  </Pressable>
+                  </ScalePressable>
                 );
               })}
             </View>
           </View>
+          </StaggerReveal>
         ) : null}
 
+        <StaggerReveal
+          active={entranceActive}
+          replayKey={entranceReplayKey}
+          index={4}
+          offsetY={12}
+          duration={260}
+        >
         <Upcoming schedules={schedules} wallets={wallets} hidden={hidden} theme={theme}
           onRecord={onRecordScheduled} onManage={handleOpenSchedules} />
+        </StaggerReveal>
 
         {/* Recent Transactions */}
+        <StaggerReveal
+          active={entranceActive}
+          replayKey={entranceReplayKey}
+          index={4.5}
+          offsetY={12}
+          duration={260}
+        >
         <View style={[styles.section, { marginTop: 10 }]}>
           <SectionTitle
             title="Recent Transactions"
@@ -888,17 +949,26 @@ export const HomeScreen = React.memo(function HomeScreen({
             theme={theme}
           />
           <View style={styles.txList}>
-            {recentActivities.map((item) => (
-              <TxRow
+            {recentActivities.map((item, idx) => (
+              <StaggerReveal
                 key={item.id}
+                active={entranceActive}
+                replayKey={entranceReplayKey}
+                index={4.7 + idx * 0.45}
+                offsetY={10}
+                duration={240}
+              >
+              <TxRow
                 item={item}
                 hidden={hidden}
                 onPress={onTransaction ? () => onTransaction(item) : undefined}
                 theme={theme}
               />
+              </StaggerReveal>
             ))}
           </View>
         </View>
+        </StaggerReveal>
       </Animated.View>
     </View>
   );
@@ -2064,12 +2134,15 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   }, [page, totalPages]);
 
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive) {
+      barProgress.setValue(0);
+      return;
+    }
     barProgress.setValue(0);
     const anim = Animated.timing(barProgress, {
       toValue: 1,
-      duration: 380,
-      easing: Easing.out(Easing.cubic),
+      duration: 420,
+      easing: MOTION_EASE,
       useNativeDriver: false,
     });
     anim.start();
@@ -3092,13 +3165,14 @@ export const ActivityScreen = React.memo(function ActivityScreen({
             (opt) => {
               const active = typeFilter === opt;
               return (
-                <Pressable
+                <ScalePressable
                   key={opt}
                   onPress={() => {
                     setTypeFilter(opt);
                     setPage(1);
                   }}
-                  style={({ pressed }) => [
+                  scaleTo={0.955}
+                  style={[
                     styles.filterChip,
                     {
                       overflow: "hidden",
@@ -3108,7 +3182,6 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                       borderColor: active
                         ? theme.leather.edge
                         : hexToRgba(theme.leather.accent, 0.24),
-                      transform: [{ scale: pressed ? 0.96 : 1 }],
                     },
                   ]}
                 >
@@ -3125,7 +3198,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                   >
                     {opt}
                   </Text>
-                </Pressable>
+                </ScalePressable>
               );
             }
           )}
@@ -3406,12 +3479,11 @@ export const SettingsScreen = React.memo(function SettingsScreen({
           <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>Settings</Text>
         </View>
 
-        <Pressable
+        <ScalePressable
           onPress={onOpenAuth}
-          style={({ pressed }) => [
-            styles.settingsHeroProfileRow,
-            { marginTop: 12, opacity: pressed ? 0.85 : 1 },
-          ]}
+          scaleTo={0.985}
+          pressOpacity={0.86}
+          style={[styles.settingsHeroProfileRow, { marginTop: 12 }]}
         >
           <View style={[styles.profileCardAvatar, { backgroundColor: theme.heroControl }]}>
             <Text style={[styles.profileCardInitials, { color: theme.heroInk }]}>{profile.initials}</Text>
@@ -3427,10 +3499,11 @@ export const SettingsScreen = React.memo(function SettingsScreen({
             </Text>
           </View>
           <Icon name="chevron" size={18} color={theme.heroInk} />
-        </Pressable>
+        </ScalePressable>
       </HeroHeaderSurface>
 
       {/* Appearance Group */}
+      <StaggerReveal index={0} offsetY={10} duration={230}>
       <SettingsGroup title="Appearance" theme={theme}>
         <View
           style={[
@@ -3452,7 +3525,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
             {[LEATHER_FINISHES.slice(0, 3), LEATHER_FINISHES.slice(3, 6)].map((row, index) => (
               <View key={index} style={styles.accentGridRow}>
                 {row.map((item) => (
-                  <Pressable key={item.id} accessibilityRole="radio" accessibilityState={{ checked: item.id === leatherFinish }} accessibilityLabel={item.label} onPress={() => { setLeatherFinish(item.id); showToast(`Leather finish set to ${item.label}`); }} style={[styles.accentTile, { borderColor: item.id === leatherFinish ? item.accent : item.edge }]}>
+                  <ScalePressable key={item.id} scaleTo={0.94} accessibilityRole="radio" accessibilityState={{ checked: item.id === leatherFinish }} accessibilityLabel={item.label} onPress={() => { setLeatherFinish(item.id); showToast(`Leather finish set to ${item.label}`); }} style={[styles.accentTile, { borderColor: item.id === leatherFinish ? item.accent : item.edge }]}>
                     <LinearGradient colors={item.colors} style={StyleSheet.absoluteFill} />
                     <Svg pointerEvents="none" width="100%" height="100%" viewBox="0 0 100 72" preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
                       <Defs>
@@ -3467,7 +3540,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
                     </Svg>
                     {item.id === leatherFinish && <View style={styles.accentTileCheck}><Icon name="check" size={14} color="#ffffff" /></View>}
                     <Text style={styles.accentTileLabel} numberOfLines={1}>{item.label}</Text>
-                  </Pressable>
+                  </ScalePressable>
                 ))}
               </View>
             ))}
@@ -3490,8 +3563,10 @@ export const SettingsScreen = React.memo(function SettingsScreen({
           theme={theme}
         />
       </SettingsGroup>
+      </StaggerReveal>
 
       {/* Planning Group */}
+      <StaggerReveal index={1} offsetY={10} duration={230}>
       <SettingsGroup title="Planning" theme={theme}>
         {onOpenBudget ? (
           <SettingRow
@@ -3530,8 +3605,10 @@ export const SettingsScreen = React.memo(function SettingsScreen({
           />
         ) : null}
       </SettingsGroup>
+      </StaggerReveal>
 
       {/* Security Group */}
+      <StaggerReveal index={2} offsetY={10} duration={230}>
       <SettingsGroup title="Security" theme={theme}>
         <SettingRow
           icon="lock"
@@ -3584,8 +3661,10 @@ export const SettingsScreen = React.memo(function SettingsScreen({
           />
         ) : null}
       </SettingsGroup>
+      </StaggerReveal>
 
       {/* Data & Sync Group */}
+      <StaggerReveal index={3} offsetY={10} duration={230}>
       <SettingsGroup title="Data & sync" theme={theme}>
         <SettingRow
           icon="cloud"
@@ -3614,6 +3693,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
           theme={theme}
         />
       </SettingsGroup>
+      </StaggerReveal>
     </View>
   );
 });
@@ -3755,7 +3835,6 @@ export function WalletDetailScreen({
     setDetailFilter(order[nextIdx]);
   };
 
-  const slideAnim = useRef(new Animated.Value(0)).current;
   const detailScrollY = useRef(new Animated.Value(0)).current;
   const [detailCardWidth, setDetailCardWidth] = useState(340);
 
@@ -3856,43 +3935,21 @@ export function WalletDetailScreen({
     setDetailFilter("Recent");
     setOverviewRange("month");
     detailScrollY.setValue(0);
-    Animated.timing(slideAnim, {
-      toValue: 1,
-      duration: 280,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [wallet.id, slideAnim, detailScrollY]);
+  }, [wallet.id, detailScrollY]);
 
   return (
-    <Animated.View
-      style={{
-        flex: 1,
-        opacity: slideAnim,
-        transform: [
-          {
-            translateX: slideAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [22, 0],
-            }),
-          },
-        ],
-      }}
-    >
+    <View style={{ flex: 1 }}>
       <HeroHeaderSurface theme={theme} compact fullBleed={false}>
         <View style={styles.heroDetailBar}>
-          <Pressable
+          <ScalePressable
             onPress={onBack}
             accessibilityRole="button"
             accessibilityLabel="Back"
-            style={({ pressed }) => [
-              styles.heroIconBtn,
-              heroControlStyle(theme),
-              { transform: [{ scale: pressed ? 0.92 : 1 }] },
-            ]}
+            scaleTo={0.91}
+            style={[styles.heroIconBtn, heroControlStyle(theme)]}
           >
             <Icon name="back" size={19} color={theme.heroInk} />
-          </Pressable>
+          </ScalePressable>
           <View style={{ flex: 1, alignItems: "center" }}>
             <Text style={[styles.heroDetailTitle, { color: theme.heroInk }]} numberOfLines={1}>
               {wallet.name}
@@ -3910,18 +3967,15 @@ export function WalletDetailScreen({
               </Text>
             ) : null}
           </View>
-          <Pressable
+          <ScalePressable
             onPress={onEdit}
             accessibilityRole="button"
             accessibilityLabel="Edit wallet"
-            style={({ pressed }) => [
-              styles.heroIconBtn,
-              heroControlStyle(theme),
-              { transform: [{ scale: pressed ? 0.92 : 1 }] },
-            ]}
+            scaleTo={0.91}
+            style={[styles.heroIconBtn, heroControlStyle(theme)]}
           >
             <Icon name="edit" size={17} color={theme.heroInk} />
-          </Pressable>
+          </ScalePressable>
         </View>
       </HeroHeaderSurface>
 
@@ -4085,15 +4139,15 @@ export function WalletDetailScreen({
           </View>
 
           <View style={styles.detailActions}>
-            <Pressable
+            <ScalePressable
               onPress={onUpdate}
-              style={({ pressed }) => [
+              scaleTo={0.965}
+              style={[
                 styles.detailActionBtn,
                 {
                   backgroundColor: theme.leather.colors[1],
                   borderColor: theme.leather.edge,
                   overflow: "hidden",
-                  transform: [{ scale: pressed ? 0.97 : 1 }],
                 },
                 cardShadow(theme.dark),
               ]}
@@ -4103,17 +4157,17 @@ export function WalletDetailScreen({
               <Text style={[styles.detailActionText, { color: "#ffffff" }]}>
                 Update balance
               </Text>
-            </Pressable>
+            </ScalePressable>
 
-            <Pressable
+            <ScalePressable
               onPress={onTransfer}
-              style={({ pressed }) => [
+              scaleTo={0.965}
+              style={[
                 styles.detailActionBtn,
                 {
                   backgroundColor: theme.card,
                   borderColor: hexToRgba(theme.leather.accent, 0.28),
                   overflow: "hidden",
-                  transform: [{ scale: pressed ? 0.97 : 1 }],
                 },
                 cardShadow(theme.dark),
               ]}
@@ -4123,7 +4177,7 @@ export function WalletDetailScreen({
               <Text style={[styles.detailActionText, { color: theme.ink }]}>
                 Transfer
               </Text>
-            </Pressable>
+            </ScalePressable>
           </View>
 
           {onToggleWalletHidden ? (
@@ -4323,7 +4377,7 @@ export function WalletDetailScreen({
                     {walletOverview.txCount === 1 ? "transaction" : "transactions"}
                   </Text>
                 </View>
-                {walletOverview.topCategories.map((cat) => (
+                {walletOverview.topCategories.map((cat, idx) => (
                   <View key={cat.label} style={styles.walletOverviewCatRow}>
                     <View style={styles.walletOverviewCatTop}>
                       <View style={styles.walletOverviewCatLeft}>
@@ -4365,11 +4419,13 @@ export function WalletDetailScreen({
                         { backgroundColor: "rgba(255, 255, 255, 0.16)" },
                       ]}
                     >
-                      <View
+                      <AnimatedBarFill
+                        pct={Math.max(6, cat.pct)}
+                        animateKey={`${wallet.id}-${overviewRange}-${cat.label}`}
+                        delayMs={100 + idx * 45}
                         style={[
                           styles.walletOverviewBarFill,
                           {
-                            width: `${Math.max(6, cat.pct)}%`,
                             backgroundColor: "rgba(255, 255, 255, 0.88)",
                           },
                         ]}
@@ -4467,7 +4523,7 @@ export function WalletDetailScreen({
           size={48}
         />
       </View>
-    </Animated.View>
+    </View>
   );
 }
 

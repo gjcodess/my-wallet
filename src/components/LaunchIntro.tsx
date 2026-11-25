@@ -13,6 +13,7 @@ import Svg, {
   Rect as SvgRect,
   Stop,
 } from "react-native-svg";
+import { MOTION_EASE } from "../lib/motion";
 import { hexToRgba, ThemeColors } from "./SharedUI";
 
 const PITAKA_MARK_WHITE = require("../../assets/brand/pitaka-mark-white.png");
@@ -22,9 +23,11 @@ const PITAKA_TITLE_DARK = require("../../assets/brand/pitaka-title-dark.png");
 
 export const LaunchIntro = React.memo(function LaunchIntro({
   theme,
+  onDismissStart,
   onFinish,
 }: {
   theme: ThemeColors;
+  onDismissStart?: () => void;
   onFinish: () => void;
 }) {
   const [exiting, setExiting] = useState(false);
@@ -49,6 +52,7 @@ export const LaunchIntro = React.memo(function LaunchIntro({
       if (dismissingRef.current) return;
       dismissingRef.current = true;
       setExiting(true);
+      onDismissStart?.();
 
       if (holdTimerRef.current) {
         clearTimeout(holdTimerRef.current);
@@ -63,25 +67,25 @@ export const LaunchIntro = React.memo(function LaunchIntro({
       anims.ringScale.stopAnimation();
       anims.ringOpacity.stopAnimation();
 
-      const duration = fast ? 120 : 230;
+      const duration = fast ? 130 : 240;
       Animated.parallel([
         Animated.timing(anims.overlayOpacity, {
           toValue: 0,
           duration,
-          easing: Easing.out(Easing.cubic),
+          easing: MOTION_EASE,
           useNativeDriver: true,
         }),
         Animated.timing(anims.overlayScale, {
           toValue: fast ? 1.02 : 1.045,
           duration,
-          easing: Easing.out(Easing.cubic),
+          easing: MOTION_EASE,
           useNativeDriver: true,
         }),
       ]).start(() => {
         onFinish();
       });
     },
-    [anims, onFinish]
+    [anims, onDismissStart, onFinish]
   );
 
   useEffect(() => {

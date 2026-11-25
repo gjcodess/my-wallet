@@ -11,6 +11,7 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 import { ActivityItem, money, Tab, Tone } from "../types/wallet";
+import { MOTION_EASE, MOTION_EASE_EXIT, ScalePressable } from "../lib/motion";
 import { Icon } from "./Icon";
 
 export type AccentPaletteId =
@@ -706,15 +707,15 @@ export function TxRow({
   const iconColor = theme.muted;
 
   return (
-    <Pressable
+    <ScalePressable
       onPress={onPress}
       disabled={!onPress}
-      style={({ pressed }) => [
+      scaleTo={onPress ? 0.985 : 1}
+      style={[
         styles.txRow,
         {
           backgroundColor: theme.card,
           overflow: "hidden",
-          transform: [{ scale: pressed && onPress ? 0.985 : 1 }],
         },
         theme.dark ? bevelStyle(true) : styles.lightTxLift,
         { borderWidth: 1, borderColor: hexToRgba(theme.leather.accent, 0.18) },
@@ -753,7 +754,7 @@ export function TxRow({
           {dateLabel ?? item.date.split(",")[0]}
         </Text>
       </View>
-    </Pressable>
+    </ScalePressable>
   );
 }
 
@@ -774,14 +775,12 @@ export const ActionButton = React.memo(function ActionButton({
   theme: ThemeColors;
 }) {
   return (
-    <Pressable
+    <ScalePressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => [
-        styles.actionButton,
-        { transform: [{ scale: pressed ? 0.94 : 1 }] },
-      ]}
+      scaleTo={0.935}
+      style={styles.actionButton}
     >
       <View style={[styles.actionPill, heroControlStyle(theme)]}>
         <LinearGradient
@@ -796,7 +795,7 @@ export const ActionButton = React.memo(function ActionButton({
       <Text style={[styles.actionLabel, { color: theme.heroInk }]} numberOfLines={1}>
         {label}
       </Text>
-    </Pressable>
+    </ScalePressable>
   );
 });
 
@@ -822,14 +821,13 @@ export function SectionTitle({
         {title}
       </Text>
       {action ? (
-        <Pressable
+        <ScalePressable
           onPress={onPress}
           disabled={!onPress}
           hitSlop={8}
-          style={({ pressed }) => [
-            styles.sectionActionBtn,
-            pressed && onPress ? { opacity: 0.7 } : null,
-          ]}
+          scaleTo={onPress ? 0.95 : 1}
+          pressOpacity={onPress ? 0.72 : 1}
+          style={styles.sectionActionBtn}
         >
           <Text style={[styles.sectionActionText, { color: resolvedColor }]}>
             {action}
@@ -837,7 +835,7 @@ export function SectionTitle({
           {actionIcon ? (
             <Icon name={actionIcon} size={14} color={resolvedColor} />
           ) : null}
-        </Pressable>
+        </ScalePressable>
       ) : null}
     </View>
   );
@@ -859,23 +857,23 @@ export function TopBar({
   return (
     <View style={[styles.topBar, noMargin && { marginBottom: 0 }]}>
       {onBack ? (
-        <Pressable
+        <ScalePressable
           onPress={onBack}
-          style={({ pressed }) => [
+          scaleTo={0.92}
+          style={[
             styles.roundButton,
             {
               backgroundColor: theme.leather.edge,
               overflow: "hidden",
               borderWidth: 1,
               borderColor: theme.leather.edge,
-              transform: [{ scale: pressed ? 0.94 : 1 }],
             },
             cardShadow(theme.dark),
           ]}
         >
           <DarkLeatherSurface theme={theme} radius={21} />
           <Icon name="back" size={18} strokeWidth={2.3} color="#ffffff" />
-        </Pressable>
+        </ScalePressable>
       ) : (
         <View style={{ width: 42 }} />
       )}
@@ -963,6 +961,13 @@ function NavLeatherSurface({ theme, round = false }: { theme: ThemeColors; round
   );
 }
 
+const NAV_ITEMS: { id: Tab; icon: string; label: string }[] = [
+  { id: "home", icon: "home", label: "Home" },
+  { id: "wallets", icon: "leather-wallet", label: "Wallet" },
+  { id: "activity", icon: "transactions", label: "Activity" },
+  { id: "overview", icon: "pie", label: "Overview" },
+];
+
 export function BottomNav({
   tab,
   setTab,
@@ -978,12 +983,77 @@ export function BottomNav({
   visible?: boolean;
   theme: ThemeColors;
 }) {
-  const items: { id: Tab; icon: string; label: string }[] = [
-    { id: "home", icon: "home", label: "Home" },
-    { id: "wallets", icon: "leather-wallet", label: "Wallet" },
-    { id: "activity", icon: "transactions", label: "Activity" },
-    { id: "overview", icon: "pie", label: "Overview" },
-  ];
+  const [rowInnerWidth, setRowInnerWidth] = useState(0);
+  const activeIdx = NAV_ITEMS.findIndex((item) => item.id === tab);
+  const slotWidth = rowInnerWidth > 0 ? rowInnerWidth / NAV_ITEMS.length : 0;
+
+  const indicatorX = useRef(new Animated.Value(0)).current;
+  const indicatorOpacity = useRef(new Animated.Value(activeIdx >= 0 ? 1 : 0)).current;
+  const hasPositionedIndicatorRef = useRef(false);
+  const iconPopMap = useRef<Record<string, Animated.Value>>({
+    home: new Animated.Value(1),
+    wallets: new Animated.Value(1),
+    activity: new Animated.Value(1),
+    overview: new Animated.Value(1),
+  }).current;
+  const prevTabRef = useRef<Tab>(tab);
+
+  useEffect(() => {
+    if (slotWidth <= 0) return;
+    if (activeIdx < 0) {
+      Animated.timing(indicatorOpacity, {
+        toValue: 0,
+        duration: 150,
+        easing: MOTION_EASE,
+        useNativeDriver: true,
+      }).start();
+      return;
+    }
+
+    const targetX = activeIdx * slotWidth;
+    if (!hasPositionedIndicatorRef.current) {
+      hasPositionedIndicatorRef.current = true;
+      indicatorX.setValue(targetX);
+      indicatorOpacity.setValue(1);
+    } else {
+      Animated.parallel([
+        Animated.spring(indicatorX, {
+          toValue: targetX,
+          speed: 24,
+          bounciness: 5,
+          useNativeDriver: true,
+        }),
+        Animated.timing(indicatorOpacity, {
+          toValue: 1,
+          duration: 160,
+          easing: MOTION_EASE,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [activeIdx, slotWidth, indicatorX, indicatorOpacity]);
+
+  useEffect(() => {
+    if (prevTabRef.current === tab) return;
+    prevTabRef.current = tab;
+    const pop = iconPopMap[tab];
+    if (!pop) return;
+    pop.stopAnimation();
+    Animated.sequence([
+      Animated.timing(pop, {
+        toValue: 1.14,
+        duration: 90,
+        easing: MOTION_EASE,
+        useNativeDriver: true,
+      }),
+      Animated.spring(pop, {
+        toValue: 1,
+        speed: 26,
+        bounciness: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [tab, iconPopMap]);
 
   const translateY = navAnim
     ? navAnim.interpolate({
@@ -995,26 +1065,27 @@ export function BottomNav({
 
   const renderNavItem = (item: { id: Tab; icon: string; label: string }) => {
     const active = tab === item.id;
+    const popScale = iconPopMap[item.id] ?? 1;
     return (
-      <Pressable
+      <ScalePressable
         key={item.id}
         onPress={() => setTab(item.id)}
         accessibilityRole="tab"
         accessibilityLabel={item.label}
         accessibilityState={{ selected: active }}
-        style={({ pressed }) => [
-          styles.navItem,
-          { transform: [{ scale: pressed ? 0.92 : 1 }] },
-        ]}
+        scaleTo={0.92}
+        style={styles.navItem}
       >
-        <Icon
-          name={item.icon}
-          size={20}
-          strokeWidth={active ? 2.65 : 2.25}
-          color={active ? "#ffffff" : theme.leather.thread}
-        />
+        <Animated.View style={{ transform: [{ scale: popScale }] }}>
+          <Icon
+            name={item.icon}
+            size={20}
+            strokeWidth={active ? 2.65 : 2.25}
+            color={active ? "#ffffff" : theme.leather.thread}
+          />
+        </Animated.View>
         <Text style={[styles.navItemLabel, { color: active ? "#ffffff" : theme.leather.thread }]} numberOfLines={1}>{item.label}</Text>
-      </Pressable>
+      </ScalePressable>
     );
   };
 
@@ -1031,24 +1102,47 @@ export function BottomNav({
     >
       <View style={[styles.navLeatherBar, { backgroundColor: theme.leather.edge, borderColor: theme.leather.edge }]}>
         <NavLeatherSurface theme={theme} />
-        <View style={styles.navItemsRow}>{items.map(renderNavItem)}</View>
+        <View
+          style={styles.navItemsRow}
+          onLayout={(e) => {
+            const inner = Math.max(0, e.nativeEvent.layout.width - 18);
+            if (inner > 0 && Math.abs(inner - rowInnerWidth) > 0.5) {
+              setRowInnerWidth(inner);
+            }
+          }}
+        >
+          {slotWidth > 0 ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.navActivePill,
+                {
+                  width: Math.max(24, slotWidth - 4),
+                  opacity: indicatorOpacity,
+                  transform: [{ translateX: indicatorX }],
+                },
+              ]}
+            />
+          ) : null}
+          {NAV_ITEMS.map(renderNavItem)}
+        </View>
       </View>
-      <Pressable
+      <ScalePressable
         onPress={onAdd}
         accessibilityRole="button"
         accessibilityLabel="Add transaction"
-        style={({ pressed }) => [
+        scaleTo={0.91}
+        style={[
           styles.navAddWrapper,
           {
             backgroundColor: theme.leather.edge,
             borderColor: theme.leather.edge,
-            transform: [{ scale: pressed ? 0.92 : 1 }],
           },
         ]}
       >
         <NavLeatherSurface theme={theme} round />
         <Icon name="plus" size={27} strokeWidth={2.8} color={theme.leather.accent} />
-      </Pressable>
+      </ScalePressable>
     </Animated.View>
   );
 }
@@ -1268,6 +1362,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 9,
   },
+  navActivePill: {
+    position: "absolute",
+    top: 8,
+    left: 11,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "rgba(255, 255, 255, 0.13)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.12)",
+  },
   navItem: {
     flex: 1,
     alignItems: "center",
@@ -1421,8 +1525,8 @@ export function ConfirmBottomSheet({
       setMounted(true);
       Animated.timing(anim, {
         toValue: 1,
-        duration: 210,
-        easing: Easing.out(Easing.cubic),
+        duration: 230,
+        easing: MOTION_EASE,
         useNativeDriver: true,
       }).start();
       return;
@@ -1431,8 +1535,8 @@ export function ConfirmBottomSheet({
       anim.stopAnimation();
       Animated.timing(anim, {
         toValue: 0,
-        duration: 170,
-        easing: Easing.in(Easing.cubic),
+        duration: 175,
+        easing: MOTION_EASE_EXIT,
         useNativeDriver: true,
       }).start(({ finished }) => {
         if (finished) setMounted(false);
@@ -1445,8 +1549,8 @@ export function ConfirmBottomSheet({
       anim.stopAnimation();
       Animated.timing(anim, {
         toValue: 0,
-        duration: 170,
-        easing: Easing.in(Easing.cubic),
+        duration: 175,
+        easing: MOTION_EASE_EXIT,
         useNativeDriver: true,
       }).start(() => {
         setMounted(false);
@@ -1491,6 +1595,12 @@ export function ConfirmBottomSheet({
                   outputRange: [340, 0],
                 }),
               },
+              {
+                scale: anim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.97, 1],
+                }),
+              },
             ],
           },
           cardShadow(theme.dark),
@@ -1529,15 +1639,15 @@ export function ConfirmBottomSheet({
           {message}
         </Text>
         <View style={styles.confirmBtnRow}>
-          <Pressable
+          <ScalePressable
             onPress={() => dismiss()}
-            style={({ pressed }) => [
+            scaleTo={0.965}
+            style={[
               styles.confirmBtn,
               {
                 overflow: "hidden",
                 backgroundColor: theme.card,
                 borderColor: hexToRgba(theme.leather.accent, 0.26),
-                transform: [{ scale: pressed ? 0.97 : 1 }],
               },
             ]}
           >
@@ -1545,10 +1655,11 @@ export function ConfirmBottomSheet({
             <Text style={[styles.confirmCancelText, { color: theme.ink }]}>
               {cancelLabel}
             </Text>
-          </Pressable>
-          <Pressable
+          </ScalePressable>
+          <ScalePressable
             onPress={() => dismiss(onConfirm)}
-            style={({ pressed }) => [
+            scaleTo={0.965}
+            style={[
               styles.confirmBtn,
               {
                 overflow: "hidden",
@@ -1556,7 +1667,6 @@ export function ConfirmBottomSheet({
                   ? "#c04444"
                   : theme.leather.colors[1],
                 borderColor: destructive ? "#a23434" : theme.leather.edge,
-                transform: [{ scale: pressed ? 0.97 : 1 }],
               },
               cardShadow(theme.dark),
             ]}
@@ -1568,7 +1678,7 @@ export function ConfirmBottomSheet({
             )}
             <Icon name={icon} size={15} color="#ffffff" />
             <Text style={styles.confirmPrimaryText}>{confirmLabel}</Text>
-          </Pressable>
+          </ScalePressable>
         </View>
       </Animated.View>
     </View>
