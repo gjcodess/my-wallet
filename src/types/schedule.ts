@@ -1,6 +1,7 @@
 import type { ActivityItem } from "./wallet";
 
 export const REPEAT_OPTIONS = {
+  daily: "Daily",
   weekly: "Weekly",
   biweekly: "Every 2 weeks",
   monthly: "Monthly",
@@ -45,6 +46,10 @@ export function occurrenceId(scheduleId: string, dueDate: string): string {
   return `scheduled-${scheduleId}-${dueDate}`;
 }
 
+function dayStep(repeat: Exclude<Schedule["repeat"], "monthly">): number {
+  return repeat === "daily" ? 1 : repeat === "weekly" ? 7 : 14;
+}
+
 function occurrenceDate(schedule: Pick<Schedule, "firstDue" | "repeat">, index: number): string {
   const date = new Date(dateNumber(schedule.firstDue));
   if (schedule.repeat === "monthly") {
@@ -54,7 +59,7 @@ function occurrenceDate(schedule: Pick<Schedule, "firstDue" | "repeat">, index: 
     const endOfMonth = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0));
     date.setUTCDate(Math.min(day, endOfMonth.getUTCDate()));
   } else {
-    date.setUTCDate(date.getUTCDate() + index * (schedule.repeat === "weekly" ? 7 : 14));
+    date.setUTCDate(date.getUTCDate() + index * dayStep(schedule.repeat));
   }
   return date.toISOString().slice(0, 10);
 }
@@ -78,10 +83,9 @@ export function getReminderOccurrences(
   const today = localDateKey(now);
   const recorded = new Set(activities.map(({ localId }) => localId));
   return schedules.filter(({ reminder }) => reminder).flatMap((schedule) => {
-    const step = schedule.repeat === "weekly" ? 7 : 14;
     const indexNearToday = schedule.repeat === "monthly"
       ? monthsBetween(schedule.firstDue, today)
-      : Math.floor((dateNumber(today) - dateNumber(schedule.firstDue)) / (step * 86_400_000));
+      : Math.floor((dateNumber(today) - dateNumber(schedule.firstDue)) / (dayStep(schedule.repeat) * 86_400_000));
     const future = [];
     for (let i = Math.max(0, indexNearToday); future.length < 8; i++) {
       const due = occurrenceDate(schedule, i);

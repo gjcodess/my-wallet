@@ -377,29 +377,96 @@ export function ScheduleManager({ schedules, wallets, hidden, theme, onRecord, s
       </View>
       <View style={styles.field}>
         {fieldLabel("Category")}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ expanded: showCategories }}
-          onPress={() => setShowCategories(!showCategories)}
-          style={[
-            styles.categoryPicker,
-            {
-              overflow: "hidden",
-              backgroundColor: theme.card,
-              borderColor: hexToRgba(theme.leather.accent, 0.24),
-            },
-          ]}
-        >
-          <LightLeatherSurface theme={theme} radius={14} />
-          <Text style={[styles.label, { color: theme.ink }]}>{draft.category}</Text>
-          <Icon name="down" size={16} color={theme.muted} />
-        </Pressable>
-        {showCategories && <View style={styles.choices}>
-          {categories.map(([category]) => choice(category, draft.category === category, () => {
-            setDraft({ ...draft, category });
-            setShowCategories(false);
-          }))}
-        </View>}
+        {(() => {
+          const activeCategoryIcon =
+            categories.find(([label]) => label === draft.category)?.[1] ?? "tag";
+          return (
+            <>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showCategories }}
+                onPress={() => setShowCategories(!showCategories)}
+                style={({ pressed }) => [
+                  styles.categoryPicker,
+                  {
+                    overflow: "hidden",
+                    backgroundColor: theme.card,
+                    borderColor: hexToRgba(theme.leather.accent, 0.24),
+                    transform: [{ scale: pressed ? 0.99 : 1 }],
+                  },
+                ]}
+              >
+                <LightLeatherSurface theme={theme} radius={14} />
+                <View style={styles.categoryPickerLeft}>
+                  <Icon
+                    name={activeCategoryIcon}
+                    size={16}
+                    color={theme.leather.accent}
+                  />
+                  <Text style={[styles.choiceText, { color: theme.ink, fontSize: 13 }]}>
+                    {draft.category}
+                  </Text>
+                </View>
+                <Icon
+                  name={showCategories ? "up" : "down"}
+                  size={15}
+                  color={theme.muted}
+                />
+              </Pressable>
+              {showCategories && (
+                <View style={styles.categoryGrid}>
+                  {categories.map(([category, iconName]) => {
+                    const active = draft.category === category;
+                    return (
+                      <Pressable
+                        key={category}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: active }}
+                        onPress={() => {
+                          setDraft({ ...draft, category });
+                          setShowCategories(false);
+                        }}
+                        style={({ pressed }) => [
+                          styles.categoryGridCard,
+                          {
+                            overflow: "hidden",
+                            backgroundColor: active
+                              ? theme.leather.colors[1]
+                              : theme.card,
+                            borderColor: active
+                              ? theme.leather.edge
+                              : hexToRgba(theme.leather.accent, 0.22),
+                            transform: [{ scale: pressed ? 0.96 : 1 }],
+                          },
+                        ]}
+                      >
+                        {active ? (
+                          <DarkLeatherSurface theme={theme} radius={12} />
+                        ) : (
+                          <LightLeatherSurface theme={theme} radius={12} />
+                        )}
+                        <Icon
+                          name={iconName}
+                          size={15}
+                          color={active ? "#ffffff" : theme.leather.accent}
+                        />
+                        <Text
+                          style={[
+                            styles.choiceText,
+                            { color: active ? "#ffffff" : theme.ink, flex: 1 },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {category}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
+            </>
+          );
+        })()}
       </View>
       {supportsReminders && (
         <View
@@ -539,6 +606,18 @@ const styles = StyleSheet.create({
   choice: { minHeight: 40, alignItems: "center", justifyContent: "center", paddingHorizontal: 13, borderWidth: 1, borderRadius: 12 },
   choiceText: { fontFamily: "Poppins_700Bold", fontSize: 12, lineHeight: 16, includeFontPadding: false, marginTop: 1 },
   categoryPicker: { minHeight: 46, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 13, borderWidth: 1, borderRadius: 14 },
+  categoryPickerLeft: { flexDirection: "row", alignItems: "center", gap: 9 },
+  categoryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 2 },
+  categoryGridCard: {
+    width: "48.8%",
+    minHeight: 42,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+  },
   inputWrap: { minHeight: 46, borderRadius: 14, borderWidth: 1, justifyContent: "center", overflow: "hidden" },
   inputField: {
     height: 46,
