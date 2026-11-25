@@ -621,9 +621,10 @@ export const HomeScreen = React.memo(function HomeScreen({
       <StaggerReveal
         active={entranceActive}
         replayKey={entranceReplayKey}
-        index={1}
-        offsetY={12}
-        duration={260}
+        index={0.5}
+        offsetY={8}
+        startOpacity={1}
+        duration={220}
       >
       <PhysicalWallet
         shouldOpen={walletOpen}
@@ -647,9 +648,10 @@ export const HomeScreen = React.memo(function HomeScreen({
         <StaggerReveal
           active={entranceActive}
           replayKey={entranceReplayKey}
-          index={2}
-          offsetY={12}
-          duration={260}
+          index={1.5}
+          offsetY={10}
+          startOpacity={0.72}
+          duration={240}
         >
         <View
           style={[
@@ -857,9 +859,10 @@ export const HomeScreen = React.memo(function HomeScreen({
           <StaggerReveal
             active={entranceActive}
             replayKey={entranceReplayKey}
-            index={3}
-            offsetY={12}
-            duration={260}
+            index={2.4}
+            offsetY={10}
+            startOpacity={0.72}
+            duration={240}
           >
           <View style={[styles.section, { marginTop: 14 }]}>
             <SectionTitle

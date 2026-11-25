@@ -92,6 +92,7 @@ import {
 import { SheetModal } from "./src/components/SheetModal";
 import { AppLockModal, AppLockMode } from "./src/components/AppLockModal";
 import { LaunchIntro } from "./src/components/LaunchIntro";
+import { HomeSkeleton } from "./src/components/HomeSkeleton";
 import { Icon } from "./src/components/Icon";
 import { deleteAttachmentFiles } from "./src/lib/attachments";
 import {
@@ -269,10 +270,19 @@ export default function App() {
   const [stackDragging, setStackDragging] = useState(false);
   const stackDraggingRef = useRef(false);
   const navAnim = useRef(new Animated.Value(1)).current;
-  const tabAnim = useRef(new Animated.Value(1)).current;
-  const tabDirAnim = useRef(new Animated.Value(1)).current;
+  const tabOffsetX = useRef<Record<Tab, Animated.Value>>({
+    home: new Animated.Value(0),
+    wallets: new Animated.Value(1000),
+    activity: new Animated.Value(1000),
+    overview: new Animated.Value(1000),
+    settings: new Animated.Value(1000),
+  }).current;
   const [outgoingTab, setOutgoingTab] = useState<Tab | null>(null);
-  const pendingTabAnimRef = useRef(false);
+  const pendingTransitionRef = useRef<{
+    from: Tab;
+    to: Tab;
+    dir: 1 | -1;
+  } | null>(null);
   const tabAnimRunningRef = useRef<Animated.CompositeAnimation | null>(null);
   const tabRafRef = useRef<number | null>(null);
   const tabRef = useRef<Tab>(tab);
@@ -323,13 +333,16 @@ export default function App() {
           cancelAnimationFrame(tabRafRef.current);
           tabRafRef.current = null;
         }
+        const wasRunning = tabAnimRunningRef.current !== null;
         tabAnimRunningRef.current?.stop();
         tabAnimRunningRef.current = null;
 
-        const dir = TAB_ORDER[nextTab] > TAB_ORDER[prevTab] ? 1 : -1;
-        tabDirAnim.setValue(dir);
-        tabAnim.setValue(0);
-        pendingTabAnimRef.current = true;
+        const dir: 1 | -1 = TAB_ORDER[nextTab] > TAB_ORDER[prevTab] ? 1 : -1;
+        if (wasRunning) {
+          tabOffsetX[prevTab].setValue(0);
+        }
+        tabOffsetX[nextTab].setValue(dir * windowWidth);
+        pendingTransitionRef.current = { from: prevTab, to: nextTab, dir };
         setOutgoingTab(prevTab);
       }
 
@@ -344,7 +357,7 @@ export default function App() {
       tabScrollRefs.current[nextTab]?.scrollTo({ y: 0, animated: false });
       setNavbarVisible(true);
     },
-    [setNavbarVisible, tabAnim, tabDirAnim, tabScrollYs]
+    [setNavbarVisible, tabOffsetX, tabScrollYs, windowWidth]
   );
 
   const handleOpenSettings = useCallback(
@@ -362,8 +375,8 @@ export default function App() {
       }
       tabAnimRunningRef.current?.stop();
       tabAnimRunningRef.current = null;
-      pendingTabAnimRef.current = false;
-      tabAnim.setValue(1);
+      pendingTransitionRef.current = null;
+      tabOffsetX[tabRef.current].setValue(0);
       setOutgoingTab(null);
       lastScrollY.current = 0;
       setHeaderAtTop(true);
@@ -371,22 +384,32 @@ export default function App() {
       setNavbarVisible(true);
       return;
     }
-    if (!pendingTabAnimRef.current) {
+    const pending = pendingTransitionRef.current;
+    if (!pending) {
       return;
     }
-    pendingTabAnimRef.current = false;
+    pendingTransitionRef.current = null;
     tabAnimRunningRef.current?.stop();
     if (tabRafRef.current !== null) {
       cancelAnimationFrame(tabRafRef.current);
     }
+    const { from, to, dir } = pending;
     tabRafRef.current = requestAnimationFrame(() => {
       tabRafRef.current = null;
-      const anim = Animated.timing(tabAnim, {
-        toValue: 1,
-        duration: 255,
-        easing: MOTION_EASE,
-        useNativeDriver: true,
-      });
+      const anim = Animated.parallel([
+        Animated.timing(tabOffsetX[from], {
+          toValue: -dir * windowWidth,
+          duration: 245,
+          easing: MOTION_EASE,
+          useNativeDriver: true,
+        }),
+        Animated.timing(tabOffsetX[to], {
+          toValue: 0,
+          duration: 245,
+          easing: MOTION_EASE,
+          useNativeDriver: true,
+        }),
+      ]);
       tabAnimRunningRef.current = anim;
       anim.start(({ finished }) => {
         if (finished) {
@@ -402,7 +425,7 @@ export default function App() {
       }
       tabAnimRunningRef.current?.stop();
     };
-  }, [tab, showingTabs, tabAnim, tabScrollYs, setNavbarVisible]);
+  }, [tab, showingTabs, tabOffsetX, tabScrollYs, setNavbarVisible, windowWidth]);
 
   useEffect(() => {
     if (toast) {
@@ -1235,7 +1258,12 @@ export default function App() {
   };
 
   if (!fontsLoaded || !dbReady) {
-    return null;
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <HomeSkeleton theme={theme} />
+      </SafeAreaProvider>
+    );
   }
 
   return (
@@ -1472,23 +1500,6 @@ export default function App() {
                   Math.min(slotClearY - 24, slotHeroHeight - 76)
                 );
                 const slotScrollY = tabScrollYs[forTab];
-                const slotTranslateX = isCurrent
-                  ? Animated.multiply(
-                      tabDirAnim,
-                      tabAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [windowWidth, 0],
-                      })
-                    )
-                  : isOutgoing
-                    ? Animated.multiply(
-                        tabDirAnim,
-                        tabAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, -windowWidth],
-                        })
-                      )
-                    : 0;
 
                 return (
                   <Animated.View
@@ -1499,7 +1510,7 @@ export default function App() {
                       {
                         display: isVisible ? "flex" : "none",
                         zIndex: isCurrent ? 2 : isOutgoing ? 1 : 0,
-                        transform: [{ translateX: slotTranslateX }],
+                        transform: [{ translateX: tabOffsetX[forTab] }],
                       },
                     ]}
                   >

@@ -10,6 +10,7 @@ import {
   AccessibilityInfo,
   Animated,
   Easing,
+  Image,
   Modal,
   PanResponder,
   Platform,
@@ -232,16 +233,18 @@ const AccountCard = React.memo(function AccountCard({
       )}
       <View
         pointerEvents="none"
-        renderToHardwareTextureAndroid
         style={[
           styles.cardFace,
           { backgroundColor: design?.isDark ? "#090e17" : palette.to },
         ]}
       >
         {design ? (
-          <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
-            <SvgImage href={design.source} width="100%" height="100%" preserveAspectRatio="xMaxYMid slice" />
-          </Svg>
+          <Image
+            source={design.source}
+            resizeMode="cover"
+            fadeDuration={0}
+            style={StyleSheet.absoluteFill}
+          />
         ) : (
           <TexturedGradientSurface
             fromColor={palette.from}

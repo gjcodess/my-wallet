@@ -183,6 +183,7 @@ export const StaggerReveal = React.memo(function StaggerReveal({
   delayMs = 0,
   staggerMs = MOTION_DURATIONS.stagger,
   offsetY = 12,
+  startOpacity = 0.01,
   duration = MOTION_DURATIONS.enter,
   replayKey = 0,
   style,
@@ -193,6 +194,7 @@ export const StaggerReveal = React.memo(function StaggerReveal({
   delayMs?: number;
   staggerMs?: number;
   offsetY?: number;
+  startOpacity?: number;
   duration?: number;
   replayKey?: number | string;
   style?: StyleProp<ViewStyle>;
@@ -245,7 +247,7 @@ export const StaggerReveal = React.memo(function StaggerReveal({
         {
           opacity: progress.interpolate({
             inputRange: [0, 1],
-            outputRange: [0.01, 1],
+            outputRange: [startOpacity, 1],
           }),
           transform: [
             {
