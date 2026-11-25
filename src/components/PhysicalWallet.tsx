@@ -721,15 +721,25 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
           <View style={styles.monthlyFlow}>
             <View style={styles.monthlyItem}>
               <Text style={styles.monthlyLabel}>{monthlySummary.monthLabel} in</Text>
-              <Text style={[styles.monthlyValue, { color: "#6ee7b7" }]} numberOfLines={1} adjustsFontSizeToFit>
-                {hidden ? "••••" : `+${money(monthlySummary.earned)}`}
+              <Text style={[styles.monthlyValue, { color: "#f0f1eb" }]} numberOfLines={1} adjustsFontSizeToFit>
+                {hidden ? "••••" : (
+                  <>
+                    <Text style={{ color: "#6ee7b7" }}>+</Text>
+                    {money(monthlySummary.earned)}
+                  </>
+                )}
               </Text>
             </View>
             <View style={styles.monthlyDivider} />
             <View style={styles.monthlyItem}>
               <Text style={styles.monthlyLabel}>{monthlySummary.monthLabel} out</Text>
-              <Text style={[styles.monthlyValue, { color: "#fda4af" }]} numberOfLines={1} adjustsFontSizeToFit>
-                {hidden ? "••••" : `-${money(monthlySummary.spent)}`}
+              <Text style={[styles.monthlyValue, { color: "#f0f1eb" }]} numberOfLines={1} adjustsFontSizeToFit>
+                {hidden ? "••••" : (
+                  <>
+                    <Text style={{ color: "#fda4af" }}>-</Text>
+                    {money(monthlySummary.spent)}
+                  </>
+                )}
               </Text>
             </View>
           </View>
@@ -1199,15 +1209,25 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
           <View style={styles.monthlyFlow}>
             <View style={styles.monthlyItem}>
               <Text style={styles.monthlyLabel}>{monthlySummary.monthLabel} in</Text>
-              <Text style={[styles.monthlyValue, { color: "#6ee7b7" }]} numberOfLines={1} adjustsFontSizeToFit>
-                {maskPocketAmounts ? "••••" : `+${money(monthlySummary.earned)}`}
+              <Text style={[styles.monthlyValue, { color: "#f0f1eb" }]} numberOfLines={1} adjustsFontSizeToFit>
+                {maskPocketAmounts ? "••••" : (
+                  <>
+                    <Text style={{ color: "#6ee7b7" }}>+</Text>
+                    {money(monthlySummary.earned)}
+                  </>
+                )}
               </Text>
             </View>
             <View style={styles.monthlyDivider} />
             <View style={styles.monthlyItem}>
               <Text style={styles.monthlyLabel}>{monthlySummary.monthLabel} out</Text>
-              <Text style={[styles.monthlyValue, { color: "#fda4af" }]} numberOfLines={1} adjustsFontSizeToFit>
-                {maskPocketAmounts ? "••••" : `-${money(monthlySummary.spent)}`}
+              <Text style={[styles.monthlyValue, { color: "#f0f1eb" }]} numberOfLines={1} adjustsFontSizeToFit>
+                {maskPocketAmounts ? "••••" : (
+                  <>
+                    <Text style={{ color: "#fda4af" }}>-</Text>
+                    {money(monthlySummary.spent)}
+                  </>
+                )}
               </Text>
             </View>
           </View>

@@ -683,21 +683,20 @@ export const HomeScreen = React.memo(function HomeScreen({
                   Spent today
                 </Text>
                 <Text
-                  style={[
-                    styles.homePulseVal,
-                    {
-                      color:
-                        monthlySummary.todaySpent > 0 ? "#fda4af" : "#ffffff",
-                    },
-                  ]}
+                  style={[styles.homePulseVal, { color: "#ffffff" }]}
                   numberOfLines={1}
                   adjustsFontSizeToFit
                 >
-                  {hidden
-                    ? "₱•••"
-                    : monthlySummary.todaySpent > 0
-                      ? `-${money(monthlySummary.todaySpent)}`
-                      : money(0)}
+                  {hidden ? (
+                    "₱•••"
+                  ) : monthlySummary.todaySpent > 0 ? (
+                    <>
+                      <Text style={{ color: "#fda4af" }}>-</Text>
+                      {money(monthlySummary.todaySpent)}
+                    </>
+                  ) : (
+                    money(0)
+                  )}
                 </Text>
               </View>
               <View
@@ -713,18 +712,20 @@ export const HomeScreen = React.memo(function HomeScreen({
                   {monthlySummary.monthLabel} net
                 </Text>
                 <Text
-                  style={[
-                    styles.homePulseVal,
-                    {
-                      color: netMonth >= 0 ? "#6ee7b7" : "#fda4af",
-                    },
-                  ]}
+                  style={[styles.homePulseVal, { color: "#ffffff" }]}
                   numberOfLines={1}
                   adjustsFontSizeToFit
                 >
-                  {hidden
-                    ? "₱•••"
-                    : `${netMonth >= 0 ? "+" : "-"}${money(Math.abs(netMonth))}`}
+                  {hidden ? (
+                    "₱•••"
+                  ) : (
+                    <>
+                      <Text style={{ color: netMonth >= 0 ? "#6ee7b7" : "#fda4af" }}>
+                        {netMonth >= 0 ? "+" : "-"}
+                      </Text>
+                      {money(Math.abs(netMonth))}
+                    </>
+                  )}
                 </Text>
               </View>
               <View
