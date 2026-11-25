@@ -942,7 +942,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
   );
 
   const extraY = Math.max(0, wallets.length - VISIBLE_CARDS) * CARD_STEP;
-  const shadowPadBottom = 14;
+  const shadowPadBottom = 12;
   const shadowPadX = 28;
   const stageHeight = (HEIGHT + extraY) * scale;
   const hingeY = (HINGE_Y + extraY) * scale;
@@ -1000,7 +1000,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
         alignSelf: "stretch",
         paddingHorizontal: shadowPadX,
         marginHorizontal: -shadowPadX,
-        marginBottom: 2,
+        marginBottom: -4,
       }}
     >
       <Animated.View

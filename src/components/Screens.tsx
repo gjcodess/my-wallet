@@ -1353,7 +1353,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
           ) : null}
         </View>
       ) : (
-        <View style={{ gap: 6 }}>
+        <View>
           {walletGroups.map((group) => (
             <GroupedPhysicalWallet
               key={group.key}
@@ -1380,7 +1380,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
       )}
 
       {hiddenWallets.length > 0 ? (
-        <View style={{ marginTop: 8 }}>
+        <View style={{ marginTop: 14 }}>
           <GroupedPhysicalWallet
             groupLabel="Hidden"
             wallets={hiddenWallets}
