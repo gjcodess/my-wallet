@@ -248,6 +248,7 @@ const HeroMonthlyFlowRow = React.memo(function HeroMonthlyFlowRow({
   earned,
   spent,
   hidden,
+  compact = false,
   onPress,
   theme,
 }: {
@@ -255,6 +256,7 @@ const HeroMonthlyFlowRow = React.memo(function HeroMonthlyFlowRow({
   earned: number;
   spent: number;
   hidden: boolean;
+  compact?: boolean;
   onPress?: () => void;
   theme: ThemeColors;
 }) {
@@ -314,6 +316,7 @@ const HeroMonthlyFlowRow = React.memo(function HeroMonthlyFlowRow({
         onPress={onPress}
         style={({ pressed }) => [
           styles.walletsHeroFlowRow,
+          compact && { marginTop: 10, paddingTop: 10 },
           { borderTopColor: theme.heroLine },
           { opacity: pressed ? 0.8 : 1 },
         ]}
@@ -323,7 +326,17 @@ const HeroMonthlyFlowRow = React.memo(function HeroMonthlyFlowRow({
     );
   }
 
-  return <View style={[styles.walletsHeroFlowRow, { borderTopColor: theme.heroLine }]}>{inner}</View>;
+  return (
+    <View
+      style={[
+        styles.walletsHeroFlowRow,
+        compact && { marginTop: 10, paddingTop: 10 },
+        { borderTopColor: theme.heroLine },
+      ]}
+    >
+      {inner}
+    </View>
+  );
 });
 
 export const HomeScreen = React.memo(function HomeScreen({
@@ -1202,8 +1215,9 @@ export const WalletsScreen = React.memo(function WalletsScreen({
       {/* Hero Balance Container */}
       <HeroHeaderSurface
         theme={theme}
+        compact
         onHeight={onHeroHeight}
-        style={{ marginBottom: 22 }}
+        style={{ marginBottom: 14 }}
       >
         <View style={styles.heroTopRow}>
           <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>My Wallets</Text>
@@ -1239,9 +1253,9 @@ export const WalletsScreen = React.memo(function WalletsScreen({
           </View>
         </View>
 
-        <View style={styles.heroBalanceBlock}>
+        <View style={[styles.heroBalanceBlock, { marginTop: 10, gap: 2 }]}>
           <Text style={[styles.heroHeaderLabel, { color: theme.heroMuted, opacity: 1 }]}>Combined balance</Text>
-          <Amount value={total} hidden={hidden} size="lg" color={theme.heroInk} />
+          <Amount value={total} hidden={hidden} size="md" color={theme.heroInk} />
         </View>
 
         <HeroMonthlyFlowRow
@@ -1250,6 +1264,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
           earned={totalEarned}
           spent={totalSpent}
           hidden={hidden}
+          compact
         />
       </HeroHeaderSurface>
 
