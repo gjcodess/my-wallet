@@ -3530,7 +3530,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
           style={[styles.settingsHeroProfileRow, { marginTop: 12 }]}
         >
           <View style={[styles.profileCardAvatar, { backgroundColor: theme.heroControl }]}>
-            <Text style={[styles.profileCardInitials, { color: theme.heroInk }]}>{profile.initials}</Text>
+            <Icon name="user" size={22} color={theme.heroInk} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.profileCardName, { color: theme.heroInk }]} numberOfLines={1}>

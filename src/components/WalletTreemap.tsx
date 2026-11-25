@@ -891,12 +891,17 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 19,
+    lineHeight: 24,
     letterSpacing: -0.4,
+    includeFontPadding: false,
   },
   sub: {
     fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 11.5,
+    lineHeight: 15,
+    includeFontPadding: false,
+    marginTop: 1.5,
   },
   canvas: {
     position: "relative",

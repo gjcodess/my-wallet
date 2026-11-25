@@ -294,6 +294,13 @@ export function Icon({
             <Path d="M4.5 5.5v14.5M8.5 7.5h7M8.5 11h5" />
           </>
         );
+      case "user":
+        return (
+          <>
+            <Circle cx="12" cy="8.5" r="3.5" />
+            <Path d="M5 19.5a7 7 0 0 1 14 0" />
+          </>
+        );
       case "users":
         return (
           <>
