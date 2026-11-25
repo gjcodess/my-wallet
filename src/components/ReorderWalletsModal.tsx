@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -49,10 +49,13 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
   onSaveOrder: (ordered: Wallet[]) => void;
   onClose: () => void;
 }) {
+  const [renderedVisible, setRenderedVisible] = useState(visible);
   const [draftWallets, setDraftWallets] = useState<Wallet[]>(wallets);
   const [listWidth, setListWidth] = useState(300);
   const [dragWalletId, setDragWalletId] = useState<number | null>(null);
 
+  const sheetAnim = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const closingRef = useRef(false);
   const liftAnim = useRef(new Animated.Value(0)).current;
   const shiftMapRef = useRef<Map<number, Animated.Value>>(new Map());
   const dragIndexRef = useRef<number | null>(null);
@@ -67,6 +70,8 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
 
   useEffect(() => {
     if (visible) {
+      closingRef.current = false;
+      setRenderedVisible(true);
       setDraftWallets(wallets);
       stableIdsRef.current = wallets.map((w) => w.id);
       setDragWalletId(null);
@@ -78,8 +83,52 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
       wallets.forEach((w, idx) => {
         getShiftAnim(w.id).setValue(idx * SLOT_HEIGHT);
       });
+      sheetAnim.stopAnimation();
+      sheetAnim.setValue(0);
+      Animated.timing(sheetAnim, {
+        toValue: 1,
+        duration: 280,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    } else if (renderedVisible && !closingRef.current) {
+      closingRef.current = true;
+      sheetAnim.stopAnimation();
+      Animated.timing(sheetAnim, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) {
+          closingRef.current = false;
+          setRenderedVisible(false);
+        }
+      });
     }
-  }, [visible, wallets, liftAnim]);
+  }, [visible, renderedVisible, wallets, liftAnim, sheetAnim]);
+
+  const dismiss = useCallback(
+    (after?: () => void) => {
+      if (closingRef.current) return;
+      closingRef.current = true;
+      sheetAnim.stopAnimation();
+      Animated.timing(sheetAnim, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        closingRef.current = false;
+        if (finished) {
+          setRenderedVisible(false);
+          onClose();
+          after?.();
+        }
+      });
+    },
+    [onClose, sheetAnim]
+  );
 
   const getShiftAnim = (id: number) => {
     let anim = shiftMapRef.current.get(id);
@@ -245,22 +294,37 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
   return (
     <Modal
       transparent
-      visible={visible}
-      animationType="fade"
+      visible={renderedVisible}
+      animationType="none"
       statusBarTranslucent
-      onRequestClose={onClose}
+      onRequestClose={() => dismiss()}
     >
       <View style={styles.root}>
-        <Pressable
-          style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(8, 12, 20, 0.56)" }]}
-          onPress={onClose}
-        />
-        <View
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              backgroundColor: "rgba(8, 12, 20, 0.56)",
+              opacity: sheetAnim,
+            },
+          ]}
+        >
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => dismiss()} />
+        </Animated.View>
+        <Animated.View
           style={[
             styles.card,
             {
               backgroundColor: theme.page,
               borderColor: hexToRgba(theme.leather.accent, 0.24),
+              transform: [
+                {
+                  translateY: sheetAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [540, 0],
+                  }),
+                },
+              ],
             },
             cardShadow(theme.dark),
           ]}
@@ -450,7 +514,7 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
 
           <View style={styles.footer}>
             <ScalePressable
-              onPress={onClose}
+              onPress={() => dismiss()}
               scaleTo={0.965}
               style={[
                 styles.footerBtn,
@@ -467,10 +531,7 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
               </Text>
             </ScalePressable>
             <ScalePressable
-              onPress={() => {
-                onSaveOrder(draftWallets);
-                onClose();
-              }}
+              onPress={() => dismiss(() => onSaveOrder(draftWallets))}
               scaleTo={0.965}
               style={[
                 styles.footerBtn,
@@ -486,7 +547,7 @@ export const ReorderWalletsModal = React.memo(function ReorderWalletsModal({
               <Text style={styles.saveText}>Save order</Text>
             </ScalePressable>
           </View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
