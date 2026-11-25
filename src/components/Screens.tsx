@@ -466,6 +466,7 @@ export const HomeScreen = React.memo(function HomeScreen({
     const curMonth = now.getMonth();
     const curDate = now.getDate();
     const monthLabel = now.toLocaleDateString("en-US", { month: "long" });
+    const monthShortLabel = now.toLocaleDateString("en-US", { month: "short" });
     let earned = 0;
     let spent = 0;
     let todaySpent = 0;
@@ -482,8 +483,37 @@ export const HomeScreen = React.memo(function HomeScreen({
         if (d.getDate() === curDate) todaySpent += abs;
       }
     }
-    return { monthLabel, earned, spent, todaySpent };
+    return { monthLabel, monthShortLabel, earned, spent, todaySpent };
   }, [activities]);
+
+  const walletFlows = useMemo(() => {
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+    const flows: Record<number, { earned: number; spent: number }> = {};
+    for (const w of wallets) {
+      flows[w.id] = { earned: 0, spent: 0 };
+    }
+    for (const item of activities) {
+      if (isAdjustmentActivity(item)) continue;
+      const d = getActivityDate(item, now);
+      if (d.getFullYear() !== curYear || d.getMonth() !== curMonth) continue;
+      for (const w of wallets) {
+        const match = isActivityForWallet(item, w);
+        if (!match.matched) continue;
+        const entry = flows[w.id];
+        if (isTransferActivity(item)) {
+          if (match.isIncomingTransfer) entry.earned += Math.abs(item.amount);
+          else entry.spent += Math.abs(item.amount);
+        } else if (item.amount > 0) {
+          entry.earned += item.amount;
+        } else if (item.amount < 0) {
+          entry.spent += Math.abs(item.amount);
+        }
+      }
+    }
+    return flows;
+  }, [wallets, activities]);
 
   const topCategories = useMemo(() => {
     if (!monthlySpending) return [];
@@ -602,6 +632,7 @@ export const HomeScreen = React.memo(function HomeScreen({
         total={total}
         hidden={hidden}
         monthlySummary={monthlySummary}
+        walletFlows={walletFlows}
         onWallet={onWallet}
         onOpenAdd={handleOpenAdd}
         onOpenMenu={handleOpenMenu}

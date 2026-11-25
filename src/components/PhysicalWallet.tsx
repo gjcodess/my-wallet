@@ -195,6 +195,8 @@ const AccountCard = React.memo(function AccountCard({
   tabHeight,
   cardHeight,
   focused = false,
+  monthLabel,
+  flow,
   onSelect,
 }: {
   wallet: Wallet;
@@ -204,12 +206,19 @@ const AccountCard = React.memo(function AccountCard({
   tabHeight: number;
   cardHeight: number;
   focused?: boolean;
+  monthLabel?: string;
+  flow?: { earned: number; spent: number };
   onSelect: (wallet: Wallet) => void;
 }) {
   const fadeId = "balanceFade" + useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const palette = tonePalette[wallet.tone] || tonePalette.blue;
   const design = resolveWalletCardDesign(wallet.logoKey, wallet.name);
   const ink = design?.ink ?? palette.ink;
+  const isLightInk = ink === "#ffffff";
+  const flowPillBg = isLightInk ? "rgba(8, 12, 20, 0.36)" : "rgba(255, 255, 255, 0.68)";
+  const flowSubInk = isLightInk ? "rgba(255, 255, 255, 0.78)" : "rgba(20, 32, 26, 0.72)";
+  const inColor = isLightInk ? "#6ee7b7" : "#047857";
+  const outColor = isLightInk ? "#fda4af" : "#be123c";
   const balance = hidden ? "Balance hidden" : money(wallet.balance);
   const handlePress = useCallback(() => onSelect(wallet), [onSelect, wallet]);
 
@@ -282,6 +291,25 @@ const AccountCard = React.memo(function AccountCard({
                 size="md"
                 color={ink}
               />
+              {focused && flow ? (
+                <View style={[styles.focusFlowPill, { backgroundColor: flowPillBg }]}>
+                  <Text style={[styles.focusFlowMonth, { color: flowSubInk }]}>
+                    {monthLabel || "Month"}
+                  </Text>
+                  <View style={styles.focusFlowStat}>
+                    <Icon name="arrow-down" size={10.5} strokeWidth={2.5} color={inColor} />
+                    <Text style={[styles.focusFlowVal, { color: inColor }]} numberOfLines={1}>
+                      {hidden ? "••" : money(flow.earned, true)}
+                    </Text>
+                  </View>
+                  <View style={styles.focusFlowStat}>
+                    <Icon name="arrow-up" size={10.5} strokeWidth={2.5} color={outColor} />
+                    <Text style={[styles.focusFlowVal, { color: outColor }]} numberOfLines={1}>
+                      {hidden ? "••" : money(flow.spent, true)}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
             </View>
             <View style={styles.cardFooter}>
               <Text
@@ -323,6 +351,7 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
   total,
   hidden,
   monthlySummary,
+  walletFlows,
   theme,
   onWallet,
   onOpenAdd,
@@ -336,7 +365,8 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
   wallets: Wallet[];
   total: number;
   hidden: boolean;
-  monthlySummary: { monthLabel: string; earned: number; spent: number };
+  monthlySummary: { monthLabel: string; monthShortLabel?: string; earned: number; spent: number };
+  walletFlows?: Record<number, { earned: number; spent: number }>;
   theme: ThemeColors;
   onWallet: (wallet: Wallet) => void;
   onOpenAdd: () => void;
@@ -784,7 +814,18 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
             <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: "#000000", opacity: lift.interpolate({ inputRange: [0, 1], outputRange: [0, 0.7] }) }]} />
             <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel="Close selected card" onPress={() => pull(liftedWallet)} />
             <Animated.View style={[styles.focusCard, { opacity: lift, transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [65, 0] }) }, { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}>
-              <AccountCard wallet={liftedWallet} hidden={hidden} lifted focused disabled={busy} tabHeight={38} cardHeight={190} onSelect={handleFocusOpen} />
+              <AccountCard
+                wallet={liftedWallet}
+                hidden={hidden}
+                lifted
+                focused
+                disabled={busy}
+                tabHeight={38}
+                cardHeight={190}
+                monthLabel={monthlySummary.monthShortLabel || monthlySummary.monthLabel.slice(0, 3)}
+                flow={walletFlows?.[liftedWallet.id]}
+                onSelect={handleFocusOpen}
+              />
               <Pressable accessibilityRole="button" accessibilityLabel={"Update " + liftedWallet.name} disabled={busy} style={styles.focusMenu} onPress={() => { const wallet = liftedWallet; void move(async () => { if (await play(0, 260)) { setLiftedId(null); onOpenMenu(wallet); } }); }}>
                 <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
                   <Defs>
@@ -870,6 +911,31 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   cardBody: { paddingHorizontal: 15, marginTop: 13, gap: 3 },
+  focusFlowPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 8,
+    marginTop: 18,
+    paddingHorizontal: 10,
+    paddingVertical: 4.5,
+    borderRadius: 99,
+  },
+  focusFlowMonth: {
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 10.5,
+    includeFontPadding: false,
+  },
+  focusFlowStat: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  focusFlowVal: {
+    fontFamily: "Poppins_700Bold",
+    fontSize: 11,
+    includeFontPadding: false,
+  },
   cardType: {
     fontFamily: "Poppins_600SemiBold",
     fontSize: 9.5,
