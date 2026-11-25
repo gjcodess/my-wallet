@@ -11,7 +11,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as LocalAuthentication from "expo-local-authentication";
 import { Icon } from "./Icon";
-import { bevelStyle, cardShadow, ThemeColors } from "./SharedUI";
+import {
+  cardShadow,
+  DarkLeatherSurface,
+  hexToRgba,
+  LightLeatherSurface,
+  SaffianoSheetSurface,
+  ThemeColors,
+} from "./SharedUI";
 
 export type AppLockMode = "unlock" | "setup" | "change" | "disable";
 
@@ -217,100 +224,92 @@ export function AppLockModal({
   })();
 
   const content = (
-    <>
-      <View style={styles.headerBlock}>
-          <LinearGradient
-            colors={theme.accentGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.lockBadge}
-          >
-            <Icon name="lock" size={26} color={theme.accentInk} />
-          </LinearGradient>
-          <Text style={[styles.title, { color: theme.ink }]}>{titleText}</Text>
-          <Text style={[styles.subtitle, { color: theme.muted }]}>
-            {subText}
-          </Text>
-
-          <Animated.View
-            style={[styles.dotsRow, { transform: [{ translateX: shakeX }] }]}
-          >
-            {[0, 1, 2, 3].map((idx) => {
-              const filled = idx < digits.length;
-              return (
-                <View
-                  key={idx}
-                  style={[
-                    styles.pinDot,
-                    {
-                      backgroundColor: filled ? theme.accent : theme.soft2,
-                      borderColor: error
-                        ? "#c04444"
-                        : filled
-                          ? theme.accent
-                          : theme.line,
-                      transform: [{ scale: filled ? 1.12 : 1 }],
-                    },
-                  ]}
-                />
-              );
-            })}
-          </Animated.View>
-
-          <Text style={styles.errorText}>{error || " "}</Text>
+    <View style={styles.contentWrap}>
+      <View
+        style={[
+          styles.vaultCard,
+          {
+            overflow: "hidden",
+            backgroundColor: theme.leather.colors[1],
+            borderColor: theme.leather.edge,
+          },
+          cardShadow(theme.dark),
+        ]}
+      >
+        <DarkLeatherSurface theme={theme} radius={26} />
+        <View style={styles.lockBadge}>
+          <Icon name="lock" size={24} color="#ffffff" />
         </View>
+        <Text style={styles.title}>{titleText}</Text>
+        <Text style={[styles.subtitle, { color: theme.heroMuted }]}>
+          {subText}
+        </Text>
 
-        <View style={styles.keypad}>
-          {PIN_ROWS.map((row, rowIdx) => (
-            <View key={rowIdx} style={styles.keypadRow}>
-              {row.map((key) => {
-                if (key === "cancel") {
-                  if (mode === "unlock") {
-                    if (biometricsEnabled) {
-                      return (
-                        <Pressable
-                          key={key}
-                          onPress={triggerBiometrics}
-                          style={({ pressed }) => [
-                            styles.keyBtn,
-                            {
-                              backgroundColor: pressed
-                                ? theme.soft2
-                                : theme.accentSoft,
-                              transform: [{ scale: pressed ? 0.94 : 1 }],
-                            },
-                            bevelStyle(theme.dark),
-                            cardShadow(theme.dark),
-                          ]}
-                        >
-                          <Icon
-                            name="fingerprint"
-                            size={24}
-                            color={theme.accentText}
-                          />
-                        </Pressable>
-                      );
-                    }
-                    return <View key={key} style={styles.keySpacer} />;
-                  }
-                  return (
-                    <Pressable
-                      key={key}
-                      onPress={() => handlePressKey(key)}
-                      style={({ pressed }) => [
-                        styles.keyGhost,
-                        { opacity: pressed ? 0.6 : 1 },
-                      ]}
-                    >
-                      <Text
-                        style={[styles.cancelText, { color: theme.muted }]}
+        <Animated.View
+          style={[styles.dotsRow, { transform: [{ translateX: shakeX }] }]}
+        >
+          {[0, 1, 2, 3].map((idx) => {
+            const filled = idx < digits.length;
+            return (
+              <View
+                key={idx}
+                style={[
+                  styles.pinDot,
+                  {
+                    backgroundColor: error
+                      ? "#f87171"
+                      : filled
+                        ? "#ffffff"
+                        : "rgba(255, 255, 255, 0.14)",
+                    borderColor: error
+                      ? "#f87171"
+                      : filled
+                        ? "#ffffff"
+                        : "rgba(255, 255, 255, 0.32)",
+                    transform: [{ scale: filled ? 1.15 : 1 }],
+                  },
+                ]}
+              />
+            );
+          })}
+        </Animated.View>
+
+        <Text style={styles.errorText}>{error || " "}</Text>
+      </View>
+
+      <View style={styles.keypad}>
+        {PIN_ROWS.map((row, rowIdx) => (
+          <View key={rowIdx} style={styles.keypadRow}>
+            {row.map((key) => {
+              if (key === "cancel") {
+                if (mode === "unlock") {
+                  if (biometricsEnabled) {
+                    return (
+                      <Pressable
+                        key={key}
+                        onPress={triggerBiometrics}
+                        style={({ pressed }) => [
+                          styles.keyBtn,
+                          {
+                            overflow: "hidden",
+                            backgroundColor: theme.card,
+                            borderColor: hexToRgba(theme.leather.accent, 0.28),
+                            transform: [{ scale: pressed ? 0.94 : 1 }],
+                          },
+                          cardShadow(theme.dark),
+                        ]}
                       >
-                        Cancel
-                      </Text>
-                    </Pressable>
-                  );
+                        <LightLeatherSurface theme={theme} radius={18} />
+                        <Icon
+                          name="fingerprint"
+                          size={24}
+                          color={theme.leather.accent}
+                        />
+                      </Pressable>
+                    );
+                  }
+                  return <View key={key} style={styles.keySpacer} />;
                 }
-                const isBack = key === "backspace";
                 return (
                   <Pressable
                     key={key}
@@ -318,31 +317,68 @@ export function AppLockModal({
                     style={({ pressed }) => [
                       styles.keyBtn,
                       {
-                        backgroundColor: pressed
-                          ? theme.soft2
-                          : isBack
-                            ? theme.soft
-                            : theme.card,
+                        overflow: "hidden",
+                        backgroundColor: theme.dark
+                          ? theme.soft
+                          : theme.leather.soft,
+                        borderColor: hexToRgba(theme.leather.accent, 0.32),
                         transform: [{ scale: pressed ? 0.94 : 1 }],
                       },
-                      bevelStyle(theme.dark),
                       cardShadow(theme.dark),
                     ]}
                   >
-                    {isBack ? (
-                      <Icon name="backspace" size={22} color={theme.ink} />
-                    ) : (
-                      <Text style={[styles.keyText, { color: theme.ink }]}>
-                        {key}
-                      </Text>
-                    )}
+                    <View
+                      pointerEvents="none"
+                      style={[
+                        styles.actionKeyStitch,
+                        { borderColor: hexToRgba(theme.leather.accent, 0.24) },
+                      ]}
+                    />
+                    <Text style={[styles.cancelText, { color: theme.leather.accent }]}>
+                      Cancel
+                    </Text>
                   </Pressable>
                 );
-              })}
-            </View>
-          ))}
-        </View>
-    </>
+              }
+              const isBack = key === "backspace";
+              return (
+                <Pressable
+                  key={key}
+                  onPress={() => handlePressKey(key)}
+                  style={({ pressed }) => [
+                    styles.keyBtn,
+                    {
+                      overflow: "hidden",
+                      backgroundColor: isBack
+                        ? theme.leather.colors[1]
+                        : theme.card,
+                      borderColor: isBack
+                        ? theme.leather.edge
+                        : hexToRgba(theme.leather.accent, 0.24),
+                      transform: [{ scale: pressed ? 0.94 : 1 }],
+                    },
+                    cardShadow(theme.dark),
+                  ]}
+                >
+                  {isBack ? (
+                    <DarkLeatherSurface theme={theme} radius={18} />
+                  ) : (
+                    <LightLeatherSurface theme={theme} radius={18} />
+                  )}
+                  {isBack ? (
+                    <Icon name="backspace" size={21} color="#ffffff" />
+                  ) : (
+                    <Text style={[styles.keyText, { color: theme.ink }]}>
+                      {key}
+                    </Text>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+        ))}
+      </View>
+    </View>
   );
 
   if (inline) {
@@ -367,6 +403,7 @@ export function AppLockModal({
         style={[styles.container, { backgroundColor: theme.page }]}
         edges={["top", "left", "right", "bottom"]}
       >
+        <SaffianoSheetSurface theme={theme} radius={0} />
         {content}
       </SafeAreaView>
     </Modal>
@@ -376,90 +413,112 @@ export function AppLockModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "space-between",
-    paddingHorizontal: 28,
-    paddingVertical: 32,
+    paddingHorizontal: 22,
+    paddingVertical: 20,
   },
-  headerBlock: {
+  contentWrap: {
+    flex: 1,
+    justifyContent: "space-between",
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  vaultCard: {
+    borderRadius: 26,
+    borderWidth: 1,
+    paddingHorizontal: 22,
+    paddingTop: 28,
+    paddingBottom: 20,
     alignItems: "center",
-    marginTop: 28,
   },
   lockBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 22,
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    borderWidth: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderColor: "rgba(255, 255, 255, 0.22)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 18,
+    marginBottom: 16,
   },
   title: {
+    color: "#ffffff",
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
-    fontSize: 24,
-    letterSpacing: -0.6,
+    fontSize: 22,
+    letterSpacing: -0.4,
     textAlign: "center",
   },
   subtitle: {
     fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
-    fontSize: 13,
+    fontSize: 12.5,
     textAlign: "center",
-    marginTop: 6,
+    marginTop: 4,
   },
   dotsRow: {
     flexDirection: "row",
     gap: 18,
-    marginTop: 30,
-    marginBottom: 14,
+    marginTop: 24,
+    marginBottom: 12,
   },
   pinDot: {
-    width: 16,
-    height: 16,
+    width: 15,
+    height: 15,
     borderRadius: 8,
     borderWidth: 1.5,
   },
   errorText: {
     minHeight: 18,
-    color: "#c04444",
+    color: "#fca5a5",
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 12,
     textAlign: "center",
   },
   keypad: {
-    gap: 12,
-    marginBottom: 12,
+    gap: 11,
   },
   keypadRow: {
     flexDirection: "row",
-    gap: 14,
+    gap: 12,
   },
   keyBtn: {
     flex: 1,
-    height: 62,
-    borderRadius: 20,
+    height: 60,
+    borderRadius: 18,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
+  actionKeyStitch: {
+    position: "absolute",
+    top: 4,
+    bottom: 4,
+    left: 4,
+    right: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderStyle: "dashed",
+  },
   keySpacer: {
     flex: 1,
-    height: 62,
-  },
-  keyGhost: {
-    flex: 1,
-    height: 62,
-    alignItems: "center",
-    justifyContent: "center",
+    height: 60,
   },
   keyText: {
     fontFamily: "Poppins_800ExtraBold",
     fontWeight: "800",
-    fontSize: 24,
+    fontSize: 23,
+    lineHeight: 28,
+    includeFontPadding: false,
+    marginTop: 2,
   },
   cancelText: {
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
-    fontSize: 14,
+    fontSize: 13.5,
+    lineHeight: 18,
+    includeFontPadding: false,
+    marginTop: 1.5,
   },
 });
