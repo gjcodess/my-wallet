@@ -80,7 +80,7 @@ import { Upcoming } from "./Schedules";
 import type { DueSchedule } from "../types/schedule";
 import type { CategoryLimits, MonthlySpending } from "../types/budget";
 import { CategoryBudgetOverview } from "./CategoryBudgets";
-import { WalletTreemap } from "./WalletTreemap";
+import { CategoryTreemap, WalletTreemap } from "./WalletTreemap";
 
 const PITAKA_TITLE_ASSETS = {
   dark: require("../../assets/brand/pitaka-title-white.png"),
@@ -2812,102 +2812,26 @@ export const ActivityScreen = React.memo(function ActivityScreen({
       <CategoryBudgetOverview limits={categoryLimits} spending={monthSpending} hidden={hidden}
         theme={theme} onOpen={onOpenCategoryBudget} />
 
-      {/* Stitched Categories Responsive Flex Grid */}
-      <SectionTitle
-        title="Categories"
-        action={categoryMode}
-        actionColor={theme.leather.accent}
-        onPress={() => {
+      {/* Squarified Categories Treemap */}
+      <CategoryTreemap
+        categories={categoryCards}
+        mode={categoryMode}
+        selectedCategory={selectedCategory}
+        hidden={hidden}
+        onSelectCategory={(label) => {
+          if (onCategorySelect) onCategorySelect(label);
+          else {
+            setSelectedCategory(selectedCategory === label ? null : label);
+            setPage(1);
+          }
+        }}
+        onToggleMode={() => {
           setCategoryMode((prev) => (prev === "Expense" ? "Income" : "Expense"));
           setSelectedCategory(null);
           setPage(1);
         }}
         theme={theme}
       />
-      <View style={styles.categoriesGrid}>
-        {categoryCards.map(({ icon, label, amount }) => {
-          const active = selectedCategory === label;
-          const sharePct =
-            breakdownDonut.total > 0
-              ? Math.round((amount / breakdownDonut.total) * 100)
-              : 0;
-          return (
-            <Pressable
-              key={label}
-              onPress={() => {
-                if (onCategorySelect) onCategorySelect(label);
-                else {
-                  setSelectedCategory(active ? null : label);
-                  setPage(1);
-                }
-              }}
-              style={({ pressed }) => [
-                styles.stitchedCategoryGridCard,
-                {
-                  overflow: "hidden",
-                  backgroundColor: active
-                    ? theme.leather.colors[1]
-                    : theme.card,
-                  borderColor: active
-                    ? theme.leather.edge
-                    : hexToRgba(theme.leather.accent, 0.22),
-                  transform: [{ scale: pressed ? 0.97 : 1 }],
-                },
-                cardShadow(theme.dark),
-              ]}
-            >
-              {active ? (
-                <DarkLeatherSurface theme={theme} radius={18} />
-              ) : (
-                <LightLeatherSurface theme={theme} radius={18} />
-              )}
-              <View style={styles.stitchedCategoryTop}>
-                <Icon
-                  name={icon}
-                  size={18}
-                  color={
-                    active
-                      ? "#ffffff"
-                      : categoryMode === "Income"
-                        ? theme.positive
-                        : theme.leather.accent
-                  }
-                />
-                {sharePct > 0 ? (
-                  <Text
-                    style={[
-                      styles.stitchedCategoryPct,
-                      { color: active ? theme.heroMuted : theme.muted },
-                    ]}
-                  >
-                    {sharePct}%
-                  </Text>
-                ) : null}
-              </View>
-              <View style={{ gap: 2 }}>
-                <Text
-                  style={[
-                    styles.categoryLabel,
-                    { color: active ? theme.heroMuted : theme.muted },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {label}
-                </Text>
-                <Text
-                  style={[
-                    styles.categoryAmount,
-                    { color: active ? "#ffffff" : theme.ink },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {hidden ? "••••" : money(amount)}
-                </Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
 
       </> : null}
 
