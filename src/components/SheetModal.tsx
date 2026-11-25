@@ -5088,61 +5088,87 @@ export function SheetModal({
                 <View
                   style={[
                     styles.softField,
-                    { backgroundColor: theme.soft, borderColor: theme.line },
+                    {
+                      overflow: "hidden",
+                      backgroundColor: theme.card,
+                      borderColor: hexToRgba(theme.leather.accent, 0.24),
+                    },
+                    cardShadow(theme.dark),
                   ]}
                 >
+                  <LightLeatherSurface theme={theme} radius={16} />
                   <Text style={[styles.fieldLabel, { color: theme.muted }]}>
                     Display Name
                   </Text>
                   <TextInput
                     value={fullNameInput}
                     onChangeText={setFullNameInput}
-                    placeholder="Justin Santos"
+                    placeholder="Your name"
                     placeholderTextColor={theme.muted}
                     style={[styles.fieldInput, { color: theme.ink }]}
                   />
                 </View>
                 <Pressable
                   onPress={handleSaveProfileName}
-                  style={[
-                    styles.secondaryButton,
-                    { backgroundColor: theme.soft2 },
+                  style={({ pressed }) => [
+                    styles.txWalletCtaBtn,
+                    {
+                      overflow: "hidden",
+                      backgroundColor: theme.card,
+                      borderColor: hexToRgba(theme.leather.accent, 0.28),
+                      marginTop: 0,
+                      marginBottom: 18,
+                      transform: [{ scale: pressed ? 0.98 : 1 }],
+                    },
+                    cardShadow(theme.dark),
                   ]}
                 >
-                  <Text
-                    style={[styles.secondaryButtonText, { color: theme.ink }]}
-                  >
+                  <LightLeatherSurface theme={theme} radius={16} />
+                  <Icon name="check" size={16} color={theme.leather.accent} />
+                  <Text style={[styles.secondaryButtonText, { color: theme.ink }]}>
                     Update Display Name
                   </Text>
                 </Pressable>
 
-                {/* Supabase Cloud Sync Section */}
+                {/* Cloud Backup Section */}
                 <Text style={[styles.formTitle, { color: theme.ink }]}>
-                  Supabase Cloud Backup & Auth
+                  Cloud Backup
                 </Text>
 
                 {userEmail ? (
-                  <View>
-                    <LinearGradient
-                      colors={theme.heroGradient}
-                      style={styles.confirmPanel}
+                  <View style={{ gap: 10 }}>
+                    <View
+                      style={[
+                        styles.confirmPanel,
+                        {
+                          overflow: "hidden",
+                          backgroundColor: theme.leather.colors[1],
+                          borderWidth: 1,
+                          borderColor: theme.leather.edge,
+                          borderRadius: 20,
+                        },
+                        cardShadow(theme.dark),
+                      ]}
                     >
-                      <Text style={[styles.confirmSub, { color: theme.heroMuted }]}>Signed in as</Text>
+                      <DarkLeatherSurface theme={theme} radius={20} />
+                      <Text style={[styles.confirmSub, { color: theme.heroMuted }]}>
+                        Signed in as
+                      </Text>
                       <Text
                         style={[
                           styles.confirmAmount,
-                          { fontSize: 18, marginVertical: 4, color: theme.heroInk },
+                          { fontSize: 18, marginVertical: 4, color: "#ffffff" },
                         ]}
+                        numberOfLines={1}
                       >
                         {userEmail}
                       </Text>
                       <Text style={[styles.confirmSub, { color: theme.heroMuted }]}>
-                        PostgreSQL RLS + Local SQLite dual-storage active
+                        Encrypted cloud sync active
                       </Text>
-                    </LinearGradient>
+                    </View>
 
-                    <PrimaryButton
-                      label="Sync Now with Supabase"
+                    <Pressable
                       disabled={authLoading}
                       onPress={async () => {
                         setAuthLoading(true);
@@ -5150,20 +5176,50 @@ export function SheetModal({
                         setAuthLoading(false);
                         onClose();
                       }}
-                      theme={theme}
-                    />
+                      style={({ pressed }) => [
+                        styles.txWalletCtaBtn,
+                        {
+                          overflow: "hidden",
+                          backgroundColor: theme.leather.colors[1],
+                          borderColor: theme.leather.edge,
+                          marginTop: 0,
+                          opacity: authLoading ? 0.65 : 1,
+                          transform: [{ scale: pressed && !authLoading ? 0.98 : 1 }],
+                        },
+                        cardShadow(theme.dark),
+                      ]}
+                    >
+                      <DarkLeatherSurface theme={theme} radius={16} />
+                      <Icon name="cloud" size={16} color="#ffffff" />
+                      <Text style={[styles.secondaryButtonText, { color: "#ffffff" }]}>
+                        {authLoading ? "Syncing…" : "Sync Now"}
+                      </Text>
+                    </Pressable>
 
                     <Pressable
                       onPress={handleSignOut}
-                      style={[
-                        styles.secondaryButton,
-                        { backgroundColor: theme.soft, marginTop: 10 },
+                      style={({ pressed }) => [
+                        styles.txWalletCtaBtn,
+                        {
+                          overflow: "hidden",
+                          backgroundColor: theme.card,
+                          borderColor: hexToRgba("#9e3c42", 0.34),
+                          marginTop: 0,
+                          transform: [{ scale: pressed ? 0.98 : 1 }],
+                        },
+                        cardShadow(theme.dark),
                       ]}
                     >
+                      <LightLeatherSurface theme={theme} radius={16} />
+                      <Icon
+                        name="logout"
+                        size={15}
+                        color={theme.dark ? "#f28b82" : "#9e3c42"}
+                      />
                       <Text
                         style={[
                           styles.secondaryButtonText,
-                          { color: "#c04444" },
+                          { color: theme.dark ? "#f28b82" : "#9e3c42" },
                         ]}
                       >
                         Sign Out
@@ -5176,11 +5232,13 @@ export function SheetModal({
                       style={[
                         styles.entryToggle,
                         {
-                          backgroundColor: theme.soft,
-                          borderColor: theme.line,
+                          overflow: "hidden",
+                          backgroundColor: theme.card,
+                          borderColor: hexToRgba(theme.leather.accent, 0.24),
                         },
                       ]}
                     >
+                      <LightLeatherSurface theme={theme} radius={16} />
                       {(["signin", "signup"] as const).map((m) => {
                         const active = authMode === m;
                         return (
@@ -5192,13 +5250,19 @@ export function SheetModal({
                             }}
                             style={[
                               styles.entryToggleBtn,
-                              active && { backgroundColor: theme.surface },
+                              { overflow: "hidden" },
+                              active && {
+                                backgroundColor: theme.leather.colors[1],
+                              },
                             ]}
                           >
+                            {active ? (
+                              <DarkLeatherSurface theme={theme} radius={12} />
+                            ) : null}
                             <Text
                               style={[
                                 styles.entryToggleText,
-                                { color: active ? theme.ink : theme.muted },
+                                { color: active ? "#ffffff" : theme.muted },
                               ]}
                             >
                               {m === "signin" ? "Sign In" : "Create Account"}
@@ -5212,14 +5276,15 @@ export function SheetModal({
                       style={[
                         styles.softField,
                         {
-                          backgroundColor: theme.soft,
-                          borderColor: theme.line,
+                          overflow: "hidden",
+                          backgroundColor: theme.card,
+                          borderColor: hexToRgba(theme.leather.accent, 0.24),
                         },
+                        cardShadow(theme.dark),
                       ]}
                     >
-                      <Text
-                        style={[styles.fieldLabel, { color: theme.muted }]}
-                      >
+                      <LightLeatherSurface theme={theme} radius={16} />
+                      <Text style={[styles.fieldLabel, { color: theme.muted }]}>
                         Email address
                       </Text>
                       <TextInput
@@ -5237,14 +5302,15 @@ export function SheetModal({
                       style={[
                         styles.softField,
                         {
-                          backgroundColor: theme.soft,
-                          borderColor: theme.line,
+                          overflow: "hidden",
+                          backgroundColor: theme.card,
+                          borderColor: hexToRgba(theme.leather.accent, 0.24),
                         },
+                        cardShadow(theme.dark),
                       ]}
                     >
-                      <Text
-                        style={[styles.fieldLabel, { color: theme.muted }]}
-                      >
+                      <LightLeatherSurface theme={theme} radius={16} />
+                      <Text style={[styles.fieldLabel, { color: theme.muted }]}>
                         Password
                       </Text>
                       <TextInput
@@ -5264,20 +5330,56 @@ export function SheetModal({
                     {authLoading ? (
                       <ActivityIndicator
                         size="small"
-                        color={theme.accent}
+                        color={theme.leather.accent}
                         style={{ marginVertical: 14 }}
                       />
                     ) : (
-                      <PrimaryButton
-                        label={
-                          authMode === "signin"
-                            ? "Sign In & Sync Wallets"
-                            : "Create Account & Backup"
-                        }
-                        disabled={!email.trim() || !password.trim()}
-                        onPress={handleAuthSubmit}
-                        theme={theme}
-                      />
+                      (() => {
+                        const authDisabled = !email.trim() || !password.trim();
+                        return (
+                          <Pressable
+                            disabled={authDisabled}
+                            onPress={handleAuthSubmit}
+                            style={({ pressed }) => [
+                              styles.txWalletCtaBtn,
+                              {
+                                overflow: "hidden",
+                                backgroundColor: authDisabled
+                                  ? theme.soft
+                                  : theme.leather.colors[1],
+                                borderColor: authDisabled
+                                  ? theme.line
+                                  : theme.leather.edge,
+                                marginTop: 4,
+                                opacity: authDisabled ? 0.65 : 1,
+                                transform: [
+                                  { scale: pressed && !authDisabled ? 0.98 : 1 },
+                                ],
+                              },
+                              !authDisabled && cardShadow(theme.dark),
+                            ]}
+                          >
+                            {!authDisabled ? (
+                              <DarkLeatherSurface theme={theme} radius={16} />
+                            ) : null}
+                            <Icon
+                              name="cloud"
+                              size={16}
+                              color={authDisabled ? theme.muted : "#ffffff"}
+                            />
+                            <Text
+                              style={[
+                                styles.secondaryButtonText,
+                                { color: authDisabled ? theme.muted : "#ffffff" },
+                              ]}
+                            >
+                              {authMode === "signin"
+                                ? "Sign In & Sync"
+                                : "Create Account & Backup"}
+                            </Text>
+                          </Pressable>
+                        );
+                      })()
                     )}
                   </View>
                 )}
