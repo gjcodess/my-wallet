@@ -111,6 +111,7 @@ export function SheetModal({
   onOpenWallet: onOpenWalletProp,
   onOpenTransaction,
   onNavigateTab,
+  onSelectCategory,
   onClose: onCloseProp,
   onSwitchSheet,
   onDone: onDoneProp,
@@ -155,6 +156,7 @@ export function SheetModal({
   onOpenWallet?: (w: Wallet) => void;
   onOpenTransaction?: (item: ActivityItem) => void;
   onNavigateTab?: (tab: Tab) => void;
+  onSelectCategory?: (category: string) => void;
   onClose: () => void;
   onSwitchSheet?: (nextType: Exclude<Sheet, null>, wallet?: Wallet) => void;
   onDone: (message: string) => void;
@@ -265,6 +267,7 @@ export function SheetModal({
     editTarget ? String(editTarget.balance) : ""
   );
   const [walletStep, setWalletStep] = useState(type === "edit" ? 1 : 0);
+  const [catModalMode, setCatModalMode] = useState<"Expense" | "Income">("Expense");
   const [editReturnTarget, setEditReturnTarget] = useState<Wallet | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{
     title: string;
@@ -1009,7 +1012,9 @@ export function SheetModal({
                   ? "Monthly Budget"
                   : type === "search"
                     ? "Search"
-                    : type === "schedule" ? "Bills & paydays" : "Account & Cloud Sync";
+                    : type === "categories"
+                      ? "All Categories"
+                      : type === "schedule" ? "Bills & paydays" : "Account & Cloud Sync";
 
   const renderCategoryGrid = (
     items: [string, string][],
@@ -1417,6 +1422,170 @@ export function SheetModal({
                 seed={scheduleSeed} onSave={onSaveSchedule} onDelete={onDeleteSchedule} onRecord={onOpenScheduledEntry}
                 onRequestDelete={setPendingDelete} />
             )}
+            {type === "categories" && (() => {
+              const isIncome = catModalMode === "Income";
+              const defs = isIncome ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+              const totals = new Map<string, { icon: string; label: string; amount: number }>();
+              for (const [label, icon] of defs) {
+                totals.set(label, { icon, label, amount: 0 });
+              }
+              let grandTotal = 0;
+              for (const item of activities) {
+                const match = isIncome
+                  ? item.amount > 0 && !isTransferActivity(item) && !isAdjustmentActivity(item)
+                  : item.amount < 0 && !isAdjustmentActivity(item);
+                if (!match) continue;
+                const amt = Math.abs(item.amount);
+                grandTotal += amt;
+                const label = item.kind || "Other";
+                const existing = totals.get(label);
+                if (existing) {
+                  existing.amount += amt;
+                } else {
+                  totals.set(label, { icon: item.icon || "tag", label, amount: amt });
+                }
+              }
+              const list = Array.from(totals.values()).sort((a, b) => b.amount - a.amount);
+              const accentHex = isIncome ? theme.positive : theme.leather.accent;
+
+              return (
+                <View style={{ gap: 14 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderColor: hexToRgba(theme.leather.accent, 0.24),
+                        backgroundColor: theme.card,
+                        padding: 3,
+                        gap: 2,
+                      }}
+                    >
+                      {(["Expense", "Income"] as const).map((opt) => {
+                        const active = catModalMode === opt;
+                        return (
+                          <Pressable
+                            key={opt}
+                            onPress={() => setCatModalMode(opt)}
+                            style={{
+                              paddingHorizontal: 12,
+                              paddingVertical: 5,
+                              borderRadius: 9,
+                              backgroundColor: active
+                                ? opt === "Income"
+                                  ? theme.positive
+                                  : theme.leather.accent
+                                : "transparent",
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontFamily: "Poppins_700Bold",
+                                fontSize: 12,
+                                color: active ? "#ffffff" : theme.muted,
+                                includeFontPadding: false,
+                              }}
+                            >
+                              {opt}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                    <Text
+                      style={{
+                        fontFamily: "Poppins_700Bold",
+                        fontSize: 13,
+                        color: isIncome ? theme.positive : theme.ink,
+                      }}
+                    >
+                      {hidden ? "••••" : money(grandTotal)}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={[
+                      {
+                        overflow: "hidden",
+                        borderRadius: 18,
+                        borderWidth: 1,
+                        backgroundColor: theme.card,
+                        borderColor: hexToRgba(theme.leather.accent, 0.22),
+                        paddingVertical: 4,
+                      },
+                      cardShadow(theme.dark),
+                    ]}
+                  >
+                    <LightLeatherSurface theme={theme} radius={18} />
+                    {list.map((cat, idx) => {
+                      const pct =
+                        grandTotal > 0 ? Math.round((cat.amount / grandTotal) * 100) : 0;
+                      return (
+                        <View key={cat.label}>
+                          {idx > 0 ? (
+                            <View
+                              style={{
+                                height: 1,
+                                marginHorizontal: 14,
+                                backgroundColor: hexToRgba(theme.leather.accent, 0.12),
+                              }}
+                            />
+                          ) : null}
+                          <Pressable
+                            onPress={() => onSelectCategory?.(cat.label)}
+                            style={({ pressed }) => ({
+                              minHeight: 48,
+                              paddingHorizontal: 14,
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 10,
+                              opacity: pressed ? 0.72 : 1,
+                            })}
+                          >
+                            <Icon name={cat.icon} size={17} color={accentHex} />
+                            <Text
+                              style={{
+                                flex: 1,
+                                fontFamily: "Poppins_600SemiBold",
+                                fontSize: 13.5,
+                                color: theme.ink,
+                                includeFontPadding: false,
+                              }}
+                              numberOfLines={1}
+                            >
+                              {cat.label}
+                            </Text>
+                            <Text
+                              style={{
+                                fontFamily: "Poppins_600SemiBold",
+                                fontSize: 11.5,
+                                color: theme.muted,
+                                includeFontPadding: false,
+                              }}
+                            >
+                              {pct}%
+                            </Text>
+                            <Text
+                              style={{
+                                fontFamily: "Poppins_700Bold",
+                                fontSize: 13,
+                                color: theme.ink,
+                                includeFontPadding: false,
+                              }}
+                            >
+                              {hidden ? "••••" : money(cat.amount)}
+                            </Text>
+                            <Icon name="chevron" size={14} color={theme.muted} />
+                          </Pressable>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              );
+            })()}
             {type === "category-budget" && (
               <CategoryBudgetSheet limits={categoryLimits} spending={monthlySpending} hidden={hidden}
                 theme={theme} selectedCategory={budgetCategory} onSave={onSaveCategoryLimit} onTransaction={onOpenTransaction}

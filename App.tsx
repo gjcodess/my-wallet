@@ -1286,6 +1286,7 @@ export default function App() {
                         setTransactionCategory({ category });
                         handleTabChange("activity");
                       }}
+                      onViewAllCategories={() => openSheet("categories")}
                       isActive={tab === "overview"}
                       onHeroHeight={handleOverviewHeroHeight}
                       theme={theme}
@@ -1457,6 +1458,11 @@ export default function App() {
           onOpenWallet={handleOpenWalletFromSheet}
           onOpenTransaction={openTransactionSheet}
           onNavigateTab={handleTabChange}
+          onSelectCategory={(category) => {
+            setTransactionCategory({ category });
+            handleTabChange("activity");
+            handleCloseSheet();
+          }}
           onClose={handleCloseSheet}
           onSwitchSheet={handleSwitchSheet}
           onDone={handleSheetDone}

@@ -1918,6 +1918,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   categoryFilter,
   onClearCategory,
   onCategorySelect,
+  onViewAllCategories,
   isActive = true,
   onHeroHeight,
   theme,
@@ -1942,6 +1943,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   categoryFilter?: { category: string } | null;
   onClearCategory?: () => void;
   onCategorySelect?: (category: string) => void;
+  onViewAllCategories?: () => void;
   isActive?: boolean;
   onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
@@ -2830,6 +2832,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
           setSelectedCategory(null);
           setPage(1);
         }}
+        onViewAll={onViewAllCategories}
         theme={theme}
       />
 

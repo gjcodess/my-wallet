@@ -45,6 +45,7 @@ export type Sheet =
   | "favorite"
   | "search"
   | "schedule"
+  | "categories"
   | null;
 export type Tone =
   | "blue"

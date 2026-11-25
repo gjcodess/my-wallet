@@ -506,6 +506,7 @@ export const CategoryTreemap = React.memo(function CategoryTreemap({
   hidden,
   onSelectCategory,
   onToggleMode,
+  onViewAll,
   theme,
 }: {
   categories: CategoryTreemapItem[];
@@ -514,17 +515,12 @@ export const CategoryTreemap = React.memo(function CategoryTreemap({
   hidden: boolean;
   onSelectCategory: (label: string) => void;
   onToggleMode: () => void;
+  onViewAll?: () => void;
   theme: ThemeColors;
 }) {
   const [canvasWidth, setCanvasWidth] = useState(320);
-  const [showAllCategories, setShowAllCategories] = useState(false);
   const animMapRef = useRef<Map<string, TileAnim>>(new Map());
   const mountedKeysRef = useRef<Set<string>>(new Set());
-
-  const totalCategoryAmount = useMemo(
-    () => categories.reduce((s, c) => s + Math.max(0, c.amount), 0),
-    [categories]
-  );
 
   const activeCategories = useMemo(() => {
     const pos = categories
@@ -837,99 +833,27 @@ export const CategoryTreemap = React.memo(function CategoryTreemap({
         </View>
       )}
 
-      {categories.length > 0 ? (
-        <View style={{ marginTop: 10, gap: 8 }}>
-          <Pressable
-            onPress={() => setShowAllCategories((prev) => !prev)}
-            style={({ pressed }) => [
-              styles.viewAllBtn,
-              {
-                overflow: "hidden",
-                backgroundColor: theme.card,
-                borderColor: hexToRgba(theme.leather.accent, 0.24),
-                transform: [{ scale: pressed ? 0.985 : 1 }],
-              },
-              cardShadow(theme.dark),
-            ]}
-          >
-            <LightLeatherSurface theme={theme} radius={14} />
-            <Text style={[styles.viewAllText, { color: theme.ink }]}>
-              {showAllCategories
-                ? "Hide all categories"
-                : `View all categories (${categories.length})`}
-            </Text>
-            <Icon
-              name={showAllCategories ? "up" : "down"}
-              size={14}
-              color={theme.muted}
-            />
-          </Pressable>
-
-          {showAllCategories ? (
-            <View
-              style={[
-                styles.allCategoriesCard,
-                {
-                  overflow: "hidden",
-                  backgroundColor: theme.card,
-                  borderColor: hexToRgba(theme.leather.accent, 0.22),
-                },
-                cardShadow(theme.dark),
-              ]}
-            >
-              <LightLeatherSurface theme={theme} radius={18} />
-              {categories.map((cat, idx) => {
-                const pct =
-                  totalCategoryAmount > 0
-                    ? Math.round((cat.amount / totalCategoryAmount) * 100)
-                    : 0;
-                const active = selectedCategory === cat.label;
-                return (
-                  <View key={cat.label}>
-                    {idx > 0 ? (
-                      <View
-                        style={[
-                          styles.allCatDivider,
-                          {
-                            backgroundColor: hexToRgba(
-                              theme.leather.accent,
-                              0.12
-                            ),
-                          },
-                        ]}
-                      />
-                    ) : null}
-                    <Pressable
-                      onPress={() => onSelectCategory(cat.label)}
-                      style={({ pressed }) => [
-                        styles.allCatRow,
-                        { opacity: pressed ? 0.75 : 1 },
-                      ]}
-                    >
-                      <Icon
-                        name={cat.icon}
-                        size={16}
-                        color={active ? theme.leather.accent : accentHex}
-                      />
-                      <Text
-                        style={[styles.allCatName, { color: theme.ink }]}
-                        numberOfLines={1}
-                      >
-                        {cat.label}
-                      </Text>
-                      <Text style={[styles.allCatPct, { color: theme.muted }]}>
-                        {pct}%
-                      </Text>
-                      <Text style={[styles.allCatAmt, { color: theme.ink }]}>
-                        {hidden ? "••••" : money(cat.amount)}
-                      </Text>
-                    </Pressable>
-                  </View>
-                );
-              })}
-            </View>
-          ) : null}
-        </View>
+      {onViewAll && categories.length > 0 ? (
+        <Pressable
+          onPress={onViewAll}
+          style={({ pressed }) => [
+            styles.viewAllBtn,
+            {
+              marginTop: 10,
+              overflow: "hidden",
+              backgroundColor: theme.card,
+              borderColor: hexToRgba(theme.leather.accent, 0.24),
+              transform: [{ scale: pressed ? 0.985 : 1 }],
+            },
+            cardShadow(theme.dark),
+          ]}
+        >
+          <LightLeatherSurface theme={theme} radius={14} />
+          <Text style={[styles.viewAllText, { color: theme.ink }]}>
+            View all categories ({categories.length})
+          </Text>
+          <Icon name="chevron" size={14} color={theme.muted} />
+        </Pressable>
       ) : null}
     </View>
   );
