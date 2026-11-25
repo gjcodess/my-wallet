@@ -4614,21 +4614,39 @@ export function SheetModal({
                   <View
                     style={[
                       styles.txDetailHero,
-                      { backgroundColor: theme.card },
-                      bevelStyle(theme.dark),
+                      {
+                        overflow: "hidden",
+                        backgroundColor: theme.leather.colors[1],
+                        borderColor: theme.leather.edge,
+                      },
                       cardShadow(theme.dark),
                     ]}
                   >
+                    <DarkLeatherSurface theme={theme} radius={22} />
                     <View
                       style={[
                         styles.txDetailIconBox,
-                        { backgroundColor: iconBg },
+                        {
+                          backgroundColor: isPositive
+                            ? "rgba(110, 231, 183, 0.16)"
+                            : "rgba(255, 255, 255, 0.12)",
+                          borderColor: isPositive
+                            ? "rgba(110, 231, 183, 0.28)"
+                            : "rgba(255, 255, 255, 0.18)",
+                        },
                       ]}
                     >
-                      <Icon name={activity.icon} size={24} color={iconColor} />
+                      <Icon
+                        name={activity.icon}
+                        size={23}
+                        color={isPositive ? "#6ee7b7" : "#ffffff"}
+                      />
                     </View>
                     <Text
-                      style={[styles.txDetailTitle, { color: theme.ink }]}
+                      style={[
+                        styles.txDetailTitle,
+                        { color: "rgba(255, 255, 255, 0.88)" },
+                      ]}
                       numberOfLines={2}
                     >
                       {activity.title}
@@ -4636,7 +4654,7 @@ export function SheetModal({
                     <Text
                       style={[
                         styles.txDetailAmount,
-                        { color: isPositive ? theme.accentText : theme.ink },
+                        { color: isPositive ? "#6ee7b7" : "#ffffff" },
                       ]}
                     >
                       {hidden
@@ -4646,10 +4664,26 @@ export function SheetModal({
                     <View
                       style={[
                         styles.txTypePill,
-                        { backgroundColor: iconBg },
+                        {
+                          backgroundColor: isPositive
+                            ? "rgba(110, 231, 183, 0.16)"
+                            : "rgba(255, 255, 255, 0.12)",
+                          borderColor: isPositive
+                            ? "rgba(110, 231, 183, 0.28)"
+                            : "rgba(255, 255, 255, 0.18)",
+                        },
                       ]}
                     >
-                      <Text style={[styles.txTypePillText, { color: iconColor }]}>
+                      <Text
+                        style={[
+                          styles.txTypePillText,
+                          {
+                            color: isPositive
+                              ? "#6ee7b7"
+                              : "rgba(255, 255, 255, 0.9)",
+                          },
+                        ]}
+                      >
                         {isPositive ? "Money in" : "Money out"} · {activity.kind}
                       </Text>
                     </View>
@@ -4659,15 +4693,22 @@ export function SheetModal({
                   <View
                     style={[
                       styles.txDetailCard,
-                      { backgroundColor: theme.card },
-                      bevelStyle(theme.dark),
+                      {
+                        overflow: "hidden",
+                        backgroundColor: theme.card,
+                        borderColor: hexToRgba(theme.leather.accent, 0.24),
+                      },
                       cardShadow(theme.dark),
                     ]}
                   >
+                    <LightLeatherSurface theme={theme} radius={20} />
                     <View
                       style={[
                         styles.txDetailRow,
-                        { borderBottomWidth: 1, borderBottomColor: theme.line },
+                        {
+                          borderBottomWidth: 1,
+                          borderBottomColor: hexToRgba(theme.leather.accent, 0.14),
+                        },
                       ]}
                     >
                       <Text style={[styles.txDetailKey, { color: theme.muted }]}>
@@ -4681,7 +4722,10 @@ export function SheetModal({
                     <View
                       style={[
                         styles.txDetailRow,
-                        { borderBottomWidth: 1, borderBottomColor: theme.line },
+                        {
+                          borderBottomWidth: 1,
+                          borderBottomColor: hexToRgba(theme.leather.accent, 0.14),
+                        },
                       ]}
                     >
                       <Text style={[styles.txDetailKey, { color: theme.muted }]}>
@@ -4695,7 +4739,10 @@ export function SheetModal({
                     <View
                       style={[
                         styles.txDetailRow,
-                        { borderBottomWidth: 1, borderBottomColor: theme.line },
+                        {
+                          borderBottomWidth: 1,
+                          borderBottomColor: hexToRgba(theme.leather.accent, 0.14),
+                        },
                       ]}
                     >
                       <Text style={[styles.txDetailKey, { color: theme.muted }]}>
@@ -4758,12 +4805,7 @@ export function SheetModal({
                       </View>
                     ) : null}
 
-                    <View
-                      style={[
-                        styles.txDetailRow,
-                        { borderBottomWidth: 1, borderBottomColor: theme.line },
-                      ]}
-                    >
+                    <View style={styles.txDetailRow}>
                       <Text style={[styles.txDetailKey, { color: theme.muted }]}>
                         Category
                       </Text>
@@ -4771,61 +4813,87 @@ export function SheetModal({
                         {activity.kind}
                       </Text>
                     </View>
-
-                    <View style={styles.txDetailRow}>
-                      <Text style={[styles.txDetailKey, { color: theme.muted }]}>
-                        Storage
-                      </Text>
-                      <Text style={[styles.txDetailVal, { color: theme.ink }]}>
-                        {activity.synced ? "Synced with Supabase" : "Saved on device"}
-                      </Text>
-                    </View>
                   </View>
 
                   {txConfirmDelete ? (
                     <View
                       style={[
-                        styles.txConfirmDeleteBox,
+                        styles.stitchedDeleteBox,
                         {
-                          backgroundColor: theme.dark
-                            ? "rgba(192, 68, 68, 0.16)"
-                            : "#fdeaea",
-                          borderColor: "rgba(192, 68, 68, 0.35)",
+                          overflow: "hidden",
+                          backgroundColor: theme.card,
+                          borderColor: hexToRgba("#9e3c42", 0.36),
+                          marginTop: 0,
                         },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.txConfirmDeleteTitle,
-                          { color: theme.dark ? "#fca5a5" : "#991b1b" },
-                        ]}
-                      >
-                        Delete transaction & restore wallet balance?
-                      </Text>
+                      <LightLeatherSurface theme={theme} radius={18} />
+                      <View style={styles.stitchedDeleteHead}>
+                        <View style={styles.stitchedDeleteTitleRow}>
+                          <Icon
+                            name="trash"
+                            size={15}
+                            color={theme.dark ? "#f28b82" : "#9e3c42"}
+                          />
+                          <Text
+                            style={[
+                              styles.stitchedDeleteTitle,
+                              { color: theme.ink },
+                            ]}
+                          >
+                            Delete this transaction?
+                          </Text>
+                        </View>
+                        <Text
+                          style={[
+                            styles.stitchedDeleteSub,
+                            { color: theme.muted },
+                          ]}
+                        >
+                          Wallet balance will be restored.
+                        </Text>
+                      </View>
                       <View style={styles.txActionPair}>
                         <Pressable
                           onPress={() => setTxConfirmDelete(false)}
-                          style={[
-                            styles.txActionHalfBtn,
-                            { backgroundColor: theme.card },
+                          style={({ pressed }) => [
+                            styles.stitchedDeleteActionBtn,
+                            {
+                              overflow: "hidden",
+                              backgroundColor: theme.page,
+                              borderColor: hexToRgba(theme.leather.accent, 0.25),
+                              transform: [{ scale: pressed ? 0.97 : 1 }],
+                            },
                           ]}
                         >
+                          <LightLeatherSurface theme={theme} radius={14} />
                           <Text
-                            style={[styles.secondaryButtonText, { color: theme.ink }]}
+                            style={[
+                              styles.stitchedDeleteCancelText,
+                              { color: theme.ink },
+                            ]}
                           >
                             Cancel
                           </Text>
                         </Pressable>
                         <Pressable
                           onPress={handleConfirmDeleteTx}
-                          style={[
-                            styles.txActionHalfBtn,
-                            { backgroundColor: "#c04444" },
+                          style={({ pressed }) => [
+                            styles.stitchedDeleteActionBtn,
+                            {
+                              overflow: "hidden",
+                              backgroundColor: "#c04444",
+                              borderColor: "#a23434",
+                              transform: [{ scale: pressed ? 0.97 : 1 }],
+                            },
                           ]}
                         >
-                          <Text
-                            style={[styles.secondaryButtonText, { color: "#ffffff" }]}
-                          >
+                          <View
+                            pointerEvents="none"
+                            style={styles.oxbloodInnerStitch}
+                          />
+                          <Icon name="trash" size={14} color="#ffffff" />
+                          <Text style={styles.stitchedDeleteConfirmText}>
                             Confirm delete
                           </Text>
                         </Pressable>
@@ -4836,11 +4904,18 @@ export function SheetModal({
                       {onUpdateActivity ? (
                         <Pressable
                           onPress={() => setTxEditing(true)}
-                          style={[
+                          style={({ pressed }) => [
                             styles.txActionHalfBtn,
-                            { backgroundColor: theme.soft2 },
+                            {
+                              overflow: "hidden",
+                              backgroundColor: theme.card,
+                              borderColor: hexToRgba(theme.leather.accent, 0.28),
+                              transform: [{ scale: pressed ? 0.97 : 1 }],
+                            },
+                            cardShadow(theme.dark),
                           ]}
                         >
+                          <LightLeatherSurface theme={theme} radius={16} />
                           <Icon name="edit" size={16} color={theme.ink} />
                           <Text
                             style={[styles.secondaryButtonText, { color: theme.ink }]}
@@ -4852,18 +4927,28 @@ export function SheetModal({
                       {onDeleteActivity ? (
                         <Pressable
                           onPress={() => setTxConfirmDelete(true)}
-                          style={[
+                          style={({ pressed }) => [
                             styles.txActionHalfBtn,
                             {
-                              backgroundColor: theme.dark
-                                ? "rgba(192, 68, 68, 0.16)"
-                                : "#fdeaea",
+                              overflow: "hidden",
+                              backgroundColor: theme.card,
+                              borderColor: hexToRgba("#9e3c42", 0.34),
+                              transform: [{ scale: pressed ? 0.97 : 1 }],
                             },
+                            cardShadow(theme.dark),
                           ]}
                         >
-                          <Icon name="close" size={16} color="#c04444" />
+                          <LightLeatherSurface theme={theme} radius={16} />
+                          <Icon
+                            name="trash"
+                            size={15}
+                            color={theme.dark ? "#f28b82" : "#9e3c42"}
+                          />
                           <Text
-                            style={[styles.secondaryButtonText, { color: "#c04444" }]}
+                            style={[
+                              styles.stitchedDeleteTriggerText,
+                              { color: theme.dark ? "#f28b82" : "#9e3c42" },
+                            ]}
                           >
                             Delete
                           </Text>
@@ -4872,16 +4957,24 @@ export function SheetModal({
                     </View>
                   )}
 
-                  {matchedWallet && onOpenWallet ? (
+                  {matchedWallet && !matchedWallet.isHidden && onOpenWallet ? (
                     <Pressable
                       onPress={() => onOpenWallet(matchedWallet)}
-                      style={[
-                        styles.secondaryButton,
-                        { backgroundColor: theme.soft2, marginTop: 10, marginBottom: 0 },
+                      style={({ pressed }) => [
+                        styles.txWalletCtaBtn,
+                        {
+                          overflow: "hidden",
+                          backgroundColor: theme.leather.colors[1],
+                          borderColor: theme.leather.edge,
+                          transform: [{ scale: pressed ? 0.98 : 1 }],
+                        },
+                        cardShadow(theme.dark),
                       ]}
                     >
+                      <DarkLeatherSurface theme={theme} radius={16} />
+                      <Icon name="wallet" size={16} color="#ffffff" />
                       <Text
-                        style={[styles.secondaryButtonText, { color: theme.ink }]}
+                        style={[styles.secondaryButtonText, { color: "#ffffff" }]}
                       >
                         View {matchedWallet.name} wallet
                       </Text>
@@ -4895,19 +4988,59 @@ export function SheetModal({
                           const draft = favoriteFromActivity(activity, wallets);
                           if (draft) onFavoriteFromActivity(draft);
                         }}
-                        style={[styles.secondaryButton, { backgroundColor: theme.accentSoft, marginTop: 10 }]}>
-                        <Icon name="star" size={16} color={theme.accentText} />
-                        <Text style={[styles.secondaryButtonText, { color: theme.accentText }]}>Save as favorite</Text>
+                        style={({ pressed }) => [
+                          styles.txWalletCtaBtn,
+                          {
+                            overflow: "hidden",
+                            backgroundColor: theme.card,
+                            borderColor: hexToRgba(theme.leather.accent, 0.28),
+                            transform: [{ scale: pressed ? 0.98 : 1 }],
+                          },
+                        ]}>
+                        <LightLeatherSurface theme={theme} radius={16} />
+                        <Icon name="star" size={16} color={theme.leather.accent} />
+                        <Text style={[styles.secondaryButtonText, { color: theme.ink }]}>Save as favorite</Text>
                       </Pressable>
                       <Pressable
                         onPress={() => onScheduleFromActivity(activity)}
-                        style={[styles.secondaryButton, { backgroundColor: theme.accentSoft, marginTop: 10 }]}
+                        style={({ pressed }) => [
+                          styles.txWalletCtaBtn,
+                          {
+                            overflow: "hidden",
+                            backgroundColor: theme.card,
+                            borderColor: hexToRgba(theme.leather.accent, 0.28),
+                            transform: [{ scale: pressed ? 0.98 : 1 }],
+                          },
+                        ]}
                       >
-                        <Text style={[styles.secondaryButtonText, { color: theme.accentText }]}>Make recurring</Text>
+                        <LightLeatherSurface theme={theme} radius={16} />
+                        <Icon name="clock" size={16} color={theme.leather.accent} />
+                        <Text style={[styles.secondaryButtonText, { color: theme.ink }]}>
+                          Make recurring
+                        </Text>
                       </Pressable>
                     </>
                   ) : null}
-                  <PrimaryButton label="Done" onPress={onClose} theme={theme} />
+                  <Pressable
+                    onPress={onClose}
+                    style={({ pressed }) => [
+                      styles.txWalletCtaBtn,
+                      {
+                        overflow: "hidden",
+                        backgroundColor: theme.leather.colors[1],
+                        borderColor: theme.leather.edge,
+                        marginTop: 12,
+                        transform: [{ scale: pressed ? 0.98 : 1 }],
+                      },
+                      cardShadow(theme.dark),
+                    ]}
+                  >
+                    <DarkLeatherSurface theme={theme} radius={16} />
+                    <Text style={[styles.secondaryButtonText, { color: "#ffffff" }]}>
+                      Done
+                    </Text>
+                    <Icon name="check" size={16} color="#ffffff" />
+                  </Pressable>
                 </View>
               );
             })()}
@@ -6739,7 +6872,7 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   txDetailHero: {
-    borderRadius: 24,
+    borderRadius: 22,
     borderWidth: 1,
     padding: 20,
     alignItems: "center",
@@ -6747,17 +6880,18 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   txDetailIconBox: {
-    width: 54,
-    height: 54,
-    borderRadius: 18,
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   txDetailTitle: {
-    fontFamily: "Poppins_800ExtraBold",
-    fontWeight: "800",
-    fontSize: 19,
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 16.5,
     textAlign: "center",
     marginBottom: 4,
   },
@@ -6772,6 +6906,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 99,
+    borderWidth: 1,
   },
   txTypePillText: {
     fontFamily: "Poppins_700Bold",
@@ -6779,7 +6914,7 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
   },
   txDetailCard: {
-    borderRadius: 22,
+    borderRadius: 20,
     borderWidth: 1,
     paddingHorizontal: 16,
     marginBottom: 14,
@@ -6789,7 +6924,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    paddingVertical: 14,
+    paddingVertical: 13.5,
   },
   txDetailKey: {
     fontFamily: "Poppins_600SemiBold",
@@ -6815,10 +6950,21 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 46,
     borderRadius: 16,
+    borderWidth: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 7,
+  },
+  txWalletCtaBtn: {
+    height: 48,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
   txConfirmDeleteBox: {
     padding: 14,
