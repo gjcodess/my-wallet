@@ -3,8 +3,10 @@ import {
   Animated,
   AppState,
   Easing,
+  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -70,8 +72,13 @@ import {
   LeatherFinishId,
   resolveLeatherFinish,
   BottomNav,
+  cardShadow,
+  DarkLeatherSurface,
   EdgeFade,
   getThemeColors,
+  hexToRgba,
+  LightLeatherSurface,
+  SaffianoSheetSurface,
 } from "./src/components/SharedUI";
 import {
   ActivityScreen,
@@ -780,7 +787,46 @@ export default function App() {
     scheduleCloudSync();
   }, [scheduleCloudSync]);
 
-  const handleToggleWalletHidden = useCallback(
+  const [pendingHideWallet, setPendingHideWallet] = useState<Wallet | null>(null);
+  const [renderedHideWallet, setRenderedHideWallet] = useState<Wallet | null>(null);
+  const hideSheetAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (pendingHideWallet) {
+      setRenderedHideWallet(pendingHideWallet);
+      hideSheetAnim.setValue(0);
+      Animated.timing(hideSheetAnim, {
+        toValue: 1,
+        duration: 210,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    } else if (renderedHideWallet) {
+      Animated.timing(hideSheetAnim, {
+        toValue: 0,
+        duration: 170,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) setRenderedHideWallet(null);
+      });
+    }
+  }, [pendingHideWallet, renderedHideWallet, hideSheetAnim]);
+
+  const dismissHideConfirm = useCallback((onDone?: () => void) => {
+    Animated.timing(hideSheetAnim, {
+      toValue: 0,
+      duration: 170,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start(() => {
+      setPendingHideWallet(null);
+      setRenderedHideWallet(null);
+      onDone?.();
+    });
+  }, [hideSheetAnim]);
+
+  const applyToggleWalletHidden = useCallback(
     (targetWallet: Wallet) => {
       const nowIso = new Date().toISOString();
       const nextHidden = !targetWallet.isHidden;
@@ -803,6 +849,10 @@ export default function App() {
     },
     [scheduleCloudSync, selectedId]
   );
+
+  const handleToggleWalletHidden = useCallback((targetWallet: Wallet) => {
+    setPendingHideWallet(targetWallet);
+  }, []);
 
   const handleToggleHidden = useCallback(
     () => setHidden((prev) => !prev),
@@ -1325,6 +1375,132 @@ export default function App() {
           onFinish={handleFinishIntro}
         />
       )}
+      <Modal
+        visible={renderedHideWallet !== null}
+        transparent
+        animationType="none"
+        statusBarTranslucent
+        onRequestClose={() => dismissHideConfirm()}
+      >
+        <View style={styles.confirmModalRoot}>
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFill,
+              styles.confirmBackdrop,
+              { opacity: hideSheetAnim },
+            ]}
+          >
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={() => dismissHideConfirm()}
+            />
+          </Animated.View>
+          {renderedHideWallet ? (
+            <Animated.View
+              style={[
+                styles.confirmCard,
+                {
+                  overflow: "hidden",
+                  backgroundColor: theme.page,
+                  borderColor: hexToRgba(theme.leather.accent, 0.24),
+                  transform: [
+                    {
+                      translateY: hideSheetAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [340, 0],
+                      }),
+                    },
+                  ],
+                },
+                cardShadow(theme.dark),
+              ]}
+            >
+              <SaffianoSheetSurface theme={theme} radius={28} />
+              <View
+                style={[
+                  styles.confirmHandle,
+                  { backgroundColor: hexToRgba(theme.leather.accent, 0.26) },
+                ]}
+              />
+              <View
+                style={[
+                  styles.confirmIconBox,
+                  {
+                    backgroundColor: hexToRgba(
+                      theme.leather.accent,
+                      theme.dark ? 0.22 : 0.12
+                    ),
+                    borderColor: hexToRgba(theme.leather.accent, 0.26),
+                  },
+                ]}
+              >
+                <Icon
+                  name={renderedHideWallet.isHidden ? "eye" : "eye-off"}
+                  size={20}
+                  color={theme.leather.accent}
+                />
+              </View>
+              <Text style={[styles.confirmTitle, { color: theme.ink }]}>
+                {renderedHideWallet.isHidden
+                  ? `Unhide "${renderedHideWallet.name}"?`
+                  : `Hide "${renderedHideWallet.name}"?`}
+              </Text>
+              <Text style={[styles.confirmSub, { color: theme.muted }]}>
+                {renderedHideWallet.isHidden
+                  ? "This card will be restored to your Wallets list, Home stack, and total balance."
+                  : 'This card will be excluded from your total balance, Home stack, and monthly stats. Past transactions stay in Activity as "Hidden wallet".'}
+              </Text>
+              <View style={styles.confirmBtnRow}>
+                <Pressable
+                  onPress={() => dismissHideConfirm()}
+                  style={({ pressed }) => [
+                    styles.confirmBtn,
+                    {
+                      overflow: "hidden",
+                      backgroundColor: theme.card,
+                      borderColor: hexToRgba(theme.leather.accent, 0.26),
+                      transform: [{ scale: pressed ? 0.97 : 1 }],
+                    },
+                  ]}
+                >
+                  <LightLeatherSurface theme={theme} radius={16} />
+                  <Text style={[styles.confirmCancelText, { color: theme.ink }]}>
+                    Cancel
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    const target = renderedHideWallet;
+                    dismissHideConfirm(() => {
+                      if (target) applyToggleWalletHidden(target);
+                    });
+                  }}
+                  style={({ pressed }) => [
+                    styles.confirmBtn,
+                    {
+                      overflow: "hidden",
+                      backgroundColor: theme.leather.colors[1],
+                      borderColor: theme.leather.edge,
+                      transform: [{ scale: pressed ? 0.97 : 1 }],
+                    },
+                    cardShadow(theme.dark),
+                  ]}
+                >
+                  <DarkLeatherSurface theme={theme} radius={16} />
+                  <Icon
+                    name={renderedHideWallet.isHidden ? "eye" : "eye-off"}
+                    size={15}
+                    color="#ffffff"
+                  />
+                  <Text style={styles.confirmPrimaryText}>
+                    {renderedHideWallet.isHidden ? "Unhide card" : "Hide card"}
+                  </Text>
+                </Pressable>
+              </View>
+            </Animated.View>
+          ) : null}
+        </View>
+      </Modal>
       </View>
     </SafeAreaProvider>
   );
@@ -1365,5 +1541,79 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
     fontSize: 12,
+  },
+  confirmModalRoot: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  confirmBackdrop: {
+    backgroundColor: "rgba(10, 15, 24, 0.48)",
+  },
+  confirmCard: {
+    width: "100%",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    paddingTop: 10,
+    paddingHorizontal: 22,
+    paddingBottom: 34,
+    alignItems: "center",
+  },
+  confirmHandle: {
+    width: 38,
+    height: 4,
+    borderRadius: 99,
+    marginBottom: 18,
+  },
+  confirmIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  confirmTitle: {
+    fontFamily: "Poppins_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 18,
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  confirmSub: {
+    fontFamily: "Poppins_500Medium",
+    fontWeight: "500",
+    fontSize: 12.5,
+    lineHeight: 18,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  confirmBtnRow: {
+    flexDirection: "row",
+    gap: 10,
+    width: "100%",
+  },
+  confirmBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+  },
+  confirmCancelText: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  confirmPrimaryText: {
+    color: "#ffffff",
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 13,
   },
 });
