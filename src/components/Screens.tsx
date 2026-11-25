@@ -3571,39 +3571,18 @@ export function WalletDetailScreen({
               </Text>
             ) : null}
           </View>
-          <View style={styles.heroHeaderActions}>
-            {onToggleWalletHidden ? (
-              <Pressable
-                onPress={() => onToggleWalletHidden(wallet)}
-                accessibilityRole="button"
-                accessibilityLabel={wallet.isHidden ? "Unhide wallet" : "Hide wallet"}
-                style={({ pressed }) => [
-                  styles.heroIconBtn,
-                  heroControlStyle(theme),
-                  wallet.isHidden && styles.heroIconBtnActive,
-                  { transform: [{ scale: pressed ? 0.92 : 1 }] },
-                ]}
-              >
-                <Icon
-                  name={wallet.isHidden ? "eye" : "eye-off"}
-                  size={17}
-                  color={theme.heroInk}
-                />
-              </Pressable>
-            ) : null}
-            <Pressable
-              onPress={onEdit}
-              accessibilityRole="button"
-              accessibilityLabel="Edit wallet"
-              style={({ pressed }) => [
-                styles.heroIconBtn,
-                heroControlStyle(theme),
-                { transform: [{ scale: pressed ? 0.92 : 1 }] },
-              ]}
-            >
-              <Icon name="edit" size={17} color={theme.heroInk} />
-            </Pressable>
-          </View>
+          <Pressable
+            onPress={onEdit}
+            accessibilityRole="button"
+            accessibilityLabel="Edit wallet"
+            style={({ pressed }) => [
+              styles.heroIconBtn,
+              heroControlStyle(theme),
+              { transform: [{ scale: pressed ? 0.92 : 1 }] },
+            ]}
+          >
+            <Icon name="edit" size={17} color={theme.heroInk} />
+          </Pressable>
         </View>
       </HeroHeaderSurface>
 
@@ -3807,6 +3786,51 @@ export function WalletDetailScreen({
               </Text>
             </Pressable>
           </View>
+
+          {onToggleWalletHidden ? (
+            <Pressable
+              onPress={() => onToggleWalletHidden(wallet)}
+              accessibilityRole="button"
+              accessibilityLabel={
+                wallet.isHidden ? "Unhide card from totals" : "Hide card from totals"
+              }
+              style={({ pressed }) => [
+                styles.detailHideBtn,
+                {
+                  overflow: "hidden",
+                  backgroundColor: wallet.isHidden
+                    ? theme.leather.colors[1]
+                    : theme.card,
+                  borderColor: wallet.isHidden
+                    ? theme.leather.edge
+                    : hexToRgba(theme.leather.accent, 0.24),
+                  transform: [{ scale: pressed ? 0.985 : 1 }],
+                },
+                cardShadow(theme.dark),
+              ]}
+            >
+              {wallet.isHidden ? (
+                <DarkLeatherSurface theme={theme} radius={14} />
+              ) : (
+                <LightLeatherSurface theme={theme} radius={14} />
+              )}
+              <Icon
+                name={wallet.isHidden ? "eye" : "eye-off"}
+                size={15}
+                color={wallet.isHidden ? "#ffffff" : theme.leather.accent}
+              />
+              <Text
+                style={[
+                  styles.detailHideBtnText,
+                  { color: wallet.isHidden ? "#ffffff" : theme.ink },
+                ]}
+              >
+                {wallet.isHidden
+                  ? "Hidden from totals · Tap to unhide"
+                  : "Hide card from totals"}
+              </Text>
+            </Pressable>
+          ) : null}
 
           {/* Wallet Overview */}
           <View style={styles.walletOverviewHead}>
@@ -5180,7 +5204,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 9,
     marginTop: 14,
+    marginBottom: 10,
+  },
+  detailHideBtn: {
+    height: 42,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
     marginBottom: 20,
+  },
+  detailHideBtnText: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12,
   },
   walletOverviewHead: {
     flexDirection: "row",
