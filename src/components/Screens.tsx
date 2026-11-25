@@ -2209,11 +2209,12 @@ export const ActivityScreen = React.memo(function ActivityScreen({
     return Array.from(totals.values()).sort((a, b) => b.amount - a.amount);
   }, [activities, categoryMode]);
 
-  const spendingDonut = useMemo(() => {
+  const breakdownDonut = useMemo(() => {
+    const isIncome = categoryMode === "Income";
     const byCat = new Map<string, number>();
     let total = 0;
     for (const item of activities) {
-      if (!isExpenseActivity(item)) continue;
+      if (isIncome ? !isIncomeActivity(item) : !isExpenseActivity(item)) continue;
       const amt = Math.abs(item.amount);
       total += amt;
       const label = item.kind || "Other";
@@ -2223,14 +2224,16 @@ export const ActivityScreen = React.memo(function ActivityScreen({
     const top = sorted.slice(0, 3);
     const rest = sorted.slice(3).reduce((sum, [, v]) => sum + v, 0);
     const slices = rest > 0 ? [...top, ["Other", rest] as [string, number]] : top;
+    const baseHex = isIncome ? theme.positive : theme.leather.accent;
     const shades = [
-      theme.leather.accent,
-      hexToRgba(theme.leather.accent, 0.68),
-      hexToRgba(theme.leather.accent, 0.42),
-      hexToRgba(theme.leather.accent, 0.24),
+      baseHex,
+      hexToRgba(baseHex, 0.68),
+      hexToRgba(baseHex, 0.42),
+      hexToRgba(baseHex, 0.24),
     ];
     return {
       total,
+      isIncome,
       segments: slices.map(([label, amount], idx) => ({
         label,
         amount,
@@ -2238,7 +2241,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         color: shades[idx] ?? shades[3],
       })),
     };
-  }, [activities, theme.leather.accent]);
+  }, [activities, categoryMode, theme.leather.accent, theme.positive]);
 
   const activeBucket =
     selectedBucketIdx !== null ? chartData.bars[selectedBucketIdx] : undefined;
@@ -2360,7 +2363,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         </View>
 
         <View style={[styles.heroBalanceBlock, { marginTop: 10, gap: 2 }]}>
-          <Text style={[styles.heroHeaderLabel, { color: theme.heroMuted, opacity: 1 }]}>{mode === "overview" ? "Total spending" : "Your activity"}</Text>
+          <Text style={[styles.heroHeaderLabel, { color: theme.heroMuted, opacity: 1 }]}>{mode === "overview" ? "Total expenses" : "Your activity"}</Text>
           {mode === "overview" ? <Amount value={totalOut} hidden={hidden} size="md" color={theme.heroInk} /> : <Text style={[styles.heroHeaderTitle, { color: theme.heroInk, fontSize: 21 }]}>{activities.length} {activities.length === 1 ? "transaction" : "transactions"}</Text>}
         </View>
 
@@ -2405,7 +2408,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                       { backgroundColor: "#6ee7b7" },
                     ]}
                   />
-                  <Text style={[styles.chartLegendText, { color: theme.heroMuted, opacity: 1 }]}>Money in</Text>
+                  <Text style={[styles.chartLegendText, { color: theme.heroMuted, opacity: 1 }]}>Income</Text>
                 </View>
                 <View style={styles.chartLegendItem}>
                   <View
@@ -2414,7 +2417,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                       { backgroundColor: "rgba(255, 255, 255, 0.88)" },
                     ]}
                   />
-                  <Text style={[styles.chartLegendText, { color: theme.heroMuted, opacity: 1 }]}>Spending</Text>
+                  <Text style={[styles.chartLegendText, { color: theme.heroMuted, opacity: 1 }]}>Expense</Text>
                 </View>
               </View>
             )}
@@ -2510,28 +2513,65 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         </View>
       </View>
 
-      {/* Spending Breakdown Donut Chart */}
-      {spendingDonut.segments.length > 0 ? (
-        <View
-          style={[
-            styles.donutCard,
-            {
-              overflow: "hidden",
-              backgroundColor: theme.card,
-              borderColor: hexToRgba(theme.leather.accent, 0.24),
-            },
-            cardShadow(theme.dark),
-          ]}
-        >
-          <LightLeatherSurface theme={theme} radius={20} />
-          <View style={styles.donutHeader}>
-            <Text style={[styles.donutTitle, { color: theme.ink }]}>
-              Spending breakdown
-            </Text>
-            <Text style={[styles.donutSub, { color: theme.muted }]}>
-              Top categories
-            </Text>
+      {/* Expense / Income Breakdown Donut Chart */}
+      <View
+        style={[
+          styles.donutCard,
+          {
+            overflow: "hidden",
+            backgroundColor: theme.card,
+            borderColor: hexToRgba(theme.leather.accent, 0.24),
+          },
+          cardShadow(theme.dark),
+        ]}
+      >
+        <LightLeatherSurface theme={theme} radius={20} />
+        <View style={styles.donutHeader}>
+          <Text style={[styles.donutTitle, { color: theme.ink }]}>
+            {categoryMode} breakdown
+          </Text>
+          <View
+            style={[
+              styles.walletOverviewRangePill,
+              {
+                overflow: "hidden",
+                backgroundColor: theme.page,
+                borderColor: hexToRgba(theme.leather.accent, 0.24),
+              },
+            ]}
+          >
+            {(["Expense", "Income"] as const).map((m) => {
+              const active = categoryMode === m;
+              return (
+                <Pressable
+                  key={m}
+                  onPress={() => {
+                    setCategoryMode(m);
+                    setSelectedCategory(null);
+                    setPage(1);
+                  }}
+                  style={[
+                    styles.walletOverviewRangeChip,
+                    active && {
+                      backgroundColor:
+                        m === "Income" ? theme.positive : theme.leather.accent,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.walletOverviewRangeText,
+                      { color: active ? "#ffffff" : theme.muted },
+                    ]}
+                  >
+                    {m}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
+        </View>
+        {breakdownDonut.segments.length > 0 ? (
           <View style={styles.donutRow}>
             <View style={styles.donutRingWrap}>
               {(() => {
@@ -2546,14 +2586,19 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                       cx={size / 2}
                       cy={size / 2}
                       r={r}
-                      stroke={hexToRgba(theme.leather.accent, 0.12)}
+                      stroke={hexToRgba(
+                        breakdownDonut.isIncome
+                          ? theme.positive
+                          : theme.leather.accent,
+                        0.12
+                      )}
                       strokeWidth={stroke}
                       fill="none"
                     />
-                    {spendingDonut.segments.map((seg) => {
+                    {breakdownDonut.segments.map((seg) => {
                       const len =
-                        spendingDonut.total > 0
-                          ? (seg.amount / spendingDonut.total) * c
+                        breakdownDonut.total > 0
+                          ? (seg.amount / breakdownDonut.total) * c
                           : 0;
                       const dashOffset = -offsetAcc;
                       offsetAcc += len;
@@ -2579,19 +2624,19 @@ export const ActivityScreen = React.memo(function ActivityScreen({
               })()}
               <View style={styles.donutCenter}>
                 <Text style={[styles.donutCenterLabel, { color: theme.muted }]}>
-                  Spent
+                  {categoryMode}
                 </Text>
                 <Text
                   style={[styles.donutCenterVal, { color: theme.ink }]}
                   numberOfLines={1}
                 >
-                  {hidden ? "••••" : money(spendingDonut.total, true)}
+                  {hidden ? "••••" : money(breakdownDonut.total, true)}
                 </Text>
               </View>
             </View>
 
             <View style={styles.donutLegend}>
-              {spendingDonut.segments.map((seg) => (
+              {breakdownDonut.segments.map((seg) => (
                 <View key={seg.label} style={styles.donutLegendRow}>
                   <View
                     style={[styles.donutDot, { backgroundColor: seg.color }]}
@@ -2612,8 +2657,12 @@ export const ActivityScreen = React.memo(function ActivityScreen({
               ))}
             </View>
           </View>
-        </View>
-      ) : null}
+        ) : (
+          <Text style={[styles.donutSub, { color: theme.muted }]}>
+            No {categoryMode.toLowerCase()} transactions recorded yet.
+          </Text>
+        )}
+      </View>
 
       {/* Monthly Spending Budget Target Card */}
       {onEditBudget ? (
@@ -2752,7 +2801,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
       <CategoryBudgetOverview limits={categoryLimits} spending={monthSpending} hidden={hidden}
         theme={theme} onOpen={onOpenCategoryBudget} />
 
-      {/* Stitched Categories Horizontal Cards */}
+      {/* Stitched Categories Responsive Flex Grid */}
       <SectionTitle
         title="Categories"
         action={categoryMode}
@@ -2764,86 +2813,89 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         }}
         theme={theme}
       />
-      <View style={{ position: "relative", marginHorizontal: -18 }}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.categoryScroll,
-            { paddingHorizontal: 18 },
-          ]}
-        >
-          {categoryCards.map(({ icon, label, amount }) => {
-            const active = selectedCategory === label;
-            return (
-              <Pressable
-                key={label}
-                onPress={() => {
-                  if (onCategorySelect) onCategorySelect(label);
-                  else {
-                    setSelectedCategory(active ? null : label);
-                    setPage(1);
-                  }
-                }}
-                style={({ pressed }) => [
-                  styles.stitchedCategoryCard,
-                  {
-                    overflow: "hidden",
-                    backgroundColor: active
-                      ? theme.leather.colors[1]
-                      : theme.card,
-                    borderColor: active
-                      ? theme.leather.edge
-                      : hexToRgba(theme.leather.accent, 0.22),
-                    transform: [{ scale: pressed ? 0.97 : 1 }],
-                  },
-                  cardShadow(theme.dark),
-                ]}
-              >
-                {active ? (
-                  <DarkLeatherSurface theme={theme} radius={18} />
-                ) : (
-                  <LightLeatherSurface theme={theme} radius={18} />
-                )}
+      <View style={styles.categoriesGrid}>
+        {categoryCards.map(({ icon, label, amount }) => {
+          const active = selectedCategory === label;
+          const sharePct =
+            breakdownDonut.total > 0
+              ? Math.round((amount / breakdownDonut.total) * 100)
+              : 0;
+          return (
+            <Pressable
+              key={label}
+              onPress={() => {
+                if (onCategorySelect) onCategorySelect(label);
+                else {
+                  setSelectedCategory(active ? null : label);
+                  setPage(1);
+                }
+              }}
+              style={({ pressed }) => [
+                styles.stitchedCategoryGridCard,
+                {
+                  overflow: "hidden",
+                  backgroundColor: active
+                    ? theme.leather.colors[1]
+                    : theme.card,
+                  borderColor: active
+                    ? theme.leather.edge
+                    : hexToRgba(theme.leather.accent, 0.22),
+                  transform: [{ scale: pressed ? 0.97 : 1 }],
+                },
+                cardShadow(theme.dark),
+              ]}
+            >
+              {active ? (
+                <DarkLeatherSurface theme={theme} radius={18} />
+              ) : (
+                <LightLeatherSurface theme={theme} radius={18} />
+              )}
+              <View style={styles.stitchedCategoryTop}>
                 <Icon
                   name={icon}
-                  size={20}
-                  color={active ? "#ffffff" : theme.leather.accent}
+                  size={18}
+                  color={
+                    active
+                      ? "#ffffff"
+                      : categoryMode === "Income"
+                        ? theme.positive
+                        : theme.leather.accent
+                  }
                 />
-                <View style={{ gap: 2 }}>
+                {sharePct > 0 ? (
                   <Text
                     style={[
-                      styles.categoryLabel,
+                      styles.stitchedCategoryPct,
                       { color: active ? theme.heroMuted : theme.muted },
                     ]}
-                    numberOfLines={1}
                   >
-                    {label}
+                    {sharePct}%
                   </Text>
-                  <Text
-                    style={[
-                      styles.categoryAmount,
-                      { color: active ? "#ffffff" : theme.ink },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {hidden ? "••••" : money(amount)}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-        <EdgeFade
-          position="left"
-          color={theme.page}
-          size={18}
-        />
-        <EdgeFade
-          position="right"
-          color={theme.page}
-          size={18}
-        />
+                ) : null}
+              </View>
+              <View style={{ gap: 2 }}>
+                <Text
+                  style={[
+                    styles.categoryLabel,
+                    { color: active ? theme.heroMuted : theme.muted },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {label}
+                </Text>
+                <Text
+                  style={[
+                    styles.categoryAmount,
+                    { color: active ? "#ffffff" : theme.ink },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {hidden ? "••••" : money(amount)}
+                </Text>
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
 
       </> : null}
@@ -5265,13 +5317,30 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 12,
   },
-  stitchedCategoryCard: {
-    width: 124,
-    height: 102,
+  categoriesGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  stitchedCategoryGridCard: {
+    flexBasis: "47.5%",
+    flexGrow: 1,
+    minWidth: 145,
+    height: 98,
     borderRadius: 18,
     borderWidth: 1,
     padding: 13,
     justifyContent: "space-between",
+  },
+  stitchedCategoryTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  stitchedCategoryPct: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 11,
   },
   chartTabLegend: {
     position: "absolute",
