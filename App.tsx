@@ -1314,6 +1314,13 @@ export default function App() {
                       onToggleBiometrics={handleToggleBiometrics}
                       onOpenAuth={handleOpenAuthSheet}
                       onSyncNow={handleSyncNow}
+                      monthlyBudget={monthlyBudget}
+                      walletCount={wallets.length}
+                      activityCount={activityItems.length}
+                      scheduleCount={schedules.length}
+                      onOpenBudget={handleOpenBudgetSheet}
+                      onOpenCategoryBudgets={() => handleOpenCategoryBudget(null)}
+                      onOpenSchedules={() => openSheet("schedule")}
                       onHeroHeight={handleSettingsHeroHeight}
                       theme={theme}
                     />

@@ -3356,6 +3356,13 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   onToggleBiometrics,
   onOpenAuth,
   onSyncNow,
+  monthlyBudget = null,
+  walletCount = 0,
+  activityCount = 0,
+  scheduleCount = 0,
+  onOpenBudget,
+  onOpenCategoryBudgets,
+  onOpenSchedules,
   onHeroHeight,
   theme,
 }: {
@@ -3375,6 +3382,13 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   onToggleBiometrics: () => void;
   onOpenAuth: () => void;
   onSyncNow: () => void;
+  monthlyBudget?: number | null;
+  walletCount?: number;
+  activityCount?: number;
+  scheduleCount?: number;
+  onOpenBudget?: () => void;
+  onOpenCategoryBudgets?: () => void;
+  onOpenSchedules?: () => void;
   onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
 }) {
@@ -3384,8 +3398,9 @@ export const SettingsScreen = React.memo(function SettingsScreen({
     <View style={[styles.page, { paddingTop: 0 }]}>
       <HeroHeaderSurface
         theme={theme}
+        compact
         onHeight={onHeroHeight}
-        style={{ marginBottom: 20 }}
+        style={{ marginBottom: 16 }}
       >
         <View style={styles.heroTopRow}>
           <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>Settings</Text>
@@ -3395,7 +3410,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
           onPress={onOpenAuth}
           style={({ pressed }) => [
             styles.settingsHeroProfileRow,
-            { opacity: pressed ? 0.85 : 1 },
+            { marginTop: 12, opacity: pressed ? 0.85 : 1 },
           ]}
         >
           <View style={[styles.profileCardAvatar, { backgroundColor: theme.heroControl }]}>
@@ -3407,8 +3422,8 @@ export const SettingsScreen = React.memo(function SettingsScreen({
             </Text>
             <Text style={[styles.profileCardSub, { color: theme.heroMuted, opacity: 1 }]} numberOfLines={1}>
               {userEmail
-                ? `${userEmail} · Cloud Synced`
-                : "Offline-first wallet profile · Tap to sign in"}
+                ? `${userEmail} · Synced`
+                : "Local profile · Sign in to sync"}
             </Text>
           </View>
           <Icon name="chevron" size={18} color={theme.heroInk} />
@@ -3417,12 +3432,20 @@ export const SettingsScreen = React.memo(function SettingsScreen({
 
       {/* Appearance Group */}
       <SettingsGroup title="Appearance" theme={theme}>
-        <View style={[styles.accentPickerBlock, { borderBottomWidth: 1, borderBottomColor: theme.line }]}>
+        <View
+          style={[
+            styles.accentPickerBlock,
+            {
+              borderBottomWidth: 1,
+              borderBottomColor: hexToRgba(theme.leather.accent, 0.14),
+            },
+          ]}
+        >
           <View style={styles.accentPickerHeader}>
-            <LinearGradient colors={theme.accentGradient} style={styles.settingIconBox}><Icon name="palette" size={18} color={theme.accentInk} /></LinearGradient>
+            <Icon name="palette" size={19} color={theme.leather.accent} />
             <View style={styles.rowMain}>
               <Text style={[styles.rowTitle, { color: theme.ink }]}>Leather finish</Text>
-              <Text style={[styles.rowSub, { color: theme.muted }]}>Wallet, header, and app accents</Text>
+              <Text style={[styles.rowSub, { color: theme.muted }]}>Wallet and app theme</Text>
             </View>
           </View>
           <View style={styles.accentGrid}>
@@ -3454,7 +3477,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
         <SettingRow
           icon="eye"
           title="Hide balances"
-          subtitle="Mask money across screens"
+          subtitle="Mask amounts across screens"
           onPress={() => setHidden(!hidden)}
           control={
             <SwitchControl
@@ -3468,6 +3491,46 @@ export const SettingsScreen = React.memo(function SettingsScreen({
         />
       </SettingsGroup>
 
+      {/* Planning Group */}
+      <SettingsGroup title="Planning" theme={theme}>
+        {onOpenBudget ? (
+          <SettingRow
+            icon="trend"
+            title="Monthly budget"
+            subtitle={
+              monthlyBudget && monthlyBudget > 0
+                ? `${hidden ? "••••" : money(monthlyBudget)} per month`
+                : "Not set"
+            }
+            onPress={onOpenBudget}
+            theme={theme}
+          />
+        ) : null}
+        {onOpenCategoryBudgets ? (
+          <SettingRow
+            icon="tag"
+            title="Category budgets"
+            subtitle="Monthly spending limits"
+            onPress={onOpenCategoryBudgets}
+            theme={theme}
+          />
+        ) : null}
+        {onOpenSchedules ? (
+          <SettingRow
+            icon="clock"
+            title="Bills & paydays"
+            subtitle={
+              scheduleCount > 0
+                ? `${scheduleCount} ${scheduleCount === 1 ? "schedule" : "schedules"} active`
+                : "No schedules yet"
+            }
+            onPress={onOpenSchedules}
+            isLast
+            theme={theme}
+          />
+        ) : null}
+      </SettingsGroup>
+
       {/* Security Group */}
       <SettingsGroup title="Security" theme={theme}>
         <SettingRow
@@ -3475,7 +3538,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
           title="App lock"
           subtitle={
             appLockEnabled
-              ? "4-digit PIN active on launch & resume"
+              ? "4-digit PIN enabled"
               : "Protect with a 4-digit PIN"
           }
           onPress={onToggleAppLock}
@@ -3486,14 +3549,16 @@ export const SettingsScreen = React.memo(function SettingsScreen({
               theme={theme}
             />
           }
+          isLast={!appLockEnabled}
           theme={theme}
         />
         {appLockEnabled ? (
           <SettingRow
             icon="edit"
             title="Change PIN"
-            subtitle="Update your 4-digit passcode"
+            subtitle="Update 4-digit PIN"
             onPress={onChangeAppLockPin}
+            isLast={!biometricsSupported}
             theme={theme}
           />
         ) : null}
@@ -3514,36 +3579,36 @@ export const SettingsScreen = React.memo(function SettingsScreen({
                 theme={theme}
               />
             }
+            isLast
             theme={theme}
           />
         ) : null}
-        <SettingRow
-          icon="shield"
-          title="Privacy"
-          subtitle="Stored privately in SQLite & Supabase RLS"
-          onPress={() => showToast("Your data stays protected with RLS")}
-          isLast
-          theme={theme}
-        />
       </SettingsGroup>
 
-      {/* Sync & Data Group */}
-      <SettingsGroup title="Sync & data" theme={theme}>
+      {/* Data & Sync Group */}
+      <SettingsGroup title="Data & sync" theme={theme}>
         <SettingRow
           icon="cloud"
-          title="Backup & sync"
+          title="Cloud backup"
           subtitle={
             userEmail
-              ? `Supabase synced · ${lastSyncedAt || "Just now"}`
-              : "Saved in local SQLite · Tap to sync with Supabase"
+              ? `Last synced ${lastSyncedAt || "just now"}`
+              : "Local only · Sign in to sync"
           }
           onPress={userEmail ? onSyncNow : onOpenAuth}
           theme={theme}
         />
         <SettingRow
+          icon="wallet"
+          title="Stored data"
+          subtitle={`${walletCount} ${walletCount === 1 ? "wallet" : "wallets"} · ${activityCount} ${activityCount === 1 ? "transaction" : "transactions"}`}
+          onPress={() => showToast("All data saved locally on device")}
+          theme={theme}
+        />
+        <SettingRow
           icon="info"
-          title="About My Wallet"
-          subtitle="Version 1.0 · Expo + SQLite + Supabase"
+          title="About Pitaka"
+          subtitle="Version 1.0"
           onPress={() => showToast("You have the latest version")}
           isLast
           theme={theme}
@@ -3572,13 +3637,14 @@ function SettingsGroup({
           styles.settingsGroupBox,
           {
             backgroundColor: theme.card,
+            borderWidth: 1,
+            borderColor: hexToRgba(theme.leather.accent, 0.24),
             overflow: "hidden",
           },
-          bevelStyle(theme.dark),
           cardShadow(theme.dark),
         ]}
       >
-        <AccentSurfaceGlow theme={theme} />
+        <LightLeatherSurface theme={theme} radius={20} />
         {children}
       </View>
     </View>
@@ -3605,22 +3671,18 @@ function SettingRow({
   return (
     <Pressable
       onPress={onPress}
-      style={[
+      style={({ pressed }) => [
         styles.settingRow,
         !isLast && {
           borderBottomWidth: 1,
-          borderBottomColor: theme.line,
+          borderBottomColor: hexToRgba(theme.leather.accent, 0.14),
         },
+        pressed && onPress
+          ? { backgroundColor: hexToRgba(theme.leather.accent, 0.05) }
+          : null,
       ]}
     >
-      <LinearGradient
-        colors={theme.accentGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.settingIconBox}
-      >
-        <Icon name={icon} size={18} color={theme.accentInk} />
-      </LinearGradient>
+      <Icon name={icon} size={19} color={theme.leather.accent} />
       <View style={styles.rowMain}>
         <Text style={[styles.rowTitle, { color: theme.ink }]}>{title}</Text>
         <Text style={[styles.rowSub, { color: theme.muted }]}>{subtitle}</Text>
