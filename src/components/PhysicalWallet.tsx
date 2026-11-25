@@ -880,24 +880,20 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
   walletFlows?: Record<number, { earned: number; spent: number }>;
   theme: ThemeColors;
   onWallet: (wallet: Wallet) => void;
-  onOpenMenu: (wallet: Wallet) => void;
+  onOpenMenu?: (wallet: Wallet) => void;
   onOpenAdd?: () => void;
 }) {
   const effectiveOpen = collapsible ? isOpen : true;
   const maskPocketAmounts = hidden || (collapsible && !effectiveOpen);
   const { width: windowWidth } = useWindowDimensions();
   const [scale, setScale] = useState(() => getWalletScale(windowWidth));
-  const [busy, setBusy] = useState(false);
-  const [activeId, setActiveId] = useState<Wallet["id"] | null>(null);
-  const [liftedId, setLiftedId] = useState<Wallet["id"] | null>(null);
 
   const openAnim = useRef(new Animated.Value(effectiveOpen ? 1 : 0)).current;
-  const lift = useRef(new Animated.Value(0)).current;
-  const running = useRef<Animated.CompositeAnimation | null>(null);
   const openAnimRunning = useRef<Animated.CompositeAnimation | null>(null);
-  const moving = useRef(false);
   const mounted = useRef(false);
   const reduceMotion = useRef(false);
+  void onOpenMenu;
+  void walletFlows;
 
   useEffect(() => {
     mounted.current = true;
@@ -914,7 +910,6 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
     );
     return () => {
       mounted.current = false;
-      running.current?.stop();
       openAnimRunning.current?.stop();
       subscription.remove();
     };
@@ -938,72 +933,12 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
     });
   }, [effectiveOpen, openAnim]);
 
-  const liftedWallet = effectiveOpen
-    ? wallets.find((wallet) => wallet.id === liftedId)
-    : undefined;
-
-  const play = useCallback(
-    (toValue: number, duration: number) => {
-      if (reduceMotion.current) {
-        lift.setValue(toValue);
-        return Promise.resolve(true);
-      }
-      return new Promise<boolean>((resolve) => {
-        const animation = Animated.timing(lift, {
-          toValue,
-          duration,
-          easing: toValue === 1 ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
-          useNativeDriver: Platform.OS !== "web",
-        });
-        running.current = animation;
-        animation.start(({ finished }) => {
-          running.current = null;
-          resolve(finished);
-        });
-      });
-    },
-    [lift],
-  );
-
-  const move = useCallback(async (action: () => Promise<void>) => {
-    if (moving.current) return;
-    moving.current = true;
-    setBusy(true);
-    try {
-      await action();
-    } finally {
-      moving.current = false;
-      if (mounted.current) setBusy(false);
-    }
-  }, []);
-
-  const pull = useCallback(
+  const handleCardPress = useCallback(
     (wallet: Wallet) => {
       if (!effectiveOpen) return;
-      void move(async () => {
-        if (liftedId !== null && !(await play(0, 260))) return;
-        if (liftedId === wallet.id) {
-          setLiftedId(null);
-          return;
-        }
-        setActiveId(wallet.id);
-        setLiftedId(wallet.id);
-        await play(1, 400);
-      });
+      onWallet(wallet);
     },
-    [effectiveOpen, liftedId, move, play],
-  );
-
-  const handleFocusOpen = useCallback(
-    (wallet: Wallet) => {
-      void move(async () => {
-        if (await play(0, 260)) {
-          setLiftedId(null);
-          onWallet(wallet);
-        }
-      });
-    },
-    [move, onWallet, play],
+    [effectiveOpen, onWallet],
   );
 
   const extraY = Math.max(0, wallets.length - VISIBLE_CARDS) * CARD_STEP;
@@ -1046,9 +981,6 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
       },
     ],
   };
-
-  const activeIndex = wallets.findIndex((w) => w.id === activeId);
-  void activeIndex;
 
   return (
     <Animated.View
@@ -1146,24 +1078,18 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
         ) : null}
 
         <View
-          pointerEvents={effectiveOpen && !busy ? "box-none" : "none"}
+          pointerEvents={effectiveOpen ? "box-none" : "none"}
           accessibilityElementsHidden={!effectiveOpen}
           importantForAccessibility={effectiveOpen ? "auto" : "no-hide-descendants"}
           style={[styles.bay, { height: bottomY }]}
         >
           {wallets.map((wallet, slot) => {
             const restY = (200 + extraY - (wallets.length - 1 - slot) * CARD_STEP) * scale;
-            const lifted = wallet.id === liftedId;
-            const translateY = lifted
-              ? lift.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [restY, TARGET_Y * scale],
-                })
-              : openAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [stowedY, restY],
-                  extrapolate: "clamp",
-                });
+            const translateY = openAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [stowedY, restY],
+              extrapolate: "clamp",
+            });
             return (
               <Animated.View
                 key={wallet.id}
@@ -1172,20 +1098,19 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
                   styles.card,
                   {
                     height: CARD_HEIGHT * scale,
-                    opacity: lifted ? 0 : 1,
                     transform: [{ translateY }],
-                    zIndex: lifted ? wallets.length + 1 : slot + 1,
+                    zIndex: slot + 1,
                   },
                 ]}
               >
                 <AccountCard
                   wallet={wallet}
                   hidden={hidden}
-                  lifted={lifted}
-                  disabled={busy}
+                  lifted={false}
+                  disabled={!effectiveOpen}
                   tabHeight={CARD_STEP * scale}
                   cardHeight={CARD_HEIGHT * scale}
-                  onSelect={pull}
+                  onSelect={handleCardPress}
                 />
               </Animated.View>
             );
@@ -1246,7 +1171,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
 
         {onOpenAdd ? (
           <Animated.View
-            pointerEvents={effectiveOpen && !busy ? "box-none" : "none"}
+            pointerEvents={effectiveOpen ? "box-none" : "none"}
             accessibilityElementsHidden={!effectiveOpen}
             importantForAccessibility={effectiveOpen ? "auto" : "no-hide-descendants"}
             style={[
@@ -1265,7 +1190,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Add new ${groupLabel} card`}
-              disabled={!effectiveOpen || busy}
+              disabled={!effectiveOpen}
               onPress={onOpenAdd}
               hitSlop={8}
               style={({ pressed }) => [
@@ -1317,42 +1242,6 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
           </Animated.View>
         ) : null}
       </Animated.View>
-
-      <Modal transparent visible={!!liftedWallet} animationType="none" statusBarTranslucent onRequestClose={() => liftedWallet && pull(liftedWallet)}>
-        {liftedWallet && (
-          <View style={styles.focusOverlay} accessibilityViewIsModal>
-            <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: "#000000", opacity: lift.interpolate({ inputRange: [0, 1], outputRange: [0, 0.7] }) }]} />
-            <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel="Close selected card" onPress={() => pull(liftedWallet)} />
-            <Animated.View style={[styles.focusCard, { opacity: lift, transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [65, 0] }) }, { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}>
-              <AccountCard
-                wallet={liftedWallet}
-                hidden={hidden}
-                lifted
-                focused
-                disabled={busy}
-                tabHeight={38}
-                cardHeight={190}
-                monthLabel={monthlySummary.monthShortLabel || monthlySummary.monthLabel.slice(0, 3)}
-                flow={walletFlows?.[liftedWallet.id]}
-                onSelect={handleFocusOpen}
-              />
-              <Pressable accessibilityRole="button" accessibilityLabel={"Update " + liftedWallet.name} disabled={busy} style={styles.focusMenu} onPress={() => { const wallet = liftedWallet; void move(async () => { if (await play(0, 260)) { setLiftedId(null); onOpenMenu(wallet); } }); }}>
-                <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
-                  <Defs>
-                    <LinearGradient id="updateLeatherGroup" x1="0%" y1="0%" x2="100%" y2="100%"><Stop offset="0" stopColor={theme.leather.colors[1]} /><Stop offset="0.55" stopColor={theme.leather.colors[1]} /><Stop offset="1" stopColor={theme.leather.colors[2]} /></LinearGradient>
-                    <Pattern id="updateGrainGroup" width={6} height={6} patternUnits="userSpaceOnUse"><Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth="0.7" opacity="0.45" /><Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke="#a2b0bd" strokeWidth="0.65" opacity="0.26" /></Pattern>
-                  </Defs>
-                  <Rect x="1" y="1" width="98%" height="96%" rx="16" fill="url(#updateLeatherGroup)" stroke={theme.leather.edge} strokeWidth="1.5" />
-                  <Rect x="1" y="1" width="98%" height="96%" rx="16" fill="url(#updateGrainGroup)" />
-                  <Rect x="5" y="5" width="90%" height="76%" rx="12" fill="none" stroke={theme.leather.thread} strokeWidth="1" strokeDasharray="3.5 3" opacity="0.82" />
-                </Svg>
-                <Icon name="edit" size={14} color="#ffffff" />
-                <Text style={styles.focusMenuText}>Update</Text>
-              </Pressable>
-            </Animated.View>
-          </View>
-        )}
-      </Modal>
     </Animated.View>
   );
 });
