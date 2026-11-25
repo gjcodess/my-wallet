@@ -6,7 +6,13 @@ import { EXPENSE_CATEGORIES, getActivityDate, money } from "../types/wallet";
 import type { ActivityItem } from "../types/wallet";
 import { AmountKeypad, formatAmountInput } from "./AmountKeypad";
 import { Icon } from "./Icon";
-import { SectionTitle, TxRow } from "./SharedUI";
+import {
+  cardShadow,
+  hexToRgba,
+  LightLeatherSurface,
+  SectionTitle,
+  TxRow,
+} from "./SharedUI";
 import type { ThemeColors } from "./SharedUI";
 
 type BudgetProps = {
@@ -55,11 +61,21 @@ export function CategoryBudgetOverview({ limits, spending, hidden, theme, onOpen
       <SectionTitle title="Category budgets" action={configured.length ? "Manage" : "Add limit"}
         actionIcon={configured.length ? "chevron" : "plus"} actionColor={theme.accentText}
         onPress={() => onOpen(null)} theme={theme} />
-      <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.line }]}>
+      <View
+        style={[
+          styles.panel,
+          {
+            backgroundColor: theme.card,
+            borderColor: hexToRgba(theme.leather.accent, 0.24),
+          },
+          cardShadow(theme.dark),
+        ]}
+      >
+        <LightLeatherSurface theme={theme} radius={18} />
         {configured.length ? configured.map(([category, icon], index) => (
           <Pressable key={category} accessibilityRole="button" accessibilityHint="Shows the expenses counted toward this budget"
             onPress={() => onOpen(category)} style={({ pressed }) => [styles.entry,
-              { backgroundColor: pressed ? theme.soft : theme.card, borderTopColor: theme.line },
+              { backgroundColor: pressed ? hexToRgba(theme.leather.accent, 0.06) : "transparent", borderTopColor: hexToRgba(theme.leather.accent, 0.14) },
               index > 0 && styles.separator]}>
             <View style={styles.entryHeading}>
               <Icon name={icon} size={17} color={theme.accentText} />

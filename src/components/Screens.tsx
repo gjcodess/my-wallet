@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, {
+  Circle as SvgCircle,
   Defs,
   Image as SvgImage,
   LinearGradient as SvgLinearGradient,
@@ -2208,6 +2209,37 @@ export const ActivityScreen = React.memo(function ActivityScreen({
     return Array.from(totals.values()).sort((a, b) => b.amount - a.amount);
   }, [activities, categoryMode]);
 
+  const spendingDonut = useMemo(() => {
+    const byCat = new Map<string, number>();
+    let total = 0;
+    for (const item of activities) {
+      if (!isExpenseActivity(item)) continue;
+      const amt = Math.abs(item.amount);
+      total += amt;
+      const label = item.kind || "Other";
+      byCat.set(label, (byCat.get(label) ?? 0) + amt);
+    }
+    const sorted = Array.from(byCat.entries()).sort((a, b) => b[1] - a[1]);
+    const top = sorted.slice(0, 3);
+    const rest = sorted.slice(3).reduce((sum, [, v]) => sum + v, 0);
+    const slices = rest > 0 ? [...top, ["Other", rest] as [string, number]] : top;
+    const shades = [
+      theme.leather.accent,
+      hexToRgba(theme.leather.accent, 0.68),
+      hexToRgba(theme.leather.accent, 0.42),
+      hexToRgba(theme.leather.accent, 0.24),
+    ];
+    return {
+      total,
+      segments: slices.map(([label, amount], idx) => ({
+        label,
+        amount,
+        pct: total > 0 ? Math.round((amount / total) * 100) : 0,
+        color: shades[idx] ?? shades[3],
+      })),
+    };
+  }, [activities, theme.leather.accent]);
+
   const activeBucket =
     selectedBucketIdx !== null ? chartData.bars[selectedBucketIdx] : undefined;
   const hasFilter =
@@ -2273,7 +2305,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
     <View style={[styles.page, { paddingTop: 0 }]}>
       <HeroHeaderSurface
         theme={theme}
-        compact={mode === "transactions"}
+        compact
         onHeight={onHeroHeight}
         style={{ marginBottom: 14 }}
       >
@@ -2327,213 +2359,261 @@ export const ActivityScreen = React.memo(function ActivityScreen({
           </View>
         </View>
 
-        <View
-          style={[
-            styles.heroBalanceBlock,
-            mode === "transactions" && { marginTop: 10, gap: 2 },
-          ]}
-        >
+        <View style={[styles.heroBalanceBlock, { marginTop: 10, gap: 2 }]}>
           <Text style={[styles.heroHeaderLabel, { color: theme.heroMuted, opacity: 1 }]}>{mode === "overview" ? "Total spending" : "Your activity"}</Text>
-          {mode === "overview" ? <Amount value={totalOut} hidden={hidden} size="lg" color={theme.heroInk} /> : <Text style={[styles.heroHeaderTitle, { color: theme.heroInk, fontSize: 21 }]}>{activities.length} {activities.length === 1 ? "transaction" : "transactions"}</Text>}
+          {mode === "overview" ? <Amount value={totalOut} hidden={hidden} size="md" color={theme.heroInk} /> : <Text style={[styles.heroHeaderTitle, { color: theme.heroInk, fontSize: 21 }]}>{activities.length} {activities.length === 1 ? "transaction" : "transactions"}</Text>}
         </View>
 
-        {mode === "transactions" ? (
-          <HeroMonthlyFlowRow
-            theme={theme}
-            monthLabel={activityMonthFlow.label}
-            earned={activityMonthFlow.earned}
-            spent={activityMonthFlow.spent}
-            hidden={hidden}
-            compact
-          />
-        ) : null}
+        <HeroMonthlyFlowRow
+          theme={theme}
+          monthLabel={activityMonthFlow.label}
+          earned={activityMonthFlow.earned}
+          spent={activityMonthFlow.spent}
+          hidden={hidden}
+          compact
+        />
       </HeroHeaderSurface>
 
       {mode === "overview" ? <>
-      {/* Navy Folder Chart */}
-      <View style={{ marginTop: 14 }}>
-        <FolderSurface
-          tab={0.62}
-          tabHeight={42}
-          radius={28}
-          notch
-          fromColor={theme.heroGradient[0]}
-          toColor={theme.heroGradient[2]}
-          minHeight={232}
-        >
-          {({ notchX, notchHeight }) => (
-            <View style={{ minHeight: 232 }}>
-              {/* Chart Legend / Selected Bucket Summary in Folder Tab */}
-              <View style={[styles.chartTabLegend, { height: 42 }]}>
-                {activeBucket ? (
-                  <Text style={[styles.chartTabSummary, { color: theme.heroInk }]} numberOfLines={1}>
-                    {activeBucket.label}: +
-                    {hidden ? "••" : money(activeBucket.income, true)} / -
-                    {hidden ? "••" : money(activeBucket.expense, true)}
-                  </Text>
-                ) : (
-                  <View style={styles.chartLegendPills}>
-                    <View style={styles.chartLegendItem}>
-                      <View
-                        style={[
-                          styles.chartLegendDot,
-                          { backgroundColor: theme.positive },
-                        ]}
-                      />
-                      <Text style={[styles.chartLegendText, { color: theme.heroMuted, opacity: 1 }]}>Money in</Text>
-                    </View>
-                    <View style={styles.chartLegendItem}>
-                      <View
-                        style={[
-                          styles.chartLegendDot,
-                          { backgroundColor: theme.dark ? theme.accent : theme.accentText },
-                        ]}
-                      />
-                      <Text style={[styles.chartLegendText, { color: theme.heroMuted, opacity: 1 }]}>Spending</Text>
-                    </View>
-                  </View>
-                )}
+      {/* Stitched Dark Leather Cashflow Chart */}
+      <View
+        style={[
+          styles.overviewChartCard,
+          {
+            overflow: "hidden",
+            backgroundColor: theme.leather.colors[1],
+            borderColor: theme.leather.edge,
+          },
+          cardShadow(theme.dark),
+        ]}
+      >
+        <DarkLeatherSurface theme={theme} radius={22} />
+        <View style={styles.overviewChartHeader}>
+          <View style={{ flex: 1 }}>
+            {activeBucket ? (
+              <Text style={[styles.chartTabSummary, { color: "#ffffff" }]} numberOfLines={1}>
+                {activeBucket.label}: +
+                {hidden ? "••" : money(activeBucket.income, true)} / -
+                {hidden ? "••" : money(activeBucket.expense, true)}
+              </Text>
+            ) : (
+              <View style={styles.chartLegendPills}>
+                <View style={styles.chartLegendItem}>
+                  <View
+                    style={[
+                      styles.chartLegendDot,
+                      { backgroundColor: "#6ee7b7" },
+                    ]}
+                  />
+                  <Text style={[styles.chartLegendText, { color: theme.heroMuted, opacity: 1 }]}>Money in</Text>
+                </View>
+                <View style={styles.chartLegendItem}>
+                  <View
+                    style={[
+                      styles.chartLegendDot,
+                      { backgroundColor: "rgba(255, 255, 255, 0.88)" },
+                    ]}
+                  />
+                  <Text style={[styles.chartLegendText, { color: theme.heroMuted, opacity: 1 }]}>Spending</Text>
+                </View>
               </View>
+            )}
+          </View>
+          <Pressable
+            onPress={() => {
+              setSelectedBucketIdx(null);
+              setRange(range === "Month" ? "Week" : "Month");
+            }}
+            style={({ pressed }) => [
+              styles.overviewRangeChip,
+              {
+                backgroundColor: "rgba(255, 255, 255, 0.12)",
+                borderColor: "rgba(255, 255, 255, 0.18)",
+                opacity: pressed ? 0.78 : 1,
+              },
+            ]}
+          >
+            <Text style={[styles.rangePillText, { color: "#ffffff" }]}>{range}</Text>
+            <Icon name="down" size={12} color="rgba(255, 255, 255, 0.85)" />
+          </Pressable>
+        </View>
 
-              <Pressable
-                onPress={() => {
-                  setSelectedBucketIdx(null);
-                  setRange(range === "Month" ? "Week" : "Month");
-                }}
+        {/* Chart Grid & Bars */}
+        <View style={[styles.chartBody, { marginTop: 10 }]}>
+          <View style={styles.chartGrid}>
+            {chartData.gridLabels.map((lvl, idx) => (
+              <View
+                key={`${idx}-${lvl}`}
                 style={[
-                  styles.rangePill,
-                  { left: notchX, height: notchHeight },
+                  styles.chartGridLine,
+                  { borderBottomColor: "rgba(255, 255, 255, 0.1)" },
                 ]}
               >
-                <Text style={[styles.rangePillText, { color: theme.heroInk }]}>{range}</Text>
-                <Icon name="down" size={13} color={theme.heroInk} />
-              </Pressable>
+                <Text style={[styles.chartGridText, { color: theme.heroMuted, opacity: 1 }]}>{lvl}</Text>
+              </View>
+            ))}
+          </View>
 
-              {/* Chart Grid & Bars */}
-              <View style={styles.chartBody}>
-                <View style={styles.chartGrid}>
-                  {chartData.gridLabels.map((lvl, idx) => (
-                    <View
-                      key={`${idx}-${lvl}`}
-                      style={[styles.chartGridLine, !theme.dark && { borderBottomColor: theme.heroLine }]}
-                    >
-                      <Text style={[styles.chartGridText, { color: theme.heroMuted, opacity: 1 }]}>{lvl}</Text>
-                    </View>
-                  ))}
-                </View>
+          <View style={styles.barsContainer}>
+            {chartData.bars.map((b, i) => {
+              const isSelected = selectedBucketIdx === i;
+              return (
+                <Pressable
+                  key={b.key}
+                  onPress={() =>
+                    setSelectedBucketIdx(isSelected ? null : i)
+                  }
+                  style={[
+                    styles.barGroup,
+                    isSelected && styles.barGroupActive,
+                  ]}
+                >
+                  <View style={styles.barPair}>
+                    <Animated.View
+                      style={[
+                        styles.bar,
+                        {
+                          height: barProgress.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ["0%", `${b.inPct}%`],
+                          }),
+                          backgroundColor: "#6ee7b7",
+                        },
+                      ]}
+                    />
+                    <Animated.View
+                      style={[
+                        styles.bar,
+                        {
+                          height: barProgress.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ["0%", `${b.outPct}%`],
+                          }),
+                          backgroundColor: "rgba(255, 255, 255, 0.88)",
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.barLabel,
+                      { color: theme.heroMuted },
+                      isSelected && { color: "#ffffff", fontWeight: "800" },
+                    ]}
+                  >
+                    {b.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      </View>
 
-                <View style={styles.barsContainer}>
-                  {chartData.bars.map((b, i) => {
-                    const isSelected = selectedBucketIdx === i;
-                    return (
-                      <Pressable
-                        key={b.key}
-                        onPress={() =>
-                          setSelectedBucketIdx(isSelected ? null : i)
-                        }
-                        style={[
-                          styles.barGroup,
-                          isSelected && styles.barGroupActive,
-                        ]}
-                      >
-                        <View style={styles.barPair}>
-                          <Animated.View
-                            style={[
-                              styles.bar,
-                              {
-                                height: barProgress.interpolate({
-                                  inputRange: [0, 1],
-                                  outputRange: ["0%", `${b.inPct}%`],
-                                }),
-                                overflow: "hidden",
-                              },
-                            ]}
-                          >
-                            <LinearGradient
-                              colors={[theme.positive, theme.positive]}
-                              style={StyleSheet.absoluteFill}
-                            />
-                          </Animated.View>
-                          <Animated.View
-                            style={[
-                              styles.bar,
-                              {
-                                height: barProgress.interpolate({
-                                  inputRange: [0, 1],
-                                  outputRange: ["0%", `${b.outPct}%`],
-                                }),
-                                overflow: "hidden",
-                              },
-                            ]}
-                          >
-                            <LinearGradient
-                              colors={theme.dark ? theme.accentGradient : [theme.accentText, theme.accentInk]}
-                              style={StyleSheet.absoluteFill}
-                            />
-                          </Animated.View>
-                        </View>
-                        <Text
-                          style={[
-                            styles.barLabel,
-                            { color: theme.heroMuted },
-                            isSelected && { color: theme.heroInk, fontWeight: "800" },
-                          ]}
-                        >
-                          {b.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+      {/* Spending Breakdown Donut Chart */}
+      {spendingDonut.segments.length > 0 ? (
+        <View
+          style={[
+            styles.donutCard,
+            {
+              overflow: "hidden",
+              backgroundColor: theme.card,
+              borderColor: hexToRgba(theme.leather.accent, 0.24),
+            },
+            cardShadow(theme.dark),
+          ]}
+        >
+          <LightLeatherSurface theme={theme} radius={20} />
+          <View style={styles.donutHeader}>
+            <Text style={[styles.donutTitle, { color: theme.ink }]}>
+              Spending breakdown
+            </Text>
+            <Text style={[styles.donutSub, { color: theme.muted }]}>
+              Top categories
+            </Text>
+          </View>
+          <View style={styles.donutRow}>
+            <View style={styles.donutRingWrap}>
+              {(() => {
+                const size = 96;
+                const stroke = 11;
+                const r = (size - stroke) / 2;
+                const c = 2 * Math.PI * r;
+                let offsetAcc = 0;
+                return (
+                  <Svg width={size} height={size}>
+                    <SvgCircle
+                      cx={size / 2}
+                      cy={size / 2}
+                      r={r}
+                      stroke={hexToRgba(theme.leather.accent, 0.12)}
+                      strokeWidth={stroke}
+                      fill="none"
+                    />
+                    {spendingDonut.segments.map((seg) => {
+                      const len =
+                        spendingDonut.total > 0
+                          ? (seg.amount / spendingDonut.total) * c
+                          : 0;
+                      const dashOffset = -offsetAcc;
+                      offsetAcc += len;
+                      return (
+                        <SvgCircle
+                          key={seg.label}
+                          cx={size / 2}
+                          cy={size / 2}
+                          r={r}
+                          stroke={seg.color}
+                          strokeWidth={stroke}
+                          strokeDasharray={`${len} ${c}`}
+                          strokeDashoffset={dashOffset}
+                          strokeLinecap="butt"
+                          rotation={-90}
+                          origin={`${size / 2}, ${size / 2}`}
+                          fill="none"
+                        />
+                      );
+                    })}
+                  </Svg>
+                );
+              })()}
+              <View style={styles.donutCenter}>
+                <Text style={[styles.donutCenterLabel, { color: theme.muted }]}>
+                  Spent
+                </Text>
+                <Text
+                  style={[styles.donutCenterVal, { color: theme.ink }]}
+                  numberOfLines={1}
+                >
+                  {hidden ? "••••" : money(spendingDonut.total, true)}
+                </Text>
               </View>
             </View>
-          )}
-        </FolderSurface>
-      </View>
 
-      {/* Money In / Money Out Flow Cards */}
-      <View style={styles.flowCards}>
-        <LinearGradient
-          colors={[theme.card, theme.surface]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.flowCard, cardShadow(theme.dark)]}
-        >
-          <View style={styles.flowCardBevel} pointerEvents="none" />
-          <View style={styles.flowIconBox}>
-            <Icon name="arrow-down" size={16} color={theme.positive} />
+            <View style={styles.donutLegend}>
+              {spendingDonut.segments.map((seg) => (
+                <View key={seg.label} style={styles.donutLegendRow}>
+                  <View
+                    style={[styles.donutDot, { backgroundColor: seg.color }]}
+                  />
+                  <Text
+                    style={[styles.donutLegendName, { color: theme.ink }]}
+                    numberOfLines={1}
+                  >
+                    {seg.label}
+                  </Text>
+                  <Text style={[styles.donutLegendPct, { color: theme.muted }]}>
+                    {seg.pct}%
+                  </Text>
+                  <Text style={[styles.donutLegendAmt, { color: theme.ink }]}>
+                    {hidden ? "••" : money(seg.amount, true)}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.flowLabel, { color: theme.muted }]}>Money in</Text>
-            <Text style={[styles.flowValue, { color: theme.positive }]} numberOfLines={1}>
-              {hidden ? "••••" : money(totalIn)}
-            </Text>
-          </View>
-        </LinearGradient>
-
-        <LinearGradient
-          colors={[theme.card, theme.surface]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.flowCard, cardShadow(theme.dark)]}
-        >
-          <View style={styles.flowCardBevel} pointerEvents="none" />
-          <View style={styles.flowIconBox}>
-            <Icon name="arrow-up" size={16} color={theme.accentText} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.flowLabel, { color: theme.muted }]}>
-              Money out
-            </Text>
-            <Text
-              style={[styles.flowValue, { color: theme.accentText }]}
-              numberOfLines={1}
-            >
-              {hidden ? "••••" : money(totalOut)}
-            </Text>
-          </View>
-        </LinearGradient>
-      </View>
+        </View>
+      ) : null}
 
       {/* Monthly Spending Budget Target Card */}
       {onEditBudget ? (
@@ -2543,14 +2623,15 @@ export const ActivityScreen = React.memo(function ActivityScreen({
             styles.budgetCard,
             {
               backgroundColor: theme.card,
+              borderWidth: 1,
+              borderColor: hexToRgba(theme.leather.accent, 0.24),
               overflow: "hidden",
               transform: [{ scale: pressed ? 0.99 : 1 }],
             },
-            bevelStyle(theme.dark),
             cardShadow(theme.dark),
           ]}
         >
-          <AccentSurfaceGlow theme={theme} />
+          <LightLeatherSurface theme={theme} radius={18} />
           {monthlyBudget && monthlyBudget > 0 ? (() => {
             const pct = Math.min(
               100,
@@ -2559,11 +2640,6 @@ export const ActivityScreen = React.memo(function ActivityScreen({
             const rawRatio = monthSpending.spent / monthlyBudget;
             const remaining = monthlyBudget - monthSpending.spent;
             const overBudget = remaining < 0;
-            const barColors: [string, string] = overBudget
-              ? ["#f87171", "#c04444"]
-              : rawRatio >= 0.75
-                ? ["#fbbf24", "#d97706"]
-                : theme.accentGradient;
 
             return (
               <View>
@@ -2582,19 +2658,20 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                     style={[
                       styles.budgetEditPill,
                       {
+                        overflow: "hidden",
                         backgroundColor: overBudget
-                          ? theme.dark
-                            ? "rgba(192, 68, 68, 0.2)"
-                            : "#fdeaea"
-                          : theme.accentSoft,
+                          ? "#c04444"
+                          : theme.leather.colors[1],
+                        borderWidth: 1,
+                        borderColor: overBudget
+                          ? "#a23434"
+                          : theme.leather.edge,
                       },
                     ]}
                   >
+                    {!overBudget && <DarkLeatherSurface theme={theme} radius={12} />}
                     <Text
-                      style={[
-                        styles.budgetEditText,
-                        { color: overBudget ? "#c04444" : theme.accentText },
-                      ]}
+                      style={[styles.budgetEditText, { color: "#ffffff" }]}
                     >
                       {pct}% · Edit
                     </Text>
@@ -2602,13 +2679,28 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                 </View>
 
                 <View
-                  style={[styles.budgetTrack, { backgroundColor: theme.soft2 }]}
+                  style={[
+                    styles.budgetTrack,
+                    {
+                      backgroundColor: hexToRgba(
+                        theme.leather.accent,
+                        theme.dark ? 0.22 : 0.12
+                      ),
+                    },
+                  ]}
                 >
-                  <LinearGradient
-                    colors={barColors}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={[styles.budgetFill, { width: `${pct}%` }]}
+                  <View
+                    style={[
+                      styles.budgetFill,
+                      {
+                        width: `${pct}%`,
+                        backgroundColor: overBudget
+                          ? "#c04444"
+                          : rawRatio >= 0.75
+                            ? "#d97706"
+                            : theme.leather.accent,
+                      },
+                    ]}
                   />
                 </View>
 
@@ -2639,12 +2731,16 @@ export const ActivityScreen = React.memo(function ActivityScreen({
               <View
                 style={[
                   styles.budgetEditPill,
-                  { backgroundColor: theme.accentSoft },
+                  {
+                    overflow: "hidden",
+                    backgroundColor: theme.leather.colors[1],
+                    borderWidth: 1,
+                    borderColor: theme.leather.edge,
+                  },
                 ]}
               >
-                <Text
-                  style={[styles.budgetEditText, { color: theme.accentText }]}
-                >
+                <DarkLeatherSurface theme={theme} radius={12} />
+                <Text style={[styles.budgetEditText, { color: "#ffffff" }]}>
                   Set target
                 </Text>
               </View>
@@ -2656,11 +2752,11 @@ export const ActivityScreen = React.memo(function ActivityScreen({
       <CategoryBudgetOverview limits={categoryLimits} spending={monthSpending} hidden={hidden}
         theme={theme} onOpen={onOpenCategoryBudget} />
 
-      {/* Categories Horizontal Folder Cards */}
+      {/* Stitched Categories Horizontal Cards */}
       <SectionTitle
         title="Categories"
         action={categoryMode}
-        actionColor={theme.accentText}
+        actionColor={theme.leather.accent}
         onPress={() => {
           setCategoryMode((prev) => (prev === "Expense" ? "Income" : "Expense"));
           setSelectedCategory(null);
@@ -2690,58 +2786,50 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                   }
                 }}
                 style={({ pressed }) => [
-                  styles.categoryCardWrapper,
-                  pressed ? { transform: [{ scale: 0.97 }] } : null,
+                  styles.stitchedCategoryCard,
+                  {
+                    overflow: "hidden",
+                    backgroundColor: active
+                      ? theme.leather.colors[1]
+                      : theme.card,
+                    borderColor: active
+                      ? theme.leather.edge
+                      : hexToRgba(theme.leather.accent, 0.22),
+                    transform: [{ scale: pressed ? 0.97 : 1 }],
+                  },
+                  cardShadow(theme.dark),
                 ]}
               >
-                <FolderSurface
-                  tab={0.58}
-                  tabHeight={18}
-                  radius={20}
-                  fromColor={
-                    active
-                      ? theme.accentGradient[0]
-                      : theme.dark
-                        ? theme.soft
-                        : theme.card
-                  }
-                  toColor={
-                    active
-                      ? theme.accentGradient[1]
-                      : theme.dark
-                        ? theme.surface
-                        : theme.soft
-                  }
-                  minHeight={108}
-                >
-                  <View style={styles.categoryContent}>
-                    <View style={styles.categoryIconPos}>
-                      <Icon
-                        name={icon}
-                        size={20}
-                        color={active ? theme.accentInk : theme.accentText}
-                      />
-                    </View>
-                    <Text
-                      style={[
-                        styles.categoryLabel,
-                        { color: active ? theme.accentInk : theme.muted },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {label}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.categoryAmount,
-                        { color: active ? theme.accentInk : theme.ink },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {hidden ? "••••" : money(amount)}
-                    </Text>
-                  </View>
-                </FolderSurface>
+                {active ? (
+                  <DarkLeatherSurface theme={theme} radius={18} />
+                ) : (
+                  <LightLeatherSurface theme={theme} radius={18} />
+                )}
+                <Icon
+                  name={icon}
+                  size={20}
+                  color={active ? "#ffffff" : theme.leather.accent}
+                />
+                <View style={{ gap: 2 }}>
+                  <Text
+                    style={[
+                      styles.categoryLabel,
+                      { color: active ? theme.heroMuted : theme.muted },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {label}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.categoryAmount,
+                      { color: active ? "#ffffff" : theme.ink },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {hidden ? "••••" : money(amount)}
+                  </Text>
+                </View>
               </Pressable>
             );
           })}
@@ -5076,6 +5164,114 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     includeFontPadding: false,
     marginTop: 1,
+  },
+  overviewChartCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 14,
+  },
+  overviewChartHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  overviewRangeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  donutCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 14,
+  },
+  donutHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  donutTitle: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  donutSub: {
+    fontFamily: "Poppins_500Medium",
+    fontWeight: "500",
+    fontSize: 11.5,
+  },
+  donutRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  donutRingWrap: {
+    width: 96,
+    height: 96,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  donutCenter: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  donutCenterLabel: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 9.5,
+  },
+  donutCenterVal: {
+    fontFamily: "Poppins_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 12,
+  },
+  donutLegend: {
+    flex: 1,
+    gap: 8,
+  },
+  donutLegendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  donutDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  donutLegendName: {
+    flex: 1,
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  donutLegendPct: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 11,
+  },
+  donutLegendAmt: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  stitchedCategoryCard: {
+    width: 124,
+    height: 102,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 13,
+    justifyContent: "space-between",
   },
   chartTabLegend: {
     position: "absolute",
