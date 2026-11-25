@@ -3417,6 +3417,48 @@ export function WalletDetailScreen({
 
   const slideAnim = useRef(new Animated.Value(0)).current;
   const detailScrollY = useRef(new Animated.Value(0)).current;
+  const [detailCardWidth, setDetailCardWidth] = useState(340);
+
+  const detailNow = useMemo(() => new Date(), []);
+  const detailMonthLabel = detailNow.toLocaleDateString("en-US", {
+    month: "short",
+  });
+  const detailFlow = useMemo(() => {
+    const month = detailNow.getMonth();
+    const year = detailNow.getFullYear();
+    let earned = 0;
+    let spent = 0;
+    for (const item of activities) {
+      const d = getActivityDate(item, detailNow);
+      if (d.getMonth() !== month || d.getFullYear() !== year) continue;
+      const match = isActivityForWallet(item, wallet);
+      if (!match.matched) continue;
+      if (match.isIncomingTransfer) {
+        earned += Math.abs(item.amount);
+      } else if (item.amount > 0) {
+        earned += item.amount;
+      } else if (item.amount < 0) {
+        spent += Math.abs(item.amount);
+      }
+    }
+    return { earned, spent };
+  }, [activities, wallet, detailNow]);
+
+  const cardDesign = resolveWalletCardDesign(wallet.logoKey, wallet.name);
+  const pal = tonePalette[wallet.tone] || tonePalette.blue;
+  const cardInk = cardDesign ? cardDesign.ink : pal.ink;
+  const isLightCardInk = cardInk === "#ffffff";
+  const cardSubInk = isLightCardInk
+    ? "rgba(255, 255, 255, 0.8)"
+    : "rgba(20, 32, 26, 0.72)";
+  const cardBorder = isLightCardInk
+    ? "rgba(255, 255, 255, 0.2)"
+    : "rgba(20, 32, 26, 0.14)";
+  const flowPillBg = isLightCardInk
+    ? "rgba(8, 12, 20, 0.34)"
+    : "rgba(255, 255, 255, 0.65)";
+  const inColor = isLightCardInk ? "#6ee7b7" : "#047857";
+  const outColor = isLightCardInk ? "#fda4af" : "#be123c";
 
   useEffect(() => {
     setDetailFilter("Recent");
@@ -3525,7 +3567,150 @@ export function WalletDetailScreen({
           scrollEventThrottle={16}
         >
 
-          <WalletFolder wallet={wallet} hidden={hidden} onMenu={onEdit} raised={!theme.dark} />
+          <View
+            onLayout={(e) => {
+              const w = Math.round(e.nativeEvent.layout.width);
+              if (w > 0 && Math.abs(w - detailCardWidth) > 1) {
+                setDetailCardWidth(w);
+              }
+            }}
+            style={[
+              styles.walletTile,
+              {
+                height: 162,
+                borderRadius: 22,
+                backgroundColor: cardDesign
+                  ? cardDesign.isDark
+                    ? "#090e17"
+                    : "#edf3ec"
+                  : pal.to,
+                borderColor: cardBorder,
+                overflow: "hidden",
+              },
+              cardShadow(theme.dark),
+            ]}
+          >
+            {cardDesign ? (
+              <>
+                <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                  <Svg width={detailCardWidth} height={162}>
+                    <SvgImage
+                      href={cardDesign.source}
+                      x={0}
+                      y={0}
+                      width={detailCardWidth}
+                      height={162}
+                      preserveAspectRatio="xMaxYMid slice"
+                    />
+                  </Svg>
+                </View>
+                <LinearGradient
+                  pointerEvents="none"
+                  colors={
+                    cardDesign.isDark
+                      ? ["rgba(8, 12, 20, 0.08)", "rgba(8, 12, 20, 0.42)", "rgba(8, 12, 20, 0.72)"]
+                      : ["rgba(244, 248, 243, 0.08)", "rgba(232, 238, 230, 0.52)", "rgba(224, 232, 222, 0.8)"]
+                  }
+                  locations={[0.22, 0.65, 1]}
+                  style={StyleSheet.absoluteFill}
+                />
+              </>
+            ) : (
+              <TexturedGradientSurface
+                fromColor={pal.from}
+                toColor={pal.to}
+              />
+            )}
+
+            <View style={[styles.walletCardFullInner, { paddingVertical: 16 }]}>
+              <View style={styles.walletCardFullTopRow}>
+                <View style={styles.walletCardIdentity}>
+                  <WalletLogoBadge
+                    logoKey={wallet.logoKey}
+                    name={wallet.name}
+                    mark={wallet.mark}
+                    size={36}
+                    radius={11}
+                    ink={cardInk}
+                    fontSize={11}
+                  />
+                  <Text
+                    style={[
+                      styles.tileName,
+                      { color: cardInk, fontSize: 16, flexShrink: 1 },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {wallet.name}
+                  </Text>
+                </View>
+                <Text
+                  style={[styles.tileSub, { color: cardSubInk, maxWidth: 145 }]}
+                  numberOfLines={1}
+                >
+                  {wallet.type} · {wallet.account}
+                </Text>
+              </View>
+
+              <View style={styles.walletCardFullBottomRow}>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text
+                    style={{
+                      fontFamily: "Poppins_600SemiBold",
+                      fontSize: 10.5,
+                      color: cardSubInk,
+                    }}
+                  >
+                    Available balance
+                  </Text>
+                  <Amount
+                    value={wallet.balance}
+                    hidden={hidden}
+                    size="md"
+                    color={cardInk}
+                  />
+                </View>
+                <View
+                  style={[
+                    styles.walletCardFlowPill,
+                    { backgroundColor: flowPillBg },
+                  ]}
+                >
+                  <Text style={[styles.tileFlowMonth, { color: cardSubInk }]}>
+                    {detailMonthLabel}
+                  </Text>
+                  <View style={styles.tileFlowStat}>
+                    <Icon
+                      name="arrow-down"
+                      size={10.5}
+                      strokeWidth={2.5}
+                      color={inColor}
+                    />
+                    <Text
+                      style={[styles.tileFlowVal, { color: inColor }]}
+                      numberOfLines={1}
+                    >
+                      {hidden ? "••" : money(detailFlow.earned, true)}
+                    </Text>
+                  </View>
+                  <View style={styles.tileFlowStat}>
+                    <Icon
+                      name="arrow-up"
+                      size={10.5}
+                      strokeWidth={2.5}
+                      color={outColor}
+                    />
+                    <Text
+                      style={[styles.tileFlowVal, { color: outColor }]}
+                      numberOfLines={1}
+                    >
+                      {hidden ? "••" : money(detailFlow.spent, true)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
 
           <View style={styles.detailActions}>
             <Pressable
