@@ -101,6 +101,7 @@ export function SheetModal({
   hidden = false,
   onSaveWallets,
   onDeleteWallet,
+  onToggleWalletHidden,
   onRecordActivity,
   onUpdateActivity,
   onDeleteActivity,
@@ -144,6 +145,7 @@ export function SheetModal({
   hidden?: boolean;
   onSaveWallets: (next: Wallet[]) => void;
   onDeleteWallet?: (wallet: Wallet) => void;
+  onToggleWalletHidden?: (wallet: Wallet) => void;
   onRecordActivity: (item: Omit<ActivityItem, "id" | "date">) => void;
   onUpdateActivity?: (item: ActivityItem, nextWallets: Wallet[]) => void;
   onDeleteActivity?: (item: ActivityItem, nextWallets: Wallet[]) => void;
@@ -392,9 +394,13 @@ export function SheetModal({
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
 
+  const activeWallets = useMemo(() => {
+    const visible = wallets.filter((w) => !w.isHidden);
+    return visible.length > 0 ? visible : wallets;
+  }, [wallets]);
   const current = wallets.find((w) => w.id === walletId) || wallets[0];
-  const sourceWallet = wallets.find((w) => w.id === source) || wallets[0];
-  const destWallet = wallets.find((w) => w.id === destination) || wallets[0];
+  const sourceWallet = activeWallets.find((w) => w.id === source) || activeWallets[0];
+  const destWallet = activeWallets.find((w) => w.id === destination) || activeWallets[0];
 
   const isPresetSheet = type === "add" || type === "edit";
 
@@ -655,7 +661,7 @@ export function SheetModal({
     ((transferValue || 0) + transferFee).toFixed(2)
   );
   const entryValue = Number(amount);
-  const entryWallet = wallets.find((w) => w.id === walletId) || wallets[0];
+  const entryWallet = activeWallets.find((w) => w.id === walletId) || activeWallets[0];
 
   const entryCategories =
     entryType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
@@ -1307,11 +1313,45 @@ export function SheetModal({
             title={sheetTitle}
             onBack={handleHeaderBack}
             right={
-              (type === "entry" &&
-                entryStep > (scheduledEntry ? 1 : 0) &&
-                !managingFavorites &&
-                !favoriteDraft) ||
-              ((type === "add" || type === "edit") && walletStep > 0) ? (
+              type === "update" && current && onToggleWalletHidden ? (
+                <Pressable
+                  onPress={() => onToggleWalletHidden(current)}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    current.isHidden ? "Unhide card" : "Hide card"
+                  }
+                  style={({ pressed }) => [
+                    styles.closeRoundBtn,
+                    {
+                      backgroundColor: current.isHidden
+                        ? theme.leather.edge
+                        : theme.card,
+                      overflow: "hidden",
+                      borderWidth: 1,
+                      borderColor: current.isHidden
+                        ? theme.leather.edge
+                        : hexToRgba(theme.leather.accent, 0.28),
+                      transform: [{ scale: pressed ? 0.94 : 1 }],
+                    },
+                    cardShadow(theme.dark),
+                  ]}
+                >
+                  {current.isHidden ? (
+                    <DarkLeatherSurface theme={theme} radius={21} />
+                  ) : (
+                    <LightLeatherSurface theme={theme} radius={21} />
+                  )}
+                  <Icon
+                    name={current.isHidden ? "eye" : "eye-off"}
+                    size={17}
+                    color={current.isHidden ? "#ffffff" : theme.leather.accent}
+                  />
+                </Pressable>
+              ) : (type === "entry" &&
+                  entryStep > (scheduledEntry ? 1 : 0) &&
+                  !managingFavorites &&
+                  !favoriteDraft) ||
+                ((type === "add" || type === "edit") && walletStep > 0) ? (
                 <Pressable
                   onPress={onClose}
                   accessibilityRole="button"
@@ -3271,7 +3311,7 @@ export function SheetModal({
                     </View>
 
                     <View style={styles.walletVerticalList}>
-                      {wallets.map((w) => {
+                      {activeWallets.map((w) => {
                         const active = walletId === w.id;
                         const insufficient =
                           entryType === "expense" && entryValue > w.balance;
@@ -3666,7 +3706,9 @@ export function SheetModal({
                             : `New balance: ${money(
                                 Math.max(0, updateProjectedBalance)
                               )} (from ${money(current.balance)})`
-                          : `Current: ${money(current.balance)} · ${current.account}`}
+                          : current.isHidden
+                            ? `Hidden from totals · Current: ${money(current.balance)}`
+                            : `Current: ${money(current.balance)} · ${current.account}`}
                       </Text>
                     </View>
                   </WalletCardPreviewBox>

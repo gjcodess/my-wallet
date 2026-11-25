@@ -41,6 +41,7 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
       tone TEXT NOT NULL DEFAULT 'blue',
       account TEXT NOT NULL DEFAULT 'Personal',
       logo_key TEXT NOT NULL DEFAULT '',
+      is_hidden INTEGER NOT NULL DEFAULT 0,
       sort_order INTEGER NOT NULL DEFAULT 0,
       updated_at TEXT NOT NULL,
       synced INTEGER NOT NULL DEFAULT 0
@@ -65,6 +66,14 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
   try {
     await dbInstance.execAsync(
       "ALTER TABLE wallets ADD COLUMN logo_key TEXT NOT NULL DEFAULT '';"
+    );
+  } catch {
+    // Column already exists on fresh DBs
+  }
+
+  try {
+    await dbInstance.execAsync(
+      "ALTER TABLE wallets ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0;"
     );
   } catch {
     // Column already exists on fresh DBs
@@ -165,6 +174,7 @@ export async function loadLocalState(): Promise<{
     tone: string;
     account: string;
     logo_key?: string;
+    is_hidden?: number;
     updated_at: string;
     synced: number;
   }>("SELECT * FROM wallets ORDER BY sort_order ASC, id ASC");
@@ -200,6 +210,7 @@ export async function loadLocalState(): Promise<{
     tone: (r.tone as Tone) || "blue",
     account: r.account,
     logoKey: r.logo_key || undefined,
+    isHidden: r.is_hidden === 1,
     updatedAt: r.updated_at,
     synced: r.synced === 1,
   }));
@@ -313,8 +324,8 @@ export async function saveWalletsToSQLite(wallets: Wallet[]): Promise<void> {
       const localId = w.localId || `wallet-${w.id}`;
       keepIds.add(localId);
       await db.runAsync(
-        `INSERT OR REPLACE INTO wallets (id, local_id, name, type, balance, mark, tone, account, logo_key, sort_order, updated_at, synced)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT OR REPLACE INTO wallets (id, local_id, name, type, balance, mark, tone, account, logo_key, is_hidden, sort_order, updated_at, synced)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           w.id,
           localId,
@@ -325,6 +336,7 @@ export async function saveWalletsToSQLite(wallets: Wallet[]): Promise<void> {
           w.tone,
           w.account,
           w.logoKey || "",
+          w.isHidden ? 1 : 0,
           i,
           w.updatedAt || now,
           w.synced ? 1 : 0,
@@ -544,6 +556,7 @@ export async function syncWithSupabase(params: {
         tone: (rw.tone as Tone) || "blue",
         account: rw.account,
         logoKey: rw.logo_key || undefined,
+        isHidden: existing?.isHidden,
         updatedAt: rw.updated_at,
         synced: true,
       };

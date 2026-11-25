@@ -38,6 +38,7 @@ import {
   INCOME_CATEGORIES,
   initialActivities,
   initialWallets,
+  isActivityIncludedWithWallets,
   isTransferActivity,
   Sheet,
   Tab,
@@ -157,9 +158,29 @@ export default function App() {
     [wallets, sheetWalletId, selected]
   );
 
-  const total = useMemo(
-    () => wallets.reduce((sum, w) => sum + w.balance, 0),
+  const visibleWallets = useMemo(
+    () => wallets.filter((w) => !w.isHidden),
     [wallets]
+  );
+
+  const hiddenWallets = useMemo(
+    () => wallets.filter((w) => Boolean(w.isHidden)),
+    [wallets]
+  );
+
+  const visibleActivities = useMemo(
+    () =>
+      hiddenWallets.length === 0
+        ? activityItems
+        : activityItems.filter((item) =>
+            isActivityIncludedWithWallets(item, visibleWallets, hiddenWallets)
+          ),
+    [activityItems, visibleWallets, hiddenWallets]
+  );
+
+  const total = useMemo(
+    () => visibleWallets.reduce((sum, w) => sum + w.balance, 0),
+    [visibleWallets]
   );
 
   const theme = useMemo(
@@ -180,7 +201,10 @@ export default function App() {
     [leatherFinish]
   );
   const dueSchedules = useMemo(() => getDueSchedules(schedules, activityItems, today), [schedules, activityItems, today]);
-  const monthlySpending = useMemo(() => getMonthlySpending(activityItems, new Date(`${today}T12:00:00`)), [activityItems, today]);
+  const monthlySpending = useMemo(
+    () => getMonthlySpending(visibleActivities, new Date(`${today}T12:00:00`)),
+    [visibleActivities, today]
+  );
 
   // Scroll-reactive bottom navbar & screen/toast animations
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
@@ -751,6 +775,30 @@ export default function App() {
     scheduleCloudSync();
   }, [scheduleCloudSync]);
 
+  const handleToggleWalletHidden = useCallback(
+    (targetWallet: Wallet) => {
+      const nowIso = new Date().toISOString();
+      const nextHidden = !targetWallet.isHidden;
+      const nextWallets = walletsRef.current.map((w) =>
+        w.id === targetWallet.id
+          ? { ...w, isHidden: nextHidden, updatedAt: nowIso, synced: false }
+          : w
+      );
+      walletsRef.current = nextWallets;
+      setWallets(nextWallets);
+      if (nextHidden && selectedId === targetWallet.id) {
+        setSelectedId(null);
+      }
+      scheduleCloudSync();
+      setToast(
+        nextHidden
+          ? `${targetWallet.name} hidden from totals`
+          : `${targetWallet.name} restored to wallet`
+      );
+    },
+    [scheduleCloudSync, selectedId]
+  );
+
   const handleToggleHidden = useCallback(
     () => setHidden((prev) => !prev),
     []
@@ -978,8 +1026,8 @@ export default function App() {
                 {visitedTabs.home ? (
                   <View style={{ display: tab === "home" ? "flex" : "none" }}>
                     <HomeScreen
-                      wallets={wallets}
-                      activities={activityItems}
+                      wallets={visibleWallets}
+                      activities={visibleActivities}
                       total={total}
                       hidden={hidden}
                       setHidden={setHidden}
@@ -1008,10 +1056,11 @@ export default function App() {
                   <View style={{ display: tab === "wallets" ? "flex" : "none" }}>
                     <WalletsScreen
                       wallets={wallets}
-                      activities={activityItems}
+                      activities={visibleActivities}
                       total={total}
                       hidden={hidden}
                       onToggleHidden={handleToggleHidden}
+                      onToggleWalletHidden={handleToggleWalletHidden}
                       onWallet={handleSelectWallet}
                       onReorderWallets={handleReorderWallets}
                       onAddWallet={handleAddWalletSheet}
@@ -1226,6 +1275,7 @@ export default function App() {
             scheduleCloudSync();
           }}
           onDeleteWallet={handleDeleteWallet}
+          onToggleWalletHidden={handleToggleWalletHidden}
           onRecordActivity={(item) => {
             recordActivity(item);
           }}

@@ -70,6 +70,7 @@ export type Wallet = {
   tone: Tone;
   account: string;
   logoKey?: string;
+  isHidden?: boolean;
   updatedAt?: string;
   synced?: boolean;
 };
@@ -359,4 +360,16 @@ export function getActivityDate(
     }
   }
   return new Date(referenceDate);
+}
+
+export function isActivityIncludedWithWallets(
+  item: ActivityItem,
+  visibleWallets: Wallet[],
+  hiddenWallets: Wallet[]
+): boolean {
+  if (hiddenWallets.length === 0) return true;
+  if (visibleWallets.some((w) => isActivityForWallet(item, w).matched)) {
+    return true;
+  }
+  return !hiddenWallets.some((w) => isActivityForWallet(item, w).matched);
 }

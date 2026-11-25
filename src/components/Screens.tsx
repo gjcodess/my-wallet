@@ -911,6 +911,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   total,
   hidden,
   onToggleHidden,
+  onToggleWalletHidden,
   onWallet,
   onReorderWallets,
   onAddWallet,
@@ -923,6 +924,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   total: number;
   hidden: boolean;
   onToggleHidden?: () => void;
+  onToggleWalletHidden?: (wallet: Wallet) => void;
   onWallet: (w: Wallet) => void;
   onReorderWallets?: (next: Wallet[]) => void;
   onAddWallet?: () => void;
@@ -930,6 +932,16 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
 }) {
+  const visibleWallets = useMemo(
+    () => wallets.filter((w) => !w.isHidden),
+    [wallets]
+  );
+  const hiddenWallets = useMemo(
+    () => wallets.filter((w) => Boolean(w.isHidden)),
+    [wallets]
+  );
+  const [showHiddenWallets, setShowHiddenWallets] = useState(false);
+
   const { monthLabel, fullMonthLabel, totalEarned, totalSpent, walletFlows } =
     useMemo(() => {
       const now = new Date();
@@ -996,8 +1008,10 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   const isDroppingRef = useRef(false);
   const reorderingRef = useRef(reordering);
   reorderingRef.current = reordering;
-  const walletsRef = useRef(wallets);
-  walletsRef.current = wallets;
+  const walletsRef = useRef(visibleWallets);
+  walletsRef.current = visibleWallets;
+  const hiddenWalletsRef = useRef(hiddenWallets);
+  hiddenWalletsRef.current = hiddenWallets;
 
   const getShiftAnim = (id: number) => {
     let anim = shiftMapRef.current.get(id);
@@ -1008,7 +1022,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
     return anim;
   };
 
-  const walletsOrderKey = wallets.map((w) => w.id).join(",");
+  const walletsOrderKey = visibleWallets.map((w) => w.id).join(",");
 
   useLayoutEffect(() => {
     liftAnim.stopAnimation();
@@ -1157,7 +1171,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
         const next = [...list];
         const [moved] = next.splice(startIdx, 1);
         next.splice(endIdx, 0, moved);
-        onReorderWallets(next);
+        onReorderWallets([...next, ...hiddenWalletsRef.current]);
       } else {
         dragIndexRef.current = null;
         dragWalletIdRef.current = null;
@@ -1182,7 +1196,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
 
   const rowPanResponders = useMemo(
     () =>
-      Array.from({ length: wallets.length }, (_, index) =>
+      Array.from({ length: visibleWallets.length }, (_, index) =>
         PanResponder.create({
           onStartShouldSetPanResponder: () =>
             reorderingRef.current && !isDroppingRef.current,
@@ -1207,7 +1221,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
           },
         })
       ),
-    [wallets.length]
+    [visibleWallets.length]
   );
 
   return (
@@ -1268,16 +1282,16 @@ export const WalletsScreen = React.memo(function WalletsScreen({
         />
       </HeroHeaderSurface>
 
-      {wallets.length > 0 ? (
+      {visibleWallets.length > 0 ? (
         <View style={styles.walletsSectionHead}>
           <View style={styles.walletsSectionTitleGroup}>
             <Text style={[styles.walletsSectionCount, { color: theme.muted }]}>
               {reordering
                 ? "Drag to reorder"
-                : `${wallets.length} ${wallets.length === 1 ? "card" : "cards"}`}
+                : `${visibleWallets.length} ${visibleWallets.length === 1 ? "card" : "cards"}`}
             </Text>
           </View>
-          {wallets.length > 1 && onReorderWallets ? (
+          {visibleWallets.length > 1 && onReorderWallets ? (
             <Pressable
               onPress={() => {
                 if (dragIndexRef.current !== null) return;
@@ -1324,7 +1338,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
         </View>
       ) : null}
 
-      {wallets.length > 6 ? (
+      {visibleWallets.length > 6 ? (
         <View
           style={[
             styles.walletLimitBanner,
@@ -1343,12 +1357,12 @@ export const WalletsScreen = React.memo(function WalletsScreen({
           >
             {reordering
               ? "Drag any card into the top 6 to show it on Home"
-              : `Top 6 cards show on Home · All ${wallets.length} count in total`}
+              : `Top 6 cards show on Home · All ${visibleWallets.length} count in total`}
           </Text>
         </View>
       ) : null}
 
-      {wallets.length === 0 ? (
+      {visibleWallets.length === 0 ? (
         <View
           style={[
             styles.emptyState,
@@ -1398,7 +1412,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
           }}
           style={styles.walletList}
         >
-          {wallets.map((wallet, idx) => {
+          {visibleWallets.map((wallet, idx) => {
             const pal = tonePalette[wallet.tone] || tonePalette.blue;
             const cardDesign = resolveWalletCardDesign(wallet.logoKey, wallet.name);
             const cardInk = cardDesign ? cardDesign.ink : pal.ink;
@@ -1673,6 +1687,149 @@ export const WalletsScreen = React.memo(function WalletsScreen({
           })}
         </View>
       )}
+
+      {hiddenWallets.length > 0 ? (
+        <View style={styles.hiddenWalletsSection}>
+          <Pressable
+            onPress={() => {
+              LayoutAnimation.configureNext(
+                LayoutAnimation.Presets.easeInEaseOut
+              );
+              setShowHiddenWallets((prev) => !prev);
+            }}
+            style={({ pressed }) => [
+              styles.hiddenWalletsToggle,
+              {
+                overflow: "hidden",
+                backgroundColor: theme.card,
+                borderColor: hexToRgba(theme.leather.accent, 0.24),
+                opacity: pressed ? 0.85 : 1,
+              },
+              cardShadow(theme.dark),
+            ]}
+          >
+            <LightLeatherSurface theme={theme} radius={16} />
+            <Icon name="eye-off" size={15} color={theme.leather.accent} />
+            <Text style={[styles.hiddenWalletsTitle, { color: theme.ink }]}>
+              Hidden cards ({hiddenWallets.length})
+            </Text>
+            <Text style={[styles.hiddenWalletsHint, { color: theme.muted }]}>
+              Excluded from totals
+            </Text>
+            <Icon
+              name={showHiddenWallets ? "down" : "chevron"}
+              size={15}
+              color={theme.muted}
+            />
+          </Pressable>
+
+          {showHiddenWallets ? (
+            <View style={styles.hiddenWalletsList}>
+              {hiddenWallets.map((hw) => {
+                const pal = tonePalette[hw.tone] || tonePalette.blue;
+                const design = resolveWalletCardDesign(hw.logoKey, hw.name);
+                const badgeInk = design ? design.ink : pal.ink;
+                return (
+                  <Pressable
+                    key={hw.id}
+                    onPress={() => onWallet(hw)}
+                    style={({ pressed }) => [
+                      styles.hiddenWalletRow,
+                      {
+                        overflow: "hidden",
+                        backgroundColor: theme.card,
+                        borderColor: hexToRgba(theme.leather.accent, 0.2),
+                        transform: [{ scale: pressed ? 0.985 : 1 }],
+                      },
+                    ]}
+                  >
+                    <LightLeatherSurface theme={theme} radius={16} />
+                    <View
+                      style={[
+                        styles.hiddenWalletBadge,
+                        {
+                          overflow: "hidden",
+                          backgroundColor: design
+                            ? design.isDark
+                              ? "#090e17"
+                              : "#edf3ec"
+                            : pal.to,
+                        },
+                      ]}
+                    >
+                      {design ? (
+                        <Svg width={36} height={36}>
+                          <SvgImage
+                            href={design.source}
+                            x={0}
+                            y={0}
+                            width={36}
+                            height={36}
+                            preserveAspectRatio="xMaxYMid slice"
+                          />
+                        </Svg>
+                      ) : (
+                        <TexturedGradientSurface
+                          fromColor={pal.from}
+                          toColor={pal.to}
+                          subtle
+                        />
+                      )}
+                      <WalletLogoBadge
+                        logoKey={hw.logoKey}
+                        name={hw.name}
+                        mark={hw.mark}
+                        size={36}
+                        radius={11}
+                        ink={badgeInk}
+                        fontSize={9}
+                      />
+                    </View>
+                    <View style={{ flex: 1, gap: 1 }}>
+                      <Text
+                        style={[styles.hiddenWalletName, { color: theme.ink }]}
+                        numberOfLines={1}
+                      >
+                        {hw.name}
+                      </Text>
+                      <Text
+                        style={[styles.hiddenWalletBal, { color: theme.muted }]}
+                        numberOfLines={1}
+                      >
+                        {hidden ? "₱••••" : money(hw.balance)} · {hw.type}
+                      </Text>
+                    </View>
+                    {onToggleWalletHidden ? (
+                      <Pressable
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          LayoutAnimation.configureNext(
+                            LayoutAnimation.Presets.easeInEaseOut
+                          );
+                          onToggleWalletHidden(hw);
+                        }}
+                        hitSlop={6}
+                        style={({ pressed }) => [
+                          styles.unhideBtn,
+                          {
+                            overflow: "hidden",
+                            borderColor: theme.leather.edge,
+                            transform: [{ scale: pressed ? 0.95 : 1 }],
+                          },
+                        ]}
+                      >
+                        <DarkLeatherSurface theme={theme} radius={11} />
+                        <Icon name="eye" size={12.5} color="#ffffff" />
+                        <Text style={styles.unhideBtnText}>Unhide</Text>
+                      </Pressable>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 });
@@ -3816,6 +3973,82 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 12.5,
     includeFontPadding: false,
+  },
+  hiddenWalletsSection: {
+    marginTop: 14,
+    gap: 8,
+  },
+  hiddenWalletsToggle: {
+    height: 44,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  hiddenWalletsTitle: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12.5,
+    includeFontPadding: false,
+    marginTop: 1,
+  },
+  hiddenWalletsHint: {
+    flex: 1,
+    fontFamily: "Poppins_500Medium",
+    fontWeight: "500",
+    fontSize: 11,
+    textAlign: "right",
+    includeFontPadding: false,
+    marginTop: 1,
+  },
+  hiddenWalletsList: {
+    gap: 8,
+  },
+  hiddenWalletRow: {
+    height: 60,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  hiddenWalletBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  hiddenWalletName: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 13.5,
+  },
+  hiddenWalletBal: {
+    fontFamily: "Poppins_500Medium",
+    fontWeight: "500",
+    fontSize: 11,
+  },
+  unhideBtn: {
+    height: 30,
+    borderRadius: 11,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  unhideBtnText: {
+    color: "#ffffff",
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 11,
+    lineHeight: 14,
+    includeFontPadding: false,
+    marginTop: 1,
   },
   tileBadge: {
     width: 48,
