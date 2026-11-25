@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, {
   Circle as SvgCircle,
@@ -1031,6 +1032,7 @@ export function BottomNav({
   visible?: boolean;
   theme: ThemeColors;
 }) {
+  const insets = useSafeAreaInsets();
   const [rowInnerWidth, setRowInnerWidth] = useState(0);
   const activeIdx = NAV_ITEMS.findIndex((item) => item.id === tab);
   const slotWidth = rowInnerWidth > 0 ? rowInnerWidth / NAV_ITEMS.length : 0;
@@ -1143,6 +1145,7 @@ export function BottomNav({
       style={[
         styles.bottomNav,
         {
+          bottom: Math.max(14, insets.bottom),
           opacity,
           transform: [{ translateY }],
         },

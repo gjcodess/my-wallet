@@ -1300,7 +1300,7 @@ export default function App() {
           style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 110 }}
         />
 
-      <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
+      <SafeAreaView style={styles.container} edges={["left", "right"]}>
 
         <StatusBar style={dark || (!isLocked && (Boolean(selected) || headerAtTop)) ? "light" : "dark"} />
 
