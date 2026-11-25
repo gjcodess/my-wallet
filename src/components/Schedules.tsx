@@ -6,7 +6,14 @@ import type { DueSchedule, Schedule } from "../types/schedule";
 import { EXPENSE_CATEGORIES, getWalletLocalId, INCOME_CATEGORIES, money } from "../types/wallet";
 import type { Wallet } from "../types/wallet";
 import { Icon } from "./Icon";
-import { LightLeatherSurface, SectionTitle, ThemeColors } from "./SharedUI";
+import {
+  cardShadow,
+  DarkLeatherSurface,
+  hexToRgba,
+  LightLeatherSurface,
+  SectionTitle,
+  ThemeColors,
+} from "./SharedUI";
 
 type ScheduleListProps = {
   schedules: DueSchedule[];
@@ -100,23 +107,67 @@ export function ScheduleManager({ schedules, wallets, hidden, theme, onRecord, s
     setShowCategories(false);
   };
 
-  const primary = (label: string, onPress: () => void, disabled = false) => (
-    <Pressable accessibilityRole="button" onPress={onPress} disabled={disabled}
-      style={[styles.button, { backgroundColor: disabled ? theme.soft : theme.accent }]}>
-      <Text style={[styles.label, { color: disabled ? theme.muted : theme.accentInk }]}>{label}</Text>
+  const primary = (label: string, onPress: () => void, disabled = false, icon?: string) => (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.button,
+        {
+          overflow: "hidden",
+          backgroundColor: disabled ? theme.soft : theme.leather.colors[1],
+          borderColor: disabled ? theme.line : theme.leather.edge,
+          opacity: disabled ? 0.65 : 1,
+          transform: [{ scale: pressed && !disabled ? 0.98 : 1 }],
+        },
+        !disabled && cardShadow(theme.dark),
+      ]}
+    >
+      {!disabled && <DarkLeatherSurface theme={theme} radius={16} />}
+      {icon ? <Icon name={icon} size={15} color={disabled ? theme.muted : "#ffffff"} /> : null}
+      <Text style={[styles.buttonText, { color: disabled ? theme.muted : "#ffffff" }]}>
+        {label}
+      </Text>
     </Pressable>
   );
 
   if (!draft) return (
     <View style={styles.manager}>
       {schedules.length > 0 && (
-        <View style={[styles.panel, { backgroundColor: theme.card, borderColor: theme.line }]}>
-          {schedules.map((item) => (
-            <ScheduleRow key={item.id} item={item} wallets={wallets} hidden={hidden} theme={theme} onPress={() => edit(item)} />
+        <View
+          style={[
+            styles.panel,
+            {
+              backgroundColor: theme.card,
+              borderColor: hexToRgba(theme.leather.accent, 0.24),
+            },
+            cardShadow(theme.dark),
+          ]}
+        >
+          <LightLeatherSurface theme={theme} radius={18} />
+          {schedules.map((item, idx) => (
+            <View key={item.id}>
+              {idx > 0 ? (
+                <View
+                  style={[
+                    styles.divider,
+                    { backgroundColor: hexToRgba(theme.leather.accent, 0.14) },
+                  ]}
+                />
+              ) : null}
+              <ScheduleRow
+                item={item}
+                wallets={wallets}
+                hidden={hidden}
+                theme={theme}
+                onPress={() => edit(item)}
+              />
+            </View>
           ))}
         </View>
       )}
-      {wallets.length ? primary("Add schedule", () => edit(newSchedule(wallets))) : (
+      {wallets.length ? primary("Add schedule", () => edit(newSchedule(wallets)), false, "plus") : (
         <Text style={[styles.meta, { color: theme.muted }]}>Add a wallet before creating a schedule.</Text>
       )}
     </View>
@@ -124,12 +175,43 @@ export function ScheduleManager({ schedules, wallets, hidden, theme, onRecord, s
 
   const existing = schedules.find(({ id }) => id === draft.id);
   const categories = draft.direction === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
-  const inputStyle = [styles.input, { backgroundColor: theme.card, borderColor: theme.line, color: theme.ink }];
+  const selectableWallets = wallets.some((w) => !w.isHidden)
+    ? wallets.filter((w) => !w.isHidden || getWalletLocalId(w) === draft.walletLocalId)
+    : wallets;
+  const inputBoxStyle = [
+    styles.inputWrap,
+    {
+      backgroundColor: theme.card,
+      borderColor: hexToRgba(theme.leather.accent, 0.24),
+    },
+  ];
   const fieldLabel = (label: string) => <Text style={[styles.label, { color: theme.ink }]}>{label}</Text>;
   const choice = (label: string, active: boolean, onPress: () => void, key = label) => (
-    <Pressable key={key} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={onPress}
-      style={[styles.choice, { backgroundColor: active ? theme.accentSoft : theme.card, borderColor: active ? theme.accentText : theme.line }]}>
-      <Text style={[styles.meta, { color: active ? theme.accentText : theme.ink }]}>{label}</Text>
+    <Pressable
+      key={key}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.choice,
+        {
+          overflow: "hidden",
+          backgroundColor: active ? theme.leather.colors[1] : theme.card,
+          borderColor: active
+            ? theme.leather.edge
+            : hexToRgba(theme.leather.accent, 0.24),
+          transform: [{ scale: pressed ? 0.96 : 1 }],
+        },
+      ]}
+    >
+      {active ? (
+        <DarkLeatherSurface theme={theme} radius={12} />
+      ) : (
+        <LightLeatherSurface theme={theme} radius={12} />
+      )}
+      <Text style={[styles.choiceText, { color: active ? "#ffffff" : theme.ink }]}>
+        {label}
+      </Text>
     </Pressable>
   );
 
@@ -174,16 +256,57 @@ export function ScheduleManager({ schedules, wallets, hidden, theme, onRecord, s
   return (
     <View style={styles.manager}>
       {existing && (
-        <View style={[styles.summary, { backgroundColor: theme.accentSoft }]}>
-          {fieldLabel(`Next due ${displayDueDate(existing.dueDate)}`)}
-          {primary("Record transaction", () => onRecord(existing), busy)}
+        <View
+          style={[
+            styles.summary,
+            {
+              overflow: "hidden",
+              backgroundColor: theme.leather.colors[1],
+              borderColor: theme.leather.edge,
+            },
+            cardShadow(theme.dark),
+          ]}
+        >
+          <DarkLeatherSurface theme={theme} radius={18} />
+          <Text style={[styles.summaryTitle, { color: "#ffffff" }]}>
+            Next due {displayDueDate(existing.dueDate)}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => onRecord(existing)}
+            disabled={busy}
+            style={({ pressed }) => [
+              styles.summaryCta,
+              {
+                overflow: "hidden",
+                backgroundColor: theme.card,
+                borderColor: hexToRgba(theme.leather.accent, 0.28),
+                transform: [{ scale: pressed ? 0.98 : 1 }],
+              },
+            ]}
+          >
+            <LightLeatherSurface theme={theme} radius={14} />
+            <Icon name="check" size={14} color={theme.leather.accent} />
+            <Text style={[styles.label, { color: theme.ink }]}>
+              Record transaction
+            </Text>
+          </Pressable>
         </View>
       )}
       <View style={styles.field}>
         {fieldLabel("Name")}
-        <TextInput accessibilityLabel="Schedule name" style={inputStyle} placeholder="Meralco, rent, or payday"
-          placeholderTextColor={theme.muted} value={draft.title} maxLength={70}
-          onChangeText={(title) => setDraft({ ...draft, title })} />
+        <View style={inputBoxStyle}>
+          <LightLeatherSurface theme={theme} radius={14} />
+          <TextInput
+            accessibilityLabel="Schedule name"
+            style={[styles.inputField, { color: theme.ink }]}
+            placeholder="Meralco, rent, or payday"
+            placeholderTextColor={theme.muted}
+            value={draft.title}
+            maxLength={70}
+            onChangeText={(title) => setDraft({ ...draft, title })}
+          />
+        </View>
       </View>
       <View style={styles.choices}>
         {choice("Bill", draft.direction === "expense", () => {
@@ -196,8 +319,19 @@ export function ScheduleManager({ schedules, wallets, hidden, theme, onRecord, s
       <View style={styles.sideBySide}>
         <View style={[styles.field, styles.column]}>
           {fieldLabel("Amount (₱)")}
-          <TextInput accessibilityLabel="Amount in pesos" style={inputStyle} inputMode="decimal" placeholder="0.00"
-            placeholderTextColor={theme.muted} value={amount} maxLength={12} onChangeText={setAmount} />
+          <View style={inputBoxStyle}>
+            <LightLeatherSurface theme={theme} radius={14} />
+            <TextInput
+              accessibilityLabel="Amount in pesos"
+              style={[styles.inputField, { color: theme.ink }]}
+              inputMode="decimal"
+              placeholder="0.00"
+              placeholderTextColor={theme.muted}
+              value={amount}
+              maxLength={12}
+              onChangeText={setAmount}
+            />
+          </View>
         </View>
         <View style={[styles.field, styles.column]}>
           <View style={styles.dateLabel}>
@@ -209,12 +343,22 @@ export function ScheduleManager({ schedules, wallets, hidden, theme, onRecord, s
               setError("");
               Keyboard.dismiss();
             }}>
-              <Text style={[styles.meta, { color: theme.accentText }]}>Tomorrow</Text>
+              <Text style={[styles.meta, { color: theme.leather.accent }]}>Tomorrow</Text>
             </Pressable>
           </View>
-          <TextInput accessibilityLabel="First due date, YYYY-MM-DD" style={inputStyle} placeholder="YYYY-MM-DD"
-            placeholderTextColor={theme.muted} value={draft.firstDue} maxLength={10} autoCorrect={false}
-            onChangeText={(firstDue) => setDraft({ ...draft, firstDue })} />
+          <View style={inputBoxStyle}>
+            <LightLeatherSurface theme={theme} radius={14} />
+            <TextInput
+              accessibilityLabel="First due date, YYYY-MM-DD"
+              style={[styles.inputField, { color: theme.ink }]}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={theme.muted}
+              value={draft.firstDue}
+              maxLength={10}
+              autoCorrect={false}
+              onChangeText={(firstDue) => setDraft({ ...draft, firstDue })}
+            />
+          </View>
         </View>
       </View>
       <View style={styles.field}>
@@ -227,15 +371,26 @@ export function ScheduleManager({ schedules, wallets, hidden, theme, onRecord, s
       <View style={styles.field}>
         {fieldLabel("Wallet")}
         <View style={styles.choices}>
-          {wallets.map((wallet) => choice(wallet.name, draft.walletLocalId === getWalletLocalId(wallet),
+          {selectableWallets.map((wallet) => choice(wallet.name, draft.walletLocalId === getWalletLocalId(wallet),
             () => setDraft({ ...draft, walletLocalId: getWalletLocalId(wallet) }), getWalletLocalId(wallet)))}
         </View>
       </View>
       <View style={styles.field}>
         {fieldLabel("Category")}
-        <Pressable accessibilityRole="button" accessibilityState={{ expanded: showCategories }}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showCategories }}
           onPress={() => setShowCategories(!showCategories)}
-          style={[styles.categoryPicker, { backgroundColor: theme.card, borderColor: theme.line }]}>
+          style={[
+            styles.categoryPicker,
+            {
+              overflow: "hidden",
+              backgroundColor: theme.card,
+              borderColor: hexToRgba(theme.leather.accent, 0.24),
+            },
+          ]}
+        >
+          <LightLeatherSurface theme={theme} radius={14} />
           <Text style={[styles.label, { color: theme.ink }]}>{draft.category}</Text>
           <Icon name="down" size={16} color={theme.muted} />
         </Pressable>
@@ -247,22 +402,98 @@ export function ScheduleManager({ schedules, wallets, hidden, theme, onRecord, s
         </View>}
       </View>
       {supportsReminders && (
-        <View style={styles.row}>
+        <View
+          style={[
+            styles.reminderCard,
+            {
+              overflow: "hidden",
+              backgroundColor: theme.card,
+              borderColor: hexToRgba(theme.leather.accent, 0.22),
+            },
+          ]}
+        >
+          <LightLeatherSurface theme={theme} radius={16} />
           <View style={styles.rowMain}>
             {fieldLabel("Phone reminder")}
             <Text style={[styles.meta, { color: theme.muted }]}>On the due date, around 9 AM</Text>
           </View>
-          <Switch accessibilityLabel="Phone reminder" value={draft.reminder} disabled={busy}
-            trackColor={{ false: theme.soft2, true: theme.accent }}
-            onValueChange={(reminder) => setDraft({ ...draft, reminder })} />
+          <Switch
+            accessibilityLabel="Phone reminder"
+            value={draft.reminder}
+            disabled={busy}
+            trackColor={{
+              false: hexToRgba(theme.leather.accent, 0.22),
+              true: theme.leather.accent,
+            }}
+            onValueChange={(reminder) => setDraft({ ...draft, reminder })}
+          />
         </View>
       )}
-      {error ? <Text accessibilityRole="alert" style={[styles.meta, { color: theme.ink }]}>{error}</Text> : null}
-      {primary(busy ? "Saving…" : "Save schedule", save, busy)}
-      <View style={styles.choices}>
-        {choice("Back to schedules", false, () => { if (!busy) edit(null); })}
-        {existing && choice(confirmDelete ? "Confirm removal" : "Remove schedule", false,
-          () => { if (confirmDelete) void remove(); else setConfirmDelete(true); })}
+      {error ? <Text accessibilityRole="alert" style={[styles.meta, { color: "#c04444" }]}>{error}</Text> : null}
+      {primary(busy ? "Saving…" : "Save schedule", save, busy, "check")}
+      <View style={styles.footerActions}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => { if (!busy) edit(null); }}
+          style={({ pressed }) => [
+            styles.footerBtn,
+            {
+              overflow: "hidden",
+              backgroundColor: theme.card,
+              borderColor: hexToRgba(theme.leather.accent, 0.24),
+              transform: [{ scale: pressed ? 0.97 : 1 }],
+            },
+          ]}
+        >
+          <LightLeatherSurface theme={theme} radius={14} />
+          <Text style={[styles.choiceText, { color: theme.ink }]}>
+            Back to schedules
+          </Text>
+        </Pressable>
+        {existing ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => { if (confirmDelete) void remove(); else setConfirmDelete(true); }}
+            style={({ pressed }) => [
+              styles.footerBtn,
+              {
+                overflow: "hidden",
+                backgroundColor: confirmDelete ? "#c04444" : theme.card,
+                borderColor: confirmDelete
+                  ? "#a23434"
+                  : hexToRgba("#9e3c42", 0.34),
+                transform: [{ scale: pressed ? 0.97 : 1 }],
+              },
+            ]}
+          >
+            {!confirmDelete && <LightLeatherSurface theme={theme} radius={14} />}
+            <Icon
+              name="trash"
+              size={14}
+              color={
+                confirmDelete
+                  ? "#ffffff"
+                  : theme.dark
+                    ? "#f28b82"
+                    : "#9e3c42"
+              }
+            />
+            <Text
+              style={[
+                styles.choiceText,
+                {
+                  color: confirmDelete
+                    ? "#ffffff"
+                    : theme.dark
+                      ? "#f28b82"
+                      : "#9e3c42",
+                },
+              ]}
+            >
+              {confirmDelete ? "Confirm removal" : "Remove"}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -270,22 +501,73 @@ export function ScheduleManager({ schedules, wallets, hidden, theme, onRecord, s
 
 const styles = StyleSheet.create({
   upcoming: { marginTop: 14, marginBottom: 16 },
-  manager: { gap: 16, paddingBottom: 8 },
-  panel: { borderWidth: 1, borderRadius: 16, overflow: "hidden" },
-  summary: { borderRadius: 16, padding: 12, gap: 10 },
+  manager: { gap: 15, paddingBottom: 8 },
+  panel: { borderWidth: 1, borderRadius: 18, overflow: "hidden" },
+  divider: { height: 1, marginHorizontal: 14 },
+  summary: { borderRadius: 18, borderWidth: 1, padding: 14, gap: 10 },
+  summaryTitle: { fontFamily: "Poppins_700Bold", fontSize: 13.5 },
+  summaryCta: {
+    height: 42,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
   row: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 58, paddingHorizontal: 12, paddingVertical: 8 },
   rowMain: { flex: 1, gap: 1 },
-  label: { fontFamily: "Poppins_600SemiBold", fontSize: 13 },
-  meta: { fontFamily: "Poppins_500Medium", fontSize: 12 },
+  reminderCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    minHeight: 58,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  label: { fontFamily: "Poppins_700Bold", fontSize: 13, includeFontPadding: false },
+  meta: { fontFamily: "Poppins_500Medium", fontSize: 12, includeFontPadding: false },
   empty: { fontFamily: "Poppins_500Medium", fontSize: 13, padding: 14 },
   icon: { width: 34, height: 34, borderRadius: 12, justifyContent: "center", alignItems: "center" },
   sideBySide: { flexDirection: "row", gap: 12 },
   field: { gap: 6 },
   column: { flex: 1 },
   dateLabel: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 4 },
-  choices: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  choice: { minHeight: 44, justifyContent: "center", paddingHorizontal: 11, borderWidth: 1, borderRadius: 12 },
-  categoryPicker: { minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 11, borderWidth: 1, borderRadius: 12 },
-  input: { minHeight: 46, borderRadius: 12, borderWidth: 1, paddingHorizontal: 11, fontFamily: "Poppins_500Medium", fontSize: 14 },
-  button: { minHeight: 46, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  choices: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
+  choice: { minHeight: 40, alignItems: "center", justifyContent: "center", paddingHorizontal: 13, borderWidth: 1, borderRadius: 12 },
+  choiceText: { fontFamily: "Poppins_700Bold", fontSize: 12, lineHeight: 16, includeFontPadding: false, marginTop: 1 },
+  categoryPicker: { minHeight: 46, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 13, borderWidth: 1, borderRadius: 14 },
+  inputWrap: { minHeight: 46, borderRadius: 14, borderWidth: 1, justifyContent: "center", overflow: "hidden" },
+  inputField: {
+    height: 46,
+    paddingHorizontal: 13,
+    paddingVertical: 0,
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 14,
+    includeFontPadding: false,
+    textAlignVertical: "center",
+  },
+  button: {
+    minHeight: 48,
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+  },
+  buttonText: { fontFamily: "Poppins_700Bold", fontSize: 13.5, lineHeight: 18, includeFontPadding: false, marginTop: 1 },
+  footerActions: { flexDirection: "row", gap: 10 },
+  footerBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
 });
