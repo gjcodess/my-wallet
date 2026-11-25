@@ -1130,7 +1130,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
       list.push(w);
       byType.set(label, list);
     }
-    const preferred = ["Bank", "E-wallet", "Cash"];
+    const preferred = ["Cash", "E-wallet", "E-wallets", "Bank"];
     const orderedKeys = [
       ...preferred.filter((k) => byType.has(k)),
       ...Array.from(byType.keys()).filter((k) => !preferred.includes(k)),
