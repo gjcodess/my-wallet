@@ -243,7 +243,7 @@ const AccountCard = React.memo(function AccountCard({
             source={design.source}
             resizeMode="cover"
             fadeDuration={0}
-            style={StyleSheet.absoluteFill}
+            style={styles.cardBgImage}
           />
         ) : (
           <TexturedGradientSurface
@@ -254,7 +254,7 @@ const AccountCard = React.memo(function AccountCard({
         <Svg pointerEvents="none" width="100%" height={tabHeight * 2} style={styles.cardAmountFade}>
           <Defs>
             <RadialGradient id={fadeId} cx="100%" cy="0%" rx="58%" ry="100%">
-              <Stop offset="0" stopColor={ink === "#ffffff" ? "#000000" : "#ffffff"} stopOpacity="0.62" />
+              <Stop offset="0" stopColor={ink === "#ffffff" ? "#000000" : "#ffffff"} stopOpacity="0.24" />
               <Stop offset="1" stopColor={ink === "#ffffff" ? "#000000" : "#ffffff"} stopOpacity="0" />
             </RadialGradient>
           </Defs>
@@ -1293,6 +1293,13 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255, 255, 255, 0.16)",
+  },
+  cardBgImage: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
   },
   cardTouch: { position: "absolute", top: 0, left: 0, right: 0 },
   cardRow: {
