@@ -328,6 +328,25 @@ export function Icon({
         return (
           <Path d="m12 3.5 2.5 5.1 5.6.8-4 3.9.9 5.6-5-2.6-5 2.6.9-5.6-4-3.9 5.6-.8Z" />
         );
+      case "paperclip":
+        return (
+          <Path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+        );
+      case "image":
+        return (
+          <>
+            <Rect x="3.5" y="4.5" width="17" height="15" rx="2.5" />
+            <Circle cx="8.5" cy="9.5" r="1.4" fill={color} />
+            <Path d="m20.5 15.5-5-5L5 20" />
+          </>
+        );
+      case "camera":
+        return (
+          <>
+            <Path d="M4 8.5A2 2 0 0 1 6 6.5h2.2l1.3-2h5l1.3 2H18a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" />
+            <Circle cx="12" cy="12.5" r="3.2" />
+          </>
+        );
       case "palette":
         return (
           <>

@@ -28,6 +28,13 @@
       "expo-font",
       "expo-notifications",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Pitaka to access your photos to attach receipts to transactions.",
+          "cameraPermission": "Allow Pitaka to use your camera to capture receipt photos."
+        }
+      ],
+      [
         "expo-local-authentication",
         {
           "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID to unlock your wallets."

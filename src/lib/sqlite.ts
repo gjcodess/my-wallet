@@ -57,11 +57,20 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
       amount REAL NOT NULL,
       icon TEXT NOT NULL,
       kind TEXT NOT NULL,
+      attachments TEXT NOT NULL DEFAULT '[]',
       occurred_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       synced INTEGER NOT NULL DEFAULT 0
     );
   `);
+
+  try {
+    await dbInstance.execAsync(
+      "ALTER TABLE activities ADD COLUMN attachments TEXT NOT NULL DEFAULT '[]';"
+    );
+  } catch {
+    // Column already exists on fresh DBs
+  }
 
   try {
     await dbInstance.execAsync(
@@ -118,8 +127,8 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
     for (let i = 0; i < initialActivities.length; i++) {
       const a = initialActivities[i];
       await dbInstance.runAsync(
-        `INSERT OR IGNORE INTO activities (id, local_id, wallet_local_id, dest_wallet_local_id, title, wallet, date, amount, icon, kind, occurred_at, updated_at, synced)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+        `INSERT OR IGNORE INTO activities (id, local_id, wallet_local_id, dest_wallet_local_id, title, wallet, date, amount, icon, kind, attachments, occurred_at, updated_at, synced)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
         [
           a.id,
           a.localId || `tx-${a.id}`,
@@ -131,6 +140,7 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
           a.amount,
           a.icon,
           a.kind,
+          JSON.stringify(a.attachments ?? []),
           now,
           now,
         ]
@@ -146,6 +156,18 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
   }
 
   return dbInstance;
+}
+
+function parseAttachmentsJson(raw?: string | null): string[] | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return undefined;
+    const valid = parsed.filter((x): x is string => typeof x === "string" && x.length > 0);
+    return valid.length ? valid : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export async function loadLocalState(): Promise<{
@@ -190,6 +212,7 @@ export async function loadLocalState(): Promise<{
     amount: number;
     icon: string;
     kind: string;
+    attachments?: string;
     occurred_at: string;
     updated_at: string;
     synced: number;
@@ -226,6 +249,7 @@ export async function loadLocalState(): Promise<{
     amount: Number(r.amount),
     icon: r.icon,
     kind: r.kind,
+    attachments: parseAttachmentsJson(r.attachments),
     occurredAt: r.occurred_at,
     updatedAt: r.updated_at,
     synced: r.synced === 1,
@@ -292,10 +316,10 @@ export async function recordWalletActivity(item: ActivityItem): Promise<number> 
     );
     if (!result.changes) throw new Error("Wallet is missing or has insufficient funds");
     await tx.runAsync(
-      `INSERT INTO activities (id, local_id, wallet_local_id, title, wallet, date, amount, icon, kind, occurred_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO activities (id, local_id, wallet_local_id, title, wallet, date, amount, icon, kind, attachments, occurred_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [item.id, item.localId ?? "", walletId, item.title, item.wallet, item.date,
-       item.amount, item.icon, item.kind, item.occurredAt ?? "", item.updatedAt ?? ""],
+       item.amount, item.icon, item.kind, JSON.stringify(item.attachments ?? []), item.occurredAt ?? "", item.updatedAt ?? ""],
     );
     const row = await tx.getFirstAsync<{ balance: number }>("SELECT balance FROM wallets WHERE local_id = ?", [walletId]);
     if (!row) throw new Error("Wallet is missing");
@@ -365,8 +389,8 @@ export async function saveActivitiesToSQLite(activities: ActivityItem[]): Promis
       const localId = a.localId || `tx-${a.id}`;
       keepIds.add(localId);
       await db.runAsync(
-        `INSERT OR REPLACE INTO activities (id, local_id, wallet_local_id, dest_wallet_local_id, title, wallet, date, amount, icon, kind, occurred_at, updated_at, synced)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT OR REPLACE INTO activities (id, local_id, wallet_local_id, dest_wallet_local_id, title, wallet, date, amount, icon, kind, attachments, occurred_at, updated_at, synced)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           a.id,
           localId,
@@ -378,6 +402,7 @@ export async function saveActivitiesToSQLite(activities: ActivityItem[]): Promis
           a.amount,
           a.icon,
           a.kind,
+          JSON.stringify(a.attachments ?? []),
           a.occurredAt || now,
           a.updatedAt || now,
           a.synced ? 1 : 0,
@@ -578,6 +603,7 @@ export async function syncWithSupabase(params: {
           amount: Number(ra.amount),
           icon: ra.icon,
           kind: ra.kind,
+          attachments: existing?.attachments,
           occurredAt: ra.occurred_at,
           updatedAt: ra.updated_at,
           synced: true,

@@ -56,6 +56,8 @@ import {
 import { WalletLogoBadge } from "./WalletFolder";
 import { ScheduleManager } from "./Schedules";
 import { FavoriteEditor, FavoriteList, FavoriteStrip } from "./Favorites";
+import { TransactionAttachmentsSection } from "./AttachmentPicker";
+import { deleteAttachmentFiles } from "../lib/attachments";
 import { createFavoriteDraft, favoriteFromActivity } from "../types/favorite";
 import type { Favorite, FavoriteDraft } from "../types/favorite";
 import { CategoryBudgetSheet } from "./CategoryBudgets";
@@ -199,6 +201,13 @@ export function SheetModal({
       if (closingRef.current) return;
       closingRef.current = true;
       Keyboard.dismiss();
+      if (!entrySavedRef.current && entryAttachmentsRef.current.length > 0) {
+        deleteAttachmentFiles(entryAttachmentsRef.current);
+      }
+      if (txDraftExtrasRef.current.length > 0) {
+        deleteAttachmentFiles(txDraftExtrasRef.current);
+        txDraftExtrasRef.current = [];
+      }
       Animated.timing(openAnim, {
         toValue: 0,
         duration: MOTION_DURATIONS.sheetOut,
@@ -297,6 +306,12 @@ export function SheetModal({
     setEntryStep(scheduledEntry ? 1 : 0);
     setEntryType(scheduledEntry?.direction ?? (type === "transfer" ? "transfer" : "expense"));
     setEntryError("");
+    if (!entrySavedRef.current && entryAttachmentsRef.current.length > 0) {
+      deleteAttachmentFiles(entryAttachmentsRef.current);
+    }
+    entrySavedRef.current = false;
+    setEntryAttachments([]);
+    entryAttachmentsRef.current = [];
     if (type === "budget") {
       setAmount(monthlyBudget && monthlyBudget > 0 ? String(monthlyBudget) : "");
     }
@@ -352,6 +367,10 @@ export function SheetModal({
   const [note, setNote] = useState(scheduledEntry?.title ?? "");
   const [entrySaving, setEntrySaving] = useState(false);
   const [entryError, setEntryError] = useState("");
+  const [entryAttachments, setEntryAttachments] = useState<string[]>([]);
+  const entryAttachmentsRef = useRef<string[]>([]);
+  entryAttachmentsRef.current = entryAttachments;
+  const entrySavedRef = useRef(false);
   const [transferFee, setTransferFee] = useState<number>(0);
   const [pickingTransferSide, setPickingTransferSide] = useState<
     "from" | "to" | null
@@ -366,6 +385,8 @@ export function SheetModal({
   const [txCategory, setTxCategory] = useState("Food");
   const [txWalletId, setTxWalletId] = useState(fallback);
   const [txDestWalletId, setTxDestWalletId] = useState(fallback);
+  const [txAttachments, setTxAttachments] = useState<string[]>([]);
+  const txDraftExtrasRef = useRef<string[]>([]);
 
   useEffect(() => {
     setTxEditing(false);
@@ -386,6 +407,8 @@ export function SheetModal({
       setTxAmount(String(Math.abs(activity.amount)));
       setTxDirection(activity.amount >= 0 ? "income" : "expense");
       setTxCategory(activity.kind || "Other");
+      setTxAttachments(activity.attachments ?? []);
+      txDraftExtrasRef.current = [];
       setTxWalletId(matchedSrc?.id ?? wallets[0]?.id ?? fallback);
       setTxDestWalletId(
         matchedDest?.id ??
@@ -750,6 +773,7 @@ export function SheetModal({
             : w
       );
       onSaveWallets(nextWallets);
+      entrySavedRef.current = true;
       onRecordActivity({
         localId: `tx-${Date.now()}`,
         walletLocalId: getWalletLocalId(sourceWallet),
@@ -759,6 +783,7 @@ export function SheetModal({
         amount: -transferValue,
         icon: "swap",
         kind: "Transfer",
+        attachments: entryAttachments.length ? entryAttachments : undefined,
         occurredAt: now,
         updatedAt: now,
         synced: false,
@@ -799,12 +824,14 @@ export function SheetModal({
         amount: signedValue,
         icon: entryIcon,
         kind: entryCategory,
+        attachments: entryAttachments.length ? entryAttachments : undefined,
         occurredAt: now,
         updatedAt: now,
         synced: false,
       };
       try {
         await onRecordWalletEntry(item);
+        entrySavedRef.current = true;
         const message = scheduledEntry
           ? `${scheduledEntry.direction === "expense" ? "Bill" : "Income"} recorded`
           : `${entryType === "expense" ? "Expense" : "Money"} ${money(entryValue)} saved`;
@@ -3674,6 +3701,15 @@ export function SheetModal({
                       />
                     </View>
 
+                    <TransactionAttachmentsSection
+                      attachments={entryAttachments}
+                      compact
+                      onChange={(next) => setEntryAttachments(next)}
+                      onRemoveExisting={(removed) => deleteAttachmentFiles([removed])}
+                      emptyActionLabel="Add receipt or photo (optional)"
+                      theme={theme}
+                    />
+
                     {!scheduledEntry && !isTransferMode && (
                       <Pressable
                         accessibilityRole="button"
@@ -4490,10 +4526,12 @@ export function SheetModal({
                   amount: signed,
                   icon: nextIcon,
                   kind: nextKind,
+                  attachments: txAttachments.length ? txAttachments : undefined,
                   updatedAt: now,
                   synced: false,
                 };
 
+                txDraftExtrasRef.current = [];
                 onUpdateActivity(updatedItem, applyWalletDeltas(deltas));
                 onDone("Transaction updated");
               };
@@ -4699,6 +4737,27 @@ export function SheetModal({
                       </View>
                     ) : null}
 
+                    <TransactionAttachmentsSection
+                      attachments={txAttachments}
+                      compact
+                      onChange={(next) => {
+                        const originalSet = new Set(activity.attachments ?? []);
+                        const nextSet = new Set(next);
+                        const removedTemp = txAttachments.filter(
+                          (ref) => !nextSet.has(ref) && !originalSet.has(ref)
+                        );
+                        if (removedTemp.length) {
+                          deleteAttachmentFiles(removedTemp);
+                        }
+                        txDraftExtrasRef.current = next.filter(
+                          (ref) => !originalSet.has(ref)
+                        );
+                        setTxAttachments(next);
+                      }}
+                      emptyActionLabel="Attach receipt or photo"
+                      theme={theme}
+                    />
+
                     <PrimaryButton
                       label="Save changes"
                       disabled={editInvalid}
@@ -4706,7 +4765,14 @@ export function SheetModal({
                       theme={theme}
                     />
                     <Pressable
-                      onPress={() => setTxEditing(false)}
+                      onPress={() => {
+                        if (txDraftExtrasRef.current.length > 0) {
+                          deleteAttachmentFiles(txDraftExtrasRef.current);
+                          txDraftExtrasRef.current = [];
+                        }
+                        setTxAttachments(activity.attachments ?? []);
+                        setTxEditing(false);
+                      }}
                       style={[
                         styles.secondaryButton,
                         { backgroundColor: theme.soft, marginTop: 10 },
@@ -4928,6 +4994,23 @@ export function SheetModal({
                       </Text>
                     </View>
                   </View>
+
+                  <TransactionAttachmentsSection
+                    attachments={activity.attachments ?? []}
+                    canEdit={Boolean(onUpdateActivity)}
+                    onChange={(next) => {
+                      if (!onUpdateActivity) return;
+                      const updatedItem: ActivityItem = {
+                        ...activity,
+                        attachments: next.length ? next : undefined,
+                        updatedAt: new Date().toISOString(),
+                        synced: false,
+                      };
+                      onUpdateActivity(updatedItem, wallets);
+                    }}
+                    emptyActionLabel="Attach receipt or photo"
+                    theme={theme}
+                  />
 
                   <View style={styles.txActionPair}>
                     {onUpdateActivity ? (

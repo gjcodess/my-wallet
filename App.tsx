@@ -93,6 +93,7 @@ import { SheetModal } from "./src/components/SheetModal";
 import { AppLockModal, AppLockMode } from "./src/components/AppLockModal";
 import { LaunchIntro } from "./src/components/LaunchIntro";
 import { Icon } from "./src/components/Icon";
+import { deleteAttachmentFiles } from "./src/lib/attachments";
 import {
   MOTION_DURATIONS,
   MOTION_EASE,
@@ -873,6 +874,14 @@ export default function App() {
     updatedItem: ActivityItem,
     nextWallets: Wallet[]
   ) => {
+    const prevItem = activitiesRef.current.find((a) => a.id === updatedItem.id);
+    if (prevItem?.attachments?.length) {
+      const nextSet = new Set(updatedItem.attachments ?? []);
+      const removed = prevItem.attachments.filter((ref) => !nextSet.has(ref));
+      if (removed.length) {
+        deleteAttachmentFiles(removed);
+      }
+    }
     walletsRef.current = nextWallets;
     setWallets(nextWallets);
     const nextActivities = activitiesRef.current.map((a) =>
@@ -880,6 +889,9 @@ export default function App() {
     );
     activitiesRef.current = nextActivities;
     setActivityItems(nextActivities);
+    setSheetActivity((prev) =>
+      prev && prev.id === updatedItem.id ? updatedItem : prev
+    );
     scheduleCloudSync();
   };
 
@@ -887,6 +899,7 @@ export default function App() {
     deletedItem: ActivityItem,
     nextWallets: Wallet[]
   ) => {
+    deleteAttachmentFiles(deletedItem.attachments);
     walletsRef.current = nextWallets;
     setWallets(nextWallets);
     const nextActivities = activitiesRef.current.filter(

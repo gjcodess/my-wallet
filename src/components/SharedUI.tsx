@@ -732,12 +732,41 @@ export function TxRow({
         >
           {item.title}
         </Text>
-        <Text
-          style={[styles.rowSub, { color: theme.muted }]}
-          numberOfLines={1}
-        >
-          {item.kind} · {walletLabel ?? item.wallet}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Text
+            style={[styles.rowSub, { color: theme.muted, flexShrink: 1 }]}
+            numberOfLines={1}
+          >
+            {item.kind} · {walletLabel ?? item.wallet}
+          </Text>
+          {item.attachments?.length ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 2,
+                paddingHorizontal: 5,
+                paddingVertical: 1,
+                borderRadius: 99,
+                backgroundColor: hexToRgba(theme.leather.accent, theme.dark ? 0.24 : 0.12),
+              }}
+            >
+              <Icon name="paperclip" size={10} color={theme.leather.accent} />
+              {item.attachments.length > 1 ? (
+                <Text
+                  style={{
+                    fontFamily: "Poppins_700Bold",
+                    fontSize: 9.5,
+                    color: theme.leather.accent,
+                    includeFontPadding: false,
+                  }}
+                >
+                  {item.attachments.length}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
       </View>
       <View style={styles.txValue}>
         <Text

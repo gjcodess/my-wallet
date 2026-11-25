@@ -87,6 +87,7 @@ export type ActivityItem = {
   amount: number;
   icon: string;
   kind: string;
+  attachments?: string[];
   occurredAt?: string;
   updatedAt?: string;
   synced?: boolean;
