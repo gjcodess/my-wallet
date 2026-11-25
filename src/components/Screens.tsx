@@ -1345,15 +1345,16 @@ export const WalletsScreen = React.memo(function WalletsScreen({
             styles.walletLimitBanner,
             {
               overflow: "hidden",
-              backgroundColor: theme.card,
-              borderColor: hexToRgba(theme.leather.accent, 0.24),
+              backgroundColor: theme.leather.colors[1],
+              borderColor: theme.leather.edge,
             },
+            cardShadow(theme.dark),
           ]}
         >
-          <LightLeatherSurface theme={theme} radius={14} />
-          <Icon name="wallet" size={14} color={theme.leather.accent} />
+          <DarkLeatherSurface theme={theme} radius={14} />
+          <Icon name="wallet" size={14} color="rgba(255, 255, 255, 0.82)" />
           <Text
-            style={[styles.walletLimitBannerText, { color: theme.ink }]}
+            style={[styles.walletLimitBannerText, { color: "#ffffff" }]}
             numberOfLines={1}
           >
             {reordering
