@@ -8,6 +8,7 @@ import type { Wallet } from "../types/wallet";
 import { Icon } from "./Icon";
 import {
   cardShadow,
+  ConfirmBottomSheet,
   DarkLeatherSurface,
   hexToRgba,
   LightLeatherSurface,
@@ -86,10 +87,16 @@ function newSchedule(wallets: Wallet[]): Schedule {
   };
 }
 
-export function ScheduleManager({ schedules, wallets, hidden, theme, onRecord, seed, onSave, onDelete }: ScheduleListProps & {
+export function ScheduleManager({ schedules, wallets, hidden, theme, onRecord, seed, onSave, onDelete, onRequestDelete }: ScheduleListProps & {
   seed?: Schedule | null;
   onSave: (schedule: Schedule) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onRequestDelete?: (req: {
+    title: string;
+    message: string;
+    confirmLabel: string;
+    onConfirm: () => void;
+  }) => void;
 }) {
   const [draft, setDraft] = useState<Schedule | null>(() => seed ??
     (schedules.length === 0 && wallets.length ? newSchedule(wallets) : null));
@@ -520,48 +527,59 @@ export function ScheduleManager({ schedules, wallets, hidden, theme, onRecord, s
         {existing ? (
           <Pressable
             accessibilityRole="button"
-            onPress={() => { if (confirmDelete) void remove(); else setConfirmDelete(true); }}
+            onPress={() => {
+              if (onRequestDelete) {
+                onRequestDelete({
+                  title: `Remove "${draft.title.trim() || "this schedule"}"?`,
+                  message: "Scheduled reminders for this item will stop.",
+                  confirmLabel: "Confirm removal",
+                  onConfirm: () => void remove(),
+                });
+              } else {
+                setConfirmDelete(true);
+              }
+            }}
             style={({ pressed }) => [
               styles.footerBtn,
               {
                 overflow: "hidden",
-                backgroundColor: confirmDelete ? "#c04444" : theme.card,
-                borderColor: confirmDelete
-                  ? "#a23434"
-                  : hexToRgba("#9e3c42", 0.34),
+                backgroundColor: theme.card,
+                borderColor: hexToRgba("#9e3c42", 0.34),
                 transform: [{ scale: pressed ? 0.97 : 1 }],
               },
             ]}
           >
-            {!confirmDelete && <LightLeatherSurface theme={theme} radius={14} />}
+            <LightLeatherSurface theme={theme} radius={14} />
             <Icon
               name="trash"
               size={14}
-              color={
-                confirmDelete
-                  ? "#ffffff"
-                  : theme.dark
-                    ? "#f28b82"
-                    : "#9e3c42"
-              }
+              color={theme.dark ? "#f28b82" : "#9e3c42"}
             />
             <Text
               style={[
                 styles.choiceText,
-                {
-                  color: confirmDelete
-                    ? "#ffffff"
-                    : theme.dark
-                      ? "#f28b82"
-                      : "#9e3c42",
-                },
+                { color: theme.dark ? "#f28b82" : "#9e3c42" },
               ]}
             >
-              {confirmDelete ? "Confirm removal" : "Remove"}
+              Remove
             </Text>
           </Pressable>
         ) : null}
       </View>
+      <ConfirmBottomSheet
+        visible={confirmDelete}
+        icon="trash"
+        title={`Remove "${draft.title.trim() || "this schedule"}"?`}
+        message="Scheduled reminders for this item will stop."
+        confirmLabel="Confirm removal"
+        destructive
+        onConfirm={() => {
+          setConfirmDelete(false);
+          void remove();
+        }}
+        onCancel={() => setConfirmDelete(false)}
+        theme={theme}
+      />
     </View>
   );
 }

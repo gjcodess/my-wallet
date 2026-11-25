@@ -41,6 +41,7 @@ import {
   AccentSurfaceGlow,
   bevelStyle,
   cardShadow,
+  ConfirmBottomSheet,
   DarkLeatherSurface,
   EdgeFade,
   hexToRgba,
@@ -265,7 +266,12 @@ export function SheetModal({
   );
   const [walletStep, setWalletStep] = useState(type === "edit" ? 1 : 0);
   const [editReturnTarget, setEditReturnTarget] = useState<Wallet | null>(null);
-  const [walletConfirmDelete, setWalletConfirmDelete] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    onConfirm: () => void;
+  } | null>(null);
   const [globalSearch, setGlobalSearch] = useState("");
   const sheetScrollY = useRef(new Animated.Value(0)).current;
 
@@ -278,7 +284,7 @@ export function SheetModal({
     if (type !== "edit") {
       setEditReturnTarget(null);
     }
-    setWalletConfirmDelete(false);
+    setPendingDelete(null);
     setShowCustomTone(false);
     setGlobalSearch("");
     setTransferFee(0);
@@ -350,7 +356,6 @@ export function SheetModal({
 
   // Transaction Detail Edit / Delete states
   const [txEditing, setTxEditing] = useState(false);
-  const [txConfirmDelete, setTxConfirmDelete] = useState(false);
   const [txTitle, setTxTitle] = useState("");
   const [txAmount, setTxAmount] = useState("");
   const [txDirection, setTxDirection] = useState<"expense" | "income">("expense");
@@ -360,7 +365,6 @@ export function SheetModal({
 
   useEffect(() => {
     setTxEditing(false);
-    setTxConfirmDelete(false);
     if (type === "tx" && activity) {
       const matchedSrc = wallets.find(
         (w) =>
@@ -603,6 +607,10 @@ export function SheetModal({
   }, [openAnim]);
 
   const handleHeaderBack = useCallback(() => {
+    if (pendingDelete) {
+      setPendingDelete(null);
+      return;
+    }
     if (entrySavingRef.current) return;
     if (isEntrySheet && favoriteDraft) {
       closeFavoriteEditor();
@@ -1406,7 +1414,8 @@ export function SheetModal({
             )}
             {type === "schedule" && (
               <ScheduleManager schedules={schedules} wallets={wallets} hidden={hidden} theme={theme}
-                seed={scheduleSeed} onSave={onSaveSchedule} onDelete={onDeleteSchedule} onRecord={onOpenScheduledEntry} />
+                seed={scheduleSeed} onSave={onSaveSchedule} onDelete={onDeleteSchedule} onRecord={onOpenScheduledEntry}
+                onRequestDelete={setPendingDelete} />
             )}
             {type === "category-budget" && (
               <CategoryBudgetSheet limits={categoryLimits} spending={monthlySpending} hidden={hidden}
@@ -2403,91 +2412,19 @@ export function SheetModal({
                     {isEdit && editTarget && onDeleteWallet ? (
                       (() => {
                         const deleteInk = theme.dark ? "#f28b88" : "#9e3c42";
-                        return walletConfirmDelete ? (
-                          <View
-                            style={[
-                              styles.stitchedDeleteBox,
-                              {
-                                overflow: "hidden",
-                                backgroundColor: theme.card,
-                                borderColor: hexToRgba("#9e3c42", 0.36),
-                              },
-                            ]}
-                          >
-                            <LightLeatherSurface theme={theme} radius={18} />
-                            <View style={styles.stitchedDeleteHead}>
-                              <View style={styles.stitchedDeleteTitleRow}>
-                                <Icon name="trash" size={15} color={deleteInk} />
-                                <Text
-                                  style={[
-                                    styles.stitchedDeleteTitle,
-                                    { color: theme.ink },
-                                  ]}
-                                >
-                                  Delete "{editTarget.name}"?
-                                </Text>
-                              </View>
-                              <Text
-                                style={[
-                                  styles.stitchedDeleteSub,
-                                  { color: theme.muted },
-                                ]}
-                              >
-                                Past transactions will stay in Activity.
-                              </Text>
-                            </View>
-                            <View style={styles.txActionPair}>
-                              <Pressable
-                                onPress={() => setWalletConfirmDelete(false)}
-                                style={({ pressed }) => [
-                                  styles.stitchedDeleteActionBtn,
-                                  {
-                                    overflow: "hidden",
-                                    backgroundColor: theme.page,
-                                    borderColor: hexToRgba(theme.leather.accent, 0.25),
-                                    transform: [{ scale: pressed ? 0.97 : 1 }],
-                                  },
-                                ]}
-                              >
-                                <LightLeatherSurface theme={theme} radius={14} />
-                                <Text
-                                  style={[
-                                    styles.stitchedDeleteCancelText,
-                                    { color: theme.ink },
-                                  ]}
-                                >
-                                  Cancel
-                                </Text>
-                              </Pressable>
-                              <Pressable
-                                onPress={() => {
+                        return (
+                          <Pressable
+                            onPress={() =>
+                              setPendingDelete({
+                                title: `Delete "${editTarget.name}"?`,
+                                message: "Past transactions will stay in Activity.",
+                                confirmLabel: "Delete wallet",
+                                onConfirm: () => {
                                   onDeleteWallet(editTarget);
                                   onDone(`${editTarget.name} deleted`);
-                                }}
-                                style={({ pressed }) => [
-                                  styles.stitchedDeleteActionBtn,
-                                  {
-                                    overflow: "hidden",
-                                    backgroundColor: "#c04444",
-                                    borderColor: "#a23434",
-                                    transform: [{ scale: pressed ? 0.97 : 1 }],
-                                  },
-                                ]}
-                              >
-                                <View
-                                  pointerEvents="none"
-                                  style={styles.oxbloodInnerStitch}
-                                />
-                                <Icon name="trash" size={14} color="#ffffff" />
-                                <Text style={styles.stitchedDeleteConfirmText}>
-                                  Confirm delete
-                                </Text>
-                              </Pressable>
-                            </View>
-                          </View>
-                        ) : (
-                          <Pressable
-                            onPress={() => setWalletConfirmDelete(true)}
+                                },
+                              })
+                            }
                             style={({ pressed }) => [
                               styles.stitchedDeleteTriggerBtn,
                               {
@@ -4816,147 +4753,68 @@ export function SheetModal({
                     </View>
                   </View>
 
-                  {txConfirmDelete ? (
-                    <View
-                      style={[
-                        styles.stitchedDeleteBox,
-                        {
-                          overflow: "hidden",
-                          backgroundColor: theme.card,
-                          borderColor: hexToRgba("#9e3c42", 0.36),
-                          marginTop: 0,
-                        },
-                      ]}
-                    >
-                      <LightLeatherSurface theme={theme} radius={18} />
-                      <View style={styles.stitchedDeleteHead}>
-                        <View style={styles.stitchedDeleteTitleRow}>
-                          <Icon
-                            name="trash"
-                            size={15}
-                            color={theme.dark ? "#f28b82" : "#9e3c42"}
-                          />
-                          <Text
-                            style={[
-                              styles.stitchedDeleteTitle,
-                              { color: theme.ink },
-                            ]}
-                          >
-                            Delete this transaction?
-                          </Text>
-                        </View>
+                  <View style={styles.txActionPair}>
+                    {onUpdateActivity ? (
+                      <Pressable
+                        onPress={() => setTxEditing(true)}
+                        style={({ pressed }) => [
+                          styles.txActionHalfBtn,
+                          {
+                            overflow: "hidden",
+                            backgroundColor: theme.card,
+                            borderColor: hexToRgba(theme.leather.accent, 0.28),
+                            transform: [{ scale: pressed ? 0.97 : 1 }],
+                          },
+                          cardShadow(theme.dark),
+                        ]}
+                      >
+                        <LightLeatherSurface theme={theme} radius={16} />
+                        <Icon name="edit" size={16} color={theme.ink} />
+                        <Text
+                          style={[styles.secondaryButtonText, { color: theme.ink }]}
+                        >
+                          Edit
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                    {onDeleteActivity ? (
+                      <Pressable
+                        onPress={() =>
+                          setPendingDelete({
+                            title: "Delete this transaction?",
+                            message: "Wallet balance will be restored.",
+                            confirmLabel: "Confirm delete",
+                            onConfirm: handleConfirmDeleteTx,
+                          })
+                        }
+                        style={({ pressed }) => [
+                          styles.txActionHalfBtn,
+                          {
+                            overflow: "hidden",
+                            backgroundColor: theme.card,
+                            borderColor: hexToRgba("#9e3c42", 0.34),
+                            transform: [{ scale: pressed ? 0.97 : 1 }],
+                          },
+                          cardShadow(theme.dark),
+                        ]}
+                      >
+                        <LightLeatherSurface theme={theme} radius={16} />
+                        <Icon
+                          name="trash"
+                          size={15}
+                          color={theme.dark ? "#f28b82" : "#9e3c42"}
+                        />
                         <Text
                           style={[
-                            styles.stitchedDeleteSub,
-                            { color: theme.muted },
+                            styles.stitchedDeleteTriggerText,
+                            { color: theme.dark ? "#f28b82" : "#9e3c42" },
                           ]}
                         >
-                          Wallet balance will be restored.
+                          Delete
                         </Text>
-                      </View>
-                      <View style={styles.txActionPair}>
-                        <Pressable
-                          onPress={() => setTxConfirmDelete(false)}
-                          style={({ pressed }) => [
-                            styles.stitchedDeleteActionBtn,
-                            {
-                              overflow: "hidden",
-                              backgroundColor: theme.page,
-                              borderColor: hexToRgba(theme.leather.accent, 0.25),
-                              transform: [{ scale: pressed ? 0.97 : 1 }],
-                            },
-                          ]}
-                        >
-                          <LightLeatherSurface theme={theme} radius={14} />
-                          <Text
-                            style={[
-                              styles.stitchedDeleteCancelText,
-                              { color: theme.ink },
-                            ]}
-                          >
-                            Cancel
-                          </Text>
-                        </Pressable>
-                        <Pressable
-                          onPress={handleConfirmDeleteTx}
-                          style={({ pressed }) => [
-                            styles.stitchedDeleteActionBtn,
-                            {
-                              overflow: "hidden",
-                              backgroundColor: "#c04444",
-                              borderColor: "#a23434",
-                              transform: [{ scale: pressed ? 0.97 : 1 }],
-                            },
-                          ]}
-                        >
-                          <View
-                            pointerEvents="none"
-                            style={styles.oxbloodInnerStitch}
-                          />
-                          <Icon name="trash" size={14} color="#ffffff" />
-                          <Text style={styles.stitchedDeleteConfirmText}>
-                            Confirm delete
-                          </Text>
-                        </Pressable>
-                      </View>
-                    </View>
-                  ) : (
-                    <View style={styles.txActionPair}>
-                      {onUpdateActivity ? (
-                        <Pressable
-                          onPress={() => setTxEditing(true)}
-                          style={({ pressed }) => [
-                            styles.txActionHalfBtn,
-                            {
-                              overflow: "hidden",
-                              backgroundColor: theme.card,
-                              borderColor: hexToRgba(theme.leather.accent, 0.28),
-                              transform: [{ scale: pressed ? 0.97 : 1 }],
-                            },
-                            cardShadow(theme.dark),
-                          ]}
-                        >
-                          <LightLeatherSurface theme={theme} radius={16} />
-                          <Icon name="edit" size={16} color={theme.ink} />
-                          <Text
-                            style={[styles.secondaryButtonText, { color: theme.ink }]}
-                          >
-                            Edit
-                          </Text>
-                        </Pressable>
-                      ) : null}
-                      {onDeleteActivity ? (
-                        <Pressable
-                          onPress={() => setTxConfirmDelete(true)}
-                          style={({ pressed }) => [
-                            styles.txActionHalfBtn,
-                            {
-                              overflow: "hidden",
-                              backgroundColor: theme.card,
-                              borderColor: hexToRgba("#9e3c42", 0.34),
-                              transform: [{ scale: pressed ? 0.97 : 1 }],
-                            },
-                            cardShadow(theme.dark),
-                          ]}
-                        >
-                          <LightLeatherSurface theme={theme} radius={16} />
-                          <Icon
-                            name="trash"
-                            size={15}
-                            color={theme.dark ? "#f28b82" : "#9e3c42"}
-                          />
-                          <Text
-                            style={[
-                              styles.stitchedDeleteTriggerText,
-                              { color: theme.dark ? "#f28b82" : "#9e3c42" },
-                            ]}
-                          >
-                            Delete
-                          </Text>
-                        </Pressable>
-                      ) : null}
-                    </View>
-                  )}
+                      </Pressable>
+                    ) : null}
+                  </View>
 
                   {matchedWallet && !matchedWallet.isHidden && onOpenWallet ? (
                     <Pressable
@@ -5666,6 +5524,21 @@ export function SheetModal({
           </Animated.View>
         </Animated.View>
       </KeyboardAvoidingView>
+      <ConfirmBottomSheet
+        visible={pendingDelete !== null}
+        icon="trash"
+        title={pendingDelete?.title ?? ""}
+        message={pendingDelete?.message ?? ""}
+        confirmLabel={pendingDelete?.confirmLabel ?? "Delete"}
+        destructive
+        onConfirm={() => {
+          const action = pendingDelete?.onConfirm;
+          setPendingDelete(null);
+          action?.();
+        }}
+        onCancel={() => setPendingDelete(null)}
+        theme={theme}
+      />
     </View>
   );
 }

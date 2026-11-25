@@ -795,19 +795,24 @@ export default function App() {
 
   const [pendingHideWallet, setPendingHideWallet] = useState<Wallet | null>(null);
   const [renderedHideWallet, setRenderedHideWallet] = useState<Wallet | null>(null);
+  const renderedHideRef = useRef<Wallet | null>(null);
+  renderedHideRef.current = renderedHideWallet;
   const hideSheetAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (pendingHideWallet) {
-      setRenderedHideWallet(pendingHideWallet);
+      hideSheetAnim.stopAnimation();
       hideSheetAnim.setValue(0);
+      setRenderedHideWallet(pendingHideWallet);
       Animated.timing(hideSheetAnim, {
         toValue: 1,
         duration: 210,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }).start();
-    } else if (renderedHideWallet) {
+      return;
+    } else if (renderedHideRef.current) {
+      hideSheetAnim.stopAnimation();
       Animated.timing(hideSheetAnim, {
         toValue: 0,
         duration: 170,
@@ -817,7 +822,7 @@ export default function App() {
         if (finished) setRenderedHideWallet(null);
       });
     }
-  }, [pendingHideWallet, renderedHideWallet, hideSheetAnim]);
+  }, [pendingHideWallet, hideSheetAnim]);
 
   const dismissHideConfirm = useCallback((onDone?: () => void) => {
     Animated.timing(hideSheetAnim, {
@@ -834,19 +839,24 @@ export default function App() {
 
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [renderedExitConfirm, setRenderedExitConfirm] = useState(false);
+  const renderedExitRef = useRef(false);
+  renderedExitRef.current = renderedExitConfirm;
   const exitSheetAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (exitConfirmOpen) {
-      setRenderedExitConfirm(true);
+      exitSheetAnim.stopAnimation();
       exitSheetAnim.setValue(0);
+      setRenderedExitConfirm(true);
       Animated.timing(exitSheetAnim, {
         toValue: 1,
         duration: 210,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }).start();
-    } else if (renderedExitConfirm) {
+      return;
+    } else if (renderedExitRef.current) {
+      exitSheetAnim.stopAnimation();
       Animated.timing(exitSheetAnim, {
         toValue: 0,
         duration: 170,
@@ -856,7 +866,7 @@ export default function App() {
         if (finished) setRenderedExitConfirm(false);
       });
     }
-  }, [exitConfirmOpen, renderedExitConfirm, exitSheetAnim]);
+  }, [exitConfirmOpen, exitSheetAnim]);
 
   const dismissExitConfirm = useCallback(
     (onDone?: () => void) => {
@@ -1474,14 +1484,8 @@ export default function App() {
           onFinish={handleFinishIntro}
         />
       )}
-      <Modal
-        visible={renderedHideWallet !== null}
-        transparent
-        animationType="none"
-        statusBarTranslucent
-        onRequestClose={() => dismissHideConfirm()}
-      >
-        <View style={styles.confirmModalRoot}>
+      {renderedHideWallet !== null ? (
+        <View style={[StyleSheet.absoluteFill, styles.confirmModalRoot, { zIndex: 120 }]}>
           <Animated.View
             style={[
               StyleSheet.absoluteFill,
@@ -1494,120 +1498,112 @@ export default function App() {
               onPress={() => dismissHideConfirm()}
             />
           </Animated.View>
-          {renderedHideWallet ? (
-            <Animated.View
+          <Animated.View
+            style={[
+              styles.confirmCard,
+              {
+                overflow: "hidden",
+                backgroundColor: theme.page,
+                borderColor: hexToRgba(theme.leather.accent, 0.24),
+                transform: [
+                  {
+                    translateY: hideSheetAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [340, 0],
+                    }),
+                  },
+                ],
+              },
+              cardShadow(theme.dark),
+            ]}
+          >
+            <SaffianoSheetSurface theme={theme} radius={28} />
+            <View
               style={[
-                styles.confirmCard,
+                styles.confirmHandle,
+                { backgroundColor: hexToRgba(theme.leather.accent, 0.26) },
+              ]}
+            />
+            <View
+              style={[
+                styles.confirmIconBox,
                 {
-                  overflow: "hidden",
-                  backgroundColor: theme.page,
-                  borderColor: hexToRgba(theme.leather.accent, 0.24),
-                  transform: [
-                    {
-                      translateY: hideSheetAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [340, 0],
-                      }),
-                    },
-                  ],
+                  backgroundColor: hexToRgba(
+                    theme.leather.accent,
+                    theme.dark ? 0.22 : 0.12
+                  ),
+                  borderColor: hexToRgba(theme.leather.accent, 0.26),
                 },
-                cardShadow(theme.dark),
               ]}
             >
-              <SaffianoSheetSurface theme={theme} radius={28} />
-              <View
-                style={[
-                  styles.confirmHandle,
-                  { backgroundColor: hexToRgba(theme.leather.accent, 0.26) },
-                ]}
+              <Icon
+                name={renderedHideWallet.isHidden ? "eye" : "eye-off"}
+                size={20}
+                color={theme.leather.accent}
               />
-              <View
-                style={[
-                  styles.confirmIconBox,
+            </View>
+            <Text style={[styles.confirmTitle, { color: theme.ink }]}>
+              {renderedHideWallet.isHidden
+                ? `Unhide "${renderedHideWallet.name}"?`
+                : `Hide "${renderedHideWallet.name}"?`}
+            </Text>
+            <Text style={[styles.confirmSub, { color: theme.muted }]}>
+              {renderedHideWallet.isHidden
+                ? "This card will be restored to your Wallets list, Home stack, and total balance."
+                : 'This card will be excluded from your total balance, Home stack, and monthly stats. Past transactions stay in Activity as "Hidden wallet".'}
+            </Text>
+            <View style={styles.confirmBtnRow}>
+              <Pressable
+                onPress={() => dismissHideConfirm()}
+                style={({ pressed }) => [
+                  styles.confirmBtn,
                   {
-                    backgroundColor: hexToRgba(
-                      theme.leather.accent,
-                      theme.dark ? 0.22 : 0.12
-                    ),
+                    overflow: "hidden",
+                    backgroundColor: theme.card,
                     borderColor: hexToRgba(theme.leather.accent, 0.26),
+                    transform: [{ scale: pressed ? 0.97 : 1 }],
                   },
                 ]}
               >
+                <LightLeatherSurface theme={theme} radius={16} />
+                <Text style={[styles.confirmCancelText, { color: theme.ink }]}>
+                  Cancel
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  const target = renderedHideWallet;
+                  dismissHideConfirm(() => {
+                    if (target) applyToggleWalletHidden(target);
+                  });
+                }}
+                style={({ pressed }) => [
+                  styles.confirmBtn,
+                  {
+                    overflow: "hidden",
+                    backgroundColor: theme.leather.colors[1],
+                    borderColor: theme.leather.edge,
+                    transform: [{ scale: pressed ? 0.97 : 1 }],
+                  },
+                  cardShadow(theme.dark),
+                ]}
+              >
+                <DarkLeatherSurface theme={theme} radius={16} />
                 <Icon
                   name={renderedHideWallet.isHidden ? "eye" : "eye-off"}
-                  size={20}
-                  color={theme.leather.accent}
+                  size={15}
+                  color="#ffffff"
                 />
-              </View>
-              <Text style={[styles.confirmTitle, { color: theme.ink }]}>
-                {renderedHideWallet.isHidden
-                  ? `Unhide "${renderedHideWallet.name}"?`
-                  : `Hide "${renderedHideWallet.name}"?`}
-              </Text>
-              <Text style={[styles.confirmSub, { color: theme.muted }]}>
-                {renderedHideWallet.isHidden
-                  ? "This card will be restored to your Wallets list, Home stack, and total balance."
-                  : 'This card will be excluded from your total balance, Home stack, and monthly stats. Past transactions stay in Activity as "Hidden wallet".'}
-              </Text>
-              <View style={styles.confirmBtnRow}>
-                <Pressable
-                  onPress={() => dismissHideConfirm()}
-                  style={({ pressed }) => [
-                    styles.confirmBtn,
-                    {
-                      overflow: "hidden",
-                      backgroundColor: theme.card,
-                      borderColor: hexToRgba(theme.leather.accent, 0.26),
-                      transform: [{ scale: pressed ? 0.97 : 1 }],
-                    },
-                  ]}
-                >
-                  <LightLeatherSurface theme={theme} radius={16} />
-                  <Text style={[styles.confirmCancelText, { color: theme.ink }]}>
-                    Cancel
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    const target = renderedHideWallet;
-                    dismissHideConfirm(() => {
-                      if (target) applyToggleWalletHidden(target);
-                    });
-                  }}
-                  style={({ pressed }) => [
-                    styles.confirmBtn,
-                    {
-                      overflow: "hidden",
-                      backgroundColor: theme.leather.colors[1],
-                      borderColor: theme.leather.edge,
-                      transform: [{ scale: pressed ? 0.97 : 1 }],
-                    },
-                    cardShadow(theme.dark),
-                  ]}
-                >
-                  <DarkLeatherSurface theme={theme} radius={16} />
-                  <Icon
-                    name={renderedHideWallet.isHidden ? "eye" : "eye-off"}
-                    size={15}
-                    color="#ffffff"
-                  />
-                  <Text style={styles.confirmPrimaryText}>
-                    {renderedHideWallet.isHidden ? "Unhide card" : "Hide card"}
-                  </Text>
-                </Pressable>
-              </View>
-            </Animated.View>
-          ) : null}
+                <Text style={styles.confirmPrimaryText}>
+                  {renderedHideWallet.isHidden ? "Unhide card" : "Hide card"}
+                </Text>
+              </Pressable>
+            </View>
+          </Animated.View>
         </View>
-      </Modal>
-      <Modal
-        visible={renderedExitConfirm}
-        transparent
-        animationType="none"
-        statusBarTranslucent
-        onRequestClose={() => dismissExitConfirm()}
-      >
-        <View style={styles.confirmModalRoot}>
+      ) : null}
+      {renderedExitConfirm ? (
+        <View style={[StyleSheet.absoluteFill, styles.confirmModalRoot, { zIndex: 130 }]}>
           <Animated.View
             style={[
               StyleSheet.absoluteFill,
@@ -1620,96 +1616,94 @@ export default function App() {
               onPress={() => dismissExitConfirm()}
             />
           </Animated.View>
-          {renderedExitConfirm ? (
-            <Animated.View
+          <Animated.View
+            style={[
+              styles.confirmCard,
+              {
+                overflow: "hidden",
+                backgroundColor: theme.page,
+                borderColor: hexToRgba(theme.leather.accent, 0.24),
+                transform: [
+                  {
+                    translateY: exitSheetAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [340, 0],
+                    }),
+                  },
+                ],
+              },
+              cardShadow(theme.dark),
+            ]}
+          >
+            <SaffianoSheetSurface theme={theme} radius={28} />
+            <View
               style={[
-                styles.confirmCard,
+                styles.confirmHandle,
+                { backgroundColor: hexToRgba(theme.leather.accent, 0.26) },
+              ]}
+            />
+            <View
+              style={[
+                styles.confirmIconBox,
                 {
-                  overflow: "hidden",
-                  backgroundColor: theme.page,
-                  borderColor: hexToRgba(theme.leather.accent, 0.24),
-                  transform: [
-                    {
-                      translateY: exitSheetAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [340, 0],
-                      }),
-                    },
-                  ],
+                  backgroundColor: hexToRgba(
+                    theme.leather.accent,
+                    theme.dark ? 0.22 : 0.12
+                  ),
+                  borderColor: hexToRgba(theme.leather.accent, 0.26),
                 },
-                cardShadow(theme.dark),
               ]}
             >
-              <SaffianoSheetSurface theme={theme} radius={28} />
-              <View
-                style={[
-                  styles.confirmHandle,
-                  { backgroundColor: hexToRgba(theme.leather.accent, 0.26) },
-                ]}
-              />
-              <View
-                style={[
-                  styles.confirmIconBox,
+              <Icon name="logout" size={20} color={theme.leather.accent} />
+            </View>
+            <Text style={[styles.confirmTitle, { color: theme.ink }]}>
+              Exit Pitaka?
+            </Text>
+            <Text style={[styles.confirmSub, { color: theme.muted }]}>
+              Are you sure you want to close the app?
+            </Text>
+            <View style={styles.confirmBtnRow}>
+              <Pressable
+                onPress={() => dismissExitConfirm()}
+                style={({ pressed }) => [
+                  styles.confirmBtn,
                   {
-                    backgroundColor: hexToRgba(
-                      theme.leather.accent,
-                      theme.dark ? 0.22 : 0.12
-                    ),
+                    overflow: "hidden",
+                    backgroundColor: theme.card,
                     borderColor: hexToRgba(theme.leather.accent, 0.26),
+                    transform: [{ scale: pressed ? 0.97 : 1 }],
                   },
                 ]}
               >
-                <Icon name="logout" size={20} color={theme.leather.accent} />
-              </View>
-              <Text style={[styles.confirmTitle, { color: theme.ink }]}>
-                Exit Pitaka?
-              </Text>
-              <Text style={[styles.confirmSub, { color: theme.muted }]}>
-                Are you sure you want to close the app?
-              </Text>
-              <View style={styles.confirmBtnRow}>
-                <Pressable
-                  onPress={() => dismissExitConfirm()}
-                  style={({ pressed }) => [
-                    styles.confirmBtn,
-                    {
-                      overflow: "hidden",
-                      backgroundColor: theme.card,
-                      borderColor: hexToRgba(theme.leather.accent, 0.26),
-                      transform: [{ scale: pressed ? 0.97 : 1 }],
-                    },
-                  ]}
-                >
-                  <LightLeatherSurface theme={theme} radius={16} />
-                  <Text style={[styles.confirmCancelText, { color: theme.ink }]}>
-                    Stay
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    dismissExitConfirm(() => {
-                      BackHandler.exitApp();
-                    });
-                  }}
-                  style={({ pressed }) => [
-                    styles.confirmBtn,
-                    {
-                      overflow: "hidden",
-                      backgroundColor: theme.leather.colors[1],
-                      borderColor: theme.leather.edge,
-                      transform: [{ scale: pressed ? 0.97 : 1 }],
-                    },
-                    cardShadow(theme.dark),
-                  ]}
-                >
-                  <DarkLeatherSurface theme={theme} radius={16} />
-                  <Text style={styles.confirmPrimaryText}>Exit app</Text>
-                </Pressable>
-              </View>
-            </Animated.View>
-          ) : null}
+                <LightLeatherSurface theme={theme} radius={16} />
+                <Text style={[styles.confirmCancelText, { color: theme.ink }]}>
+                  Stay
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  dismissExitConfirm(() => {
+                    BackHandler.exitApp();
+                  });
+                }}
+                style={({ pressed }) => [
+                  styles.confirmBtn,
+                  {
+                    overflow: "hidden",
+                    backgroundColor: theme.leather.colors[1],
+                    borderColor: theme.leather.edge,
+                    transform: [{ scale: pressed ? 0.97 : 1 }],
+                  },
+                  cardShadow(theme.dark),
+                ]}
+              >
+                <DarkLeatherSurface theme={theme} radius={16} />
+                <Text style={styles.confirmPrimaryText}>Exit app</Text>
+              </Pressable>
+            </View>
+          </Animated.View>
         </View>
-      </Modal>
+      ) : null}
       </View>
     </SafeAreaProvider>
   );

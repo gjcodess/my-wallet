@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { Animated, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, {
   Circle as SvgCircle,
@@ -1295,4 +1295,282 @@ const styles = StyleSheet.create({
     shadowRadius: 22,
     elevation: 12,
   },
+  confirmModalRoot: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  confirmBackdrop: {
+    backgroundColor: "rgba(10, 15, 24, 0.48)",
+  },
+  confirmCard: {
+    width: "100%",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    paddingTop: 10,
+    paddingHorizontal: 22,
+    paddingBottom: 34,
+    alignItems: "center",
+  },
+  confirmHandle: {
+    width: 38,
+    height: 4,
+    borderRadius: 99,
+    marginBottom: 18,
+  },
+  confirmIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  confirmTitle: {
+    fontFamily: "Poppins_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 18,
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  confirmSub: {
+    fontFamily: "Poppins_500Medium",
+    fontWeight: "500",
+    fontSize: 12.5,
+    lineHeight: 18,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  confirmBtnRow: {
+    flexDirection: "row",
+    gap: 10,
+    width: "100%",
+  },
+  confirmBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+  },
+  confirmCancelText: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 13,
+    includeFontPadding: false,
+    marginTop: 1,
+  },
+  confirmPrimaryText: {
+    color: "#ffffff",
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 13,
+    includeFontPadding: false,
+    marginTop: 1,
+  },
+  confirmDestructiveStitch: {
+    position: "absolute",
+    top: 4,
+    bottom: 4,
+    left: 4,
+    right: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "rgba(255, 255, 255, 0.28)",
+  },
 });
+
+export function ConfirmBottomSheet({
+  visible,
+  icon,
+  title,
+  message,
+  confirmLabel,
+  cancelLabel = "Cancel",
+  destructive = false,
+  onConfirm,
+  onCancel,
+  theme,
+}: {
+  visible: boolean;
+  icon: string;
+  title: string;
+  message: string;
+  confirmLabel: string;
+  cancelLabel?: string;
+  destructive?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+  theme: ThemeColors;
+}) {
+  const [mounted, setMounted] = useState(visible);
+  const mountedRef = useRef(mounted);
+  mountedRef.current = mounted;
+  const anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      anim.stopAnimation();
+      anim.setValue(0);
+      setMounted(true);
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 210,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+      return;
+    }
+    if (mountedRef.current) {
+      anim.stopAnimation();
+      Animated.timing(anim, {
+        toValue: 0,
+        duration: 170,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) setMounted(false);
+      });
+    }
+  }, [visible, anim]);
+
+  const dismiss = useCallback(
+    (after?: () => void) => {
+      anim.stopAnimation();
+      Animated.timing(anim, {
+        toValue: 0,
+        duration: 170,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(() => {
+        setMounted(false);
+        if (after) after();
+        else onCancel();
+      });
+    },
+    [anim, onCancel]
+  );
+
+  if (!mounted) return null;
+
+  const dangerColor = theme.dark ? "#f28b82" : "#9e3c42";
+
+  return (
+    <View style={[StyleSheet.absoluteFill, styles.confirmModalRoot, { zIndex: 200 }]}>
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          styles.confirmBackdrop,
+          { opacity: anim },
+        ]}
+      >
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => dismiss()}
+        />
+      </Animated.View>
+      <Animated.View
+        style={[
+          styles.confirmCard,
+          {
+            overflow: "hidden",
+            backgroundColor: theme.page,
+            borderColor: destructive
+              ? hexToRgba("#9e3c42", 0.34)
+              : hexToRgba(theme.leather.accent, 0.24),
+            transform: [
+              {
+                translateY: anim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [340, 0],
+                }),
+              },
+            ],
+          },
+          cardShadow(theme.dark),
+        ]}
+      >
+        <SaffianoSheetSurface theme={theme} radius={28} />
+        <View
+          style={[
+            styles.confirmHandle,
+            { backgroundColor: hexToRgba(theme.leather.accent, 0.26) },
+          ]}
+        />
+        <View
+          style={[
+            styles.confirmIconBox,
+            {
+              backgroundColor: destructive
+                ? hexToRgba("#9e3c42", theme.dark ? 0.24 : 0.12)
+                : hexToRgba(theme.leather.accent, theme.dark ? 0.22 : 0.12),
+              borderColor: destructive
+                ? hexToRgba("#9e3c42", 0.34)
+                : hexToRgba(theme.leather.accent, 0.26),
+            },
+          ]}
+        >
+          <Icon
+            name={icon}
+            size={20}
+            color={destructive ? dangerColor : theme.leather.accent}
+          />
+        </View>
+        <Text style={[styles.confirmTitle, { color: theme.ink }]}>
+          {title}
+        </Text>
+        <Text style={[styles.confirmSub, { color: theme.muted }]}>
+          {message}
+        </Text>
+        <View style={styles.confirmBtnRow}>
+          <Pressable
+            onPress={() => dismiss()}
+            style={({ pressed }) => [
+              styles.confirmBtn,
+              {
+                overflow: "hidden",
+                backgroundColor: theme.card,
+                borderColor: hexToRgba(theme.leather.accent, 0.26),
+                transform: [{ scale: pressed ? 0.97 : 1 }],
+              },
+            ]}
+          >
+            <LightLeatherSurface theme={theme} radius={16} />
+            <Text style={[styles.confirmCancelText, { color: theme.ink }]}>
+              {cancelLabel}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => dismiss(onConfirm)}
+            style={({ pressed }) => [
+              styles.confirmBtn,
+              {
+                overflow: "hidden",
+                backgroundColor: destructive
+                  ? "#c04444"
+                  : theme.leather.colors[1],
+                borderColor: destructive ? "#a23434" : theme.leather.edge,
+                transform: [{ scale: pressed ? 0.97 : 1 }],
+              },
+              cardShadow(theme.dark),
+            ]}
+          >
+            {destructive ? (
+              <View pointerEvents="none" style={styles.confirmDestructiveStitch} />
+            ) : (
+              <DarkLeatherSurface theme={theme} radius={16} />
+            )}
+            <Icon name={icon} size={15} color="#ffffff" />
+            <Text style={styles.confirmPrimaryText}>{confirmLabel}</Text>
+          </Pressable>
+        </View>
+      </Animated.View>
+    </View>
+  );
+}
