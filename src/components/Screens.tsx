@@ -415,7 +415,7 @@ export const HomeScreen = React.memo(function HomeScreen({
   }, []);
 
   const recentActivities = useMemo(
-    () => activities.slice(0, 10),
+    () => activities.slice(0, 5),
     [activities]
   );
 
@@ -548,7 +548,7 @@ export const HomeScreen = React.memo(function HomeScreen({
               />
             ))}
           </View>
-          {activities.length > 10 ? (
+          {activities.length > 5 ? (
             <Pressable
               onPress={handleGoActivity}
               style={({ pressed }) => [

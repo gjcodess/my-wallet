@@ -719,8 +719,8 @@ export function TxRow({
       ]}
     >
       <LightLeatherSurface theme={theme} />
-      <View style={[styles.txIcon, { backgroundColor: theme.soft }]}>
-        <Icon name={item.icon} size={25} strokeWidth={2.05} color={iconColor} />
+      <View style={styles.txIcon}>
+        <Icon name={item.icon} size={23} strokeWidth={2.05} color={iconColor} />
       </View>
       <View style={styles.rowMain}>
         <Text
@@ -1122,9 +1122,8 @@ const styles = StyleSheet.create({
       : { boxShadow: "0px 4px 9px rgba(24, 32, 54, 0.14)" }),
   },
   txIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 30,
+    height: 30,
     alignItems: "center",
     justifyContent: "center",
   },
