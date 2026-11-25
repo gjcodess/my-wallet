@@ -1382,7 +1382,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
       {hiddenWallets.length > 0 ? (
         <View style={{ marginTop: 8 }}>
           <GroupedPhysicalWallet
-            groupLabel={`Hidden · ${hiddenWallets.length}`}
+            groupLabel="Hidden"
             wallets={hiddenWallets}
             total={hiddenGroupSummary.total}
             hidden={hidden}

@@ -1013,18 +1013,25 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
   const pocketY = (POCKET_Y + extraY) * scale;
   const bottomY = (BOTTOM_Y + extraY) * scale;
   const stowedY = (STOWED_Y + extraY) * scale;
+  const topCardRestY =
+    (200 + extraY - Math.max(0, wallets.length - 1) * CARD_STEP) * scale;
+  const coverCropY = collapsible
+    ? 0
+    : Math.max(0, Math.min(hingeY - 2 * scale, topCardRestY - 10 * scale));
   const closedHeight = (leather.shell.height + 2) * scale + shadowPadBottom;
-  const openHeight = stageHeight + shadowPadBottom;
+  const openHeight = stageHeight - coverCropY + shadowPadBottom;
   const flapHeight = leather.flap.height * scale;
 
   const wrapperHeight = openAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [closedHeight, openHeight],
   });
-  const stageTranslateY = openAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-(hingeY - 2 * scale), 0],
-  });
+  const stageTranslateY = collapsible
+    ? openAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-(hingeY - 2 * scale), 0],
+      })
+    : -coverCropY;
   const flapMotion = {
     top: hingeY - flapHeight,
     height: 2 * flapHeight,
@@ -1078,36 +1085,45 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
           style={[
             styles.shell,
             { top: hingeY, height: leather.shell.height * scale },
+            !collapsible && {
+              borderTopLeftRadius: 22 * scale,
+              borderTopRightRadius: 22 * scale,
+              overflow: "hidden",
+            },
           ]}
         >
           <LeatherPanel part="shell" finish={theme.leather} />
         </View>
 
-        <Animated.View
-          pointerEvents="none"
-          renderToHardwareTextureAndroid
-          style={[
-            styles.flap,
-            flapMotion,
-            {
-              zIndex: 2,
-              opacity: openAnim.interpolate({
-                inputRange: [0, 0.505, 0.506, 1],
-                outputRange: [0, 0, 1, 1],
-              }),
-            },
-          ]}
-        >
-          <View style={styles.flapFace}>
-            <LeatherPanel part="flap" lining finish={theme.leather} />
-          </View>
-        </Animated.View>
+        {collapsible ? (
+          <>
+            <Animated.View
+              pointerEvents="none"
+              renderToHardwareTextureAndroid
+              style={[
+                styles.flap,
+                flapMotion,
+                {
+                  zIndex: 2,
+                  opacity: openAnim.interpolate({
+                    inputRange: [0, 0.505, 0.506, 1],
+                    outputRange: [0, 0, 1, 1],
+                  }),
+                },
+              ]}
+            >
+              <View style={styles.flapFace}>
+                <LeatherPanel part="flap" lining finish={theme.leather} />
+              </View>
+            </Animated.View>
 
-        <CardGradient
-          pointerEvents="none"
-          colors={[theme.leather.colors[1], theme.leather.edge, theme.leather.colors[1]]}
-          style={[styles.hinge, { top: hingeY - 2 * scale, height: 6 * scale }]}
-        />
+            <CardGradient
+              pointerEvents="none"
+              colors={[theme.leather.colors[1], theme.leather.edge, theme.leather.colors[1]]}
+              style={[styles.hinge, { top: hingeY - 2 * scale, height: 6 * scale }]}
+            />
+          </>
+        ) : null}
 
         <View
           pointerEvents={effectiveOpen && !busy ? "box-none" : "none"}
@@ -1190,7 +1206,6 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
           <Amount value={total} hidden={hidden} size="md" color="#f0f1eb" />
           <Text style={styles.pocketCount}>
             {wallets.length} {wallets.length === 1 ? "card" : "cards"}
-            {collapsible ? ` · Tap to ${effectiveOpen ? "close" : "open"}` : ""}
           </Text>
           <View style={styles.monthlyFlow}>
             <View style={styles.monthlyItem}>
@@ -1249,37 +1264,38 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
           </Animated.View>
         ) : null}
 
-        <Animated.View
-          pointerEvents={effectiveOpen ? "none" : "auto"}
-          renderToHardwareTextureAndroid
-          accessibilityElementsHidden={effectiveOpen}
-          importantForAccessibility={effectiveOpen ? "no-hide-descendants" : "auto"}
-          style={[
-            styles.flap,
-            flapMotion,
-            {
-              zIndex: 7,
-              opacity: openAnim.interpolate({
-                inputRange: [0, 0.505, 0.506, 1],
-                outputRange: [1, 1, 0, 0],
-              }),
-            },
-          ]}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Open ${groupLabel} wallet`}
-            disabled={!collapsible}
-            onPress={collapsible ? onToggleOpen : undefined}
-            style={styles.flapFace}
+        {collapsible ? (
+          <Animated.View
+            pointerEvents={effectiveOpen ? "none" : "auto"}
+            renderToHardwareTextureAndroid
+            accessibilityElementsHidden={effectiveOpen}
+            importantForAccessibility={effectiveOpen ? "no-hide-descendants" : "auto"}
+            style={[
+              styles.flap,
+              flapMotion,
+              {
+                zIndex: 7,
+                opacity: openAnim.interpolate({
+                  inputRange: [0, 0.505, 0.506, 1],
+                  outputRange: [1, 1, 0, 0],
+                }),
+              },
+            ]}
           >
-            <LeatherPanel part="flap" finish={theme.leather} />
-            <View pointerEvents="none" style={styles.flapText}>
-              <Icon name="chevron" size={14} color="#e3e9e9" />
-              <Text style={styles.flapLabel}>{groupLabel} · Tap to open</Text>
-            </View>
-          </Pressable>
-        </Animated.View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${groupLabel} wallet`}
+              onPress={onToggleOpen}
+              style={styles.flapFace}
+            >
+              <LeatherPanel part="flap" finish={theme.leather} />
+              <View pointerEvents="none" style={styles.flapText}>
+                <Icon name="lock" size={14} color="#e3e9e9" />
+                <Text style={styles.flapLabel}>Tap to open</Text>
+              </View>
+            </Pressable>
+          </Animated.View>
+        ) : null}
       </Animated.View>
 
       <Modal transparent visible={!!liftedWallet} animationType="none" statusBarTranslucent onRequestClose={() => liftedWallet && pull(liftedWallet)}>
