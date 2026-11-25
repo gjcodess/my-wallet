@@ -668,14 +668,24 @@ export const HomeScreen = React.memo(function HomeScreen({
               <Text
                 style={[styles.homePulseLabel, { color: theme.leather.thread }]}
               >
-                Today
+                Spent today
               </Text>
               <Text
-                style={[styles.homePulseVal, { color: "#ffffff" }]}
+                style={[
+                  styles.homePulseVal,
+                  {
+                    color:
+                      monthlySummary.todaySpent > 0 ? "#fda4af" : "#ffffff",
+                  },
+                ]}
                 numberOfLines={1}
                 adjustsFontSizeToFit
               >
-                {hidden ? "₱•••" : money(monthlySummary.todaySpent)}
+                {hidden
+                  ? "₱•••"
+                  : monthlySummary.todaySpent > 0
+                    ? `-${money(monthlySummary.todaySpent)}`
+                    : money(0)}
               </Text>
             </View>
             <View

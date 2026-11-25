@@ -299,13 +299,13 @@ const AccountCard = React.memo(function AccountCard({
                   <View style={styles.focusFlowStat}>
                     <Icon name="arrow-down" size={10.5} strokeWidth={2.5} color={inColor} />
                     <Text style={[styles.focusFlowVal, { color: inColor }]} numberOfLines={1}>
-                      {hidden ? "••" : money(flow.earned, true)}
+                      {hidden ? "••" : `+${money(flow.earned, true)}`}
                     </Text>
                   </View>
                   <View style={styles.focusFlowStat}>
                     <Icon name="arrow-up" size={10.5} strokeWidth={2.5} color={outColor} />
                     <Text style={[styles.focusFlowVal, { color: outColor }]} numberOfLines={1}>
-                      {hidden ? "••" : money(flow.spent, true)}
+                      {hidden ? "••" : `-${money(flow.spent, true)}`}
                     </Text>
                   </View>
                 </View>
@@ -716,12 +716,16 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
           <View style={styles.monthlyFlow}>
             <View style={styles.monthlyItem}>
               <Text style={styles.monthlyLabel}>{monthlySummary.monthLabel} in</Text>
-              <Text style={styles.monthlyValue} numberOfLines={1} adjustsFontSizeToFit>{hidden ? "••••" : money(monthlySummary.earned)}</Text>
+              <Text style={[styles.monthlyValue, { color: "#6ee7b7" }]} numberOfLines={1} adjustsFontSizeToFit>
+                {hidden ? "••••" : `+${money(monthlySummary.earned)}`}
+              </Text>
             </View>
             <View style={styles.monthlyDivider} />
             <View style={styles.monthlyItem}>
               <Text style={styles.monthlyLabel}>{monthlySummary.monthLabel} out</Text>
-              <Text style={styles.monthlyValue} numberOfLines={1} adjustsFontSizeToFit>{hidden ? "••••" : money(monthlySummary.spent)}</Text>
+              <Text style={[styles.monthlyValue, { color: "#fda4af" }]} numberOfLines={1} adjustsFontSizeToFit>
+                {hidden ? "••••" : `-${money(monthlySummary.spent)}`}
+              </Text>
             </View>
           </View>
         </Animated.View>
