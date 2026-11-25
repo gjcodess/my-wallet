@@ -854,6 +854,465 @@ export const PhysicalWallet = React.memo(function PhysicalWallet({
   );
 });
 
+export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
+  groupLabel,
+  wallets,
+  total,
+  hidden,
+  isOpen,
+  onToggleOpen,
+  monthlySummary,
+  walletFlows,
+  theme,
+  onWallet,
+  onOpenMenu,
+  onOpenAdd,
+}: {
+  groupLabel: string;
+  wallets: Wallet[];
+  total: number;
+  hidden: boolean;
+  isOpen: boolean;
+  onToggleOpen: () => void;
+  monthlySummary: { monthLabel: string; monthShortLabel?: string; earned: number; spent: number };
+  walletFlows?: Record<number, { earned: number; spent: number }>;
+  theme: ThemeColors;
+  onWallet: (wallet: Wallet) => void;
+  onOpenMenu: (wallet: Wallet) => void;
+  onOpenAdd?: () => void;
+}) {
+  const { width: windowWidth } = useWindowDimensions();
+  const [scale, setScale] = useState(() => getWalletScale(windowWidth));
+  const [busy, setBusy] = useState(false);
+  const [activeId, setActiveId] = useState<Wallet["id"] | null>(null);
+  const [liftedId, setLiftedId] = useState<Wallet["id"] | null>(null);
+
+  const openAnim = useRef(new Animated.Value(isOpen ? 1 : 0)).current;
+  const lift = useRef(new Animated.Value(0)).current;
+  const running = useRef<Animated.CompositeAnimation | null>(null);
+  const openAnimRunning = useRef<Animated.CompositeAnimation | null>(null);
+  const moving = useRef(false);
+  const mounted = useRef(false);
+  const reduceMotion = useRef(false);
+
+  useEffect(() => {
+    mounted.current = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => {
+        if (mounted.current) reduceMotion.current = enabled;
+      })
+      .catch(() => {});
+    const subscription = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      (enabled) => {
+        reduceMotion.current = enabled;
+      },
+    );
+    return () => {
+      mounted.current = false;
+      running.current?.stop();
+      openAnimRunning.current?.stop();
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    openAnimRunning.current?.stop();
+    if (reduceMotion.current) {
+      openAnim.setValue(isOpen ? 1 : 0);
+      return;
+    }
+    const anim = Animated.timing(openAnim, {
+      toValue: isOpen ? 1 : 0,
+      duration: 280,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    });
+    openAnimRunning.current = anim;
+    anim.start(() => {
+      openAnimRunning.current = null;
+    });
+  }, [isOpen, openAnim]);
+
+  const liftedWallet = isOpen
+    ? wallets.find((wallet) => wallet.id === liftedId)
+    : undefined;
+
+  const play = useCallback(
+    (toValue: number, duration: number) => {
+      if (reduceMotion.current) {
+        lift.setValue(toValue);
+        return Promise.resolve(true);
+      }
+      return new Promise<boolean>((resolve) => {
+        const animation = Animated.timing(lift, {
+          toValue,
+          duration,
+          easing: toValue === 1 ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
+          useNativeDriver: Platform.OS !== "web",
+        });
+        running.current = animation;
+        animation.start(({ finished }) => {
+          running.current = null;
+          resolve(finished);
+        });
+      });
+    },
+    [lift],
+  );
+
+  const move = useCallback(async (action: () => Promise<void>) => {
+    if (moving.current) return;
+    moving.current = true;
+    setBusy(true);
+    try {
+      await action();
+    } finally {
+      moving.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  }, []);
+
+  const pull = useCallback(
+    (wallet: Wallet) => {
+      if (!isOpen) return;
+      void move(async () => {
+        if (liftedId !== null && !(await play(0, 260))) return;
+        if (liftedId === wallet.id) {
+          setLiftedId(null);
+          return;
+        }
+        setActiveId(wallet.id);
+        setLiftedId(wallet.id);
+        await play(1, 400);
+      });
+    },
+    [isOpen, liftedId, move, play],
+  );
+
+  const handleFocusOpen = useCallback(
+    (wallet: Wallet) => {
+      void move(async () => {
+        if (await play(0, 260)) {
+          setLiftedId(null);
+          onWallet(wallet);
+        }
+      });
+    },
+    [move, onWallet, play],
+  );
+
+  const extraY = Math.max(0, wallets.length - VISIBLE_CARDS) * CARD_STEP;
+  const shadowPadBottom = 14;
+  const shadowPadX = 10;
+  const stageHeight = (HEIGHT + extraY) * scale;
+  const hingeY = (HINGE_Y + extraY) * scale;
+  const pocketY = (POCKET_Y + extraY) * scale;
+  const bottomY = (BOTTOM_Y + extraY) * scale;
+  const stowedY = (STOWED_Y + extraY) * scale;
+  const closedHeight = (leather.shell.height + 2) * scale + shadowPadBottom;
+  const openHeight = stageHeight + shadowPadBottom;
+  const flapHeight = leather.flap.height * scale;
+
+  const wrapperHeight = openAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [closedHeight, openHeight],
+  });
+  const stageTranslateY = openAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-(hingeY - 2 * scale), 0],
+  });
+  const flapMotion = {
+    top: hingeY - flapHeight,
+    height: 2 * flapHeight,
+    transform: [
+      { perspective: 1000 },
+      {
+        rotateX: openAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: ["0deg", "178deg"],
+        }),
+      },
+    ],
+  };
+
+  const activeIndex = wallets.findIndex((w) => w.id === activeId);
+  void activeIndex;
+
+  return (
+    <Animated.View
+      pointerEvents="box-none"
+      onLayout={(event) => {
+        const innerWidth = event.nativeEvent.layout.width - shadowPadX * 2;
+        if (innerWidth > 0) {
+          const nextScale = Math.min(innerWidth, 440) / WIDTH;
+          setScale((prev) =>
+            Math.abs(nextScale - prev) > 0.002 ? nextScale : prev,
+          );
+        }
+      }}
+      style={{
+        height: wrapperHeight,
+        overflow: "hidden",
+        alignSelf: "stretch",
+        paddingHorizontal: shadowPadX,
+        marginHorizontal: -shadowPadX,
+        marginBottom: 2,
+      }}
+    >
+      <Animated.View
+        pointerEvents="box-none"
+        style={[
+          styles.stage,
+          {
+            height: stageHeight,
+            transform: [{ translateY: stageTranslateY }],
+          },
+        ]}
+      >
+        <View
+          pointerEvents="none"
+          style={[
+            styles.shell,
+            { top: hingeY, height: leather.shell.height * scale },
+          ]}
+        >
+          <LeatherPanel part="shell" finish={theme.leather} />
+        </View>
+
+        <Animated.View
+          pointerEvents="none"
+          renderToHardwareTextureAndroid
+          style={[
+            styles.flap,
+            flapMotion,
+            {
+              zIndex: 2,
+              opacity: openAnim.interpolate({
+                inputRange: [0, 0.505, 0.506, 1],
+                outputRange: [0, 0, 1, 1],
+              }),
+            },
+          ]}
+        >
+          <View style={styles.flapFace}>
+            <LeatherPanel part="flap" lining finish={theme.leather} />
+          </View>
+        </Animated.View>
+
+        <CardGradient
+          pointerEvents="none"
+          colors={[theme.leather.colors[1], theme.leather.edge, theme.leather.colors[1]]}
+          style={[styles.hinge, { top: hingeY - 2 * scale, height: 6 * scale }]}
+        />
+
+        <View
+          pointerEvents={isOpen && !busy ? "box-none" : "none"}
+          accessibilityElementsHidden={!isOpen}
+          importantForAccessibility={isOpen ? "auto" : "no-hide-descendants"}
+          style={[styles.bay, { height: bottomY }]}
+        >
+          {wallets.map((wallet, slot) => {
+            const restY = (200 + extraY - (wallets.length - 1 - slot) * CARD_STEP) * scale;
+            const lifted = wallet.id === liftedId;
+            const translateY = lifted
+              ? lift.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [restY, TARGET_Y * scale],
+                })
+              : openAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [stowedY, restY],
+                  extrapolate: "clamp",
+                });
+            return (
+              <Animated.View
+                key={wallet.id}
+                pointerEvents="box-none"
+                style={[
+                  styles.card,
+                  {
+                    height: CARD_HEIGHT * scale,
+                    opacity: lifted ? 0 : 1,
+                    transform: [{ translateY }],
+                    zIndex: lifted ? wallets.length + 1 : slot + 1,
+                  },
+                ]}
+              >
+                <AccountCard
+                  wallet={wallet}
+                  hidden={hidden}
+                  lifted={lifted}
+                  disabled={busy}
+                  tabHeight={CARD_STEP * scale}
+                  cardHeight={CARD_HEIGHT * scale}
+                  onSelect={pull}
+                />
+              </Animated.View>
+            );
+          })}
+        </View>
+
+        <View
+          pointerEvents="none"
+          style={[
+            styles.pocket,
+            { top: pocketY, height: leather.pocket.height * scale },
+          ]}
+        >
+          <LeatherPanel part="pocket" finish={theme.leather} />
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            isOpen
+              ? `Collapse ${groupLabel} wallet`
+              : `Open ${groupLabel} wallet`
+          }
+          onPress={onToggleOpen}
+          style={[
+            styles.closedSummary,
+            {
+              top: (HINGE_Y + extraY + leather.flap.height) * scale,
+              height: (BOTTOM_Y - HINGE_Y - leather.flap.height) * scale,
+              zIndex: 6,
+            },
+          ]}
+        >
+          <Text style={styles.pocketLabel}>{groupLabel}</Text>
+          <Amount value={total} hidden={hidden} size="md" color="#f0f1eb" />
+          <Text style={styles.pocketCount}>
+            {wallets.length} {wallets.length === 1 ? "card" : "cards"} · Tap to {isOpen ? "close" : "open"}
+          </Text>
+          <View style={styles.monthlyFlow}>
+            <View style={styles.monthlyItem}>
+              <Text style={styles.monthlyLabel}>{monthlySummary.monthLabel} in</Text>
+              <Text style={[styles.monthlyValue, { color: "#6ee7b7" }]} numberOfLines={1} adjustsFontSizeToFit>
+                {hidden ? "••••" : `+${money(monthlySummary.earned)}`}
+              </Text>
+            </View>
+            <View style={styles.monthlyDivider} />
+            <View style={styles.monthlyItem}>
+              <Text style={styles.monthlyLabel}>{monthlySummary.monthLabel} out</Text>
+              <Text style={[styles.monthlyValue, { color: "#fda4af" }]} numberOfLines={1} adjustsFontSizeToFit>
+                {hidden ? "••••" : `-${money(monthlySummary.spent)}`}
+              </Text>
+            </View>
+          </View>
+        </Pressable>
+
+        {onOpenAdd ? (
+          <Animated.View
+            pointerEvents={isOpen && !busy ? "box-none" : "none"}
+            accessibilityElementsHidden={!isOpen}
+            importantForAccessibility={isOpen ? "auto" : "no-hide-descendants"}
+            style={[
+              styles.pocketAddWrap,
+              {
+                top: (POCKET_Y + extraY + 24) * scale,
+                right: 22 * scale,
+                opacity: openAnim.interpolate({
+                  inputRange: [0.4, 0.85],
+                  outputRange: [0, 1],
+                  extrapolate: "clamp",
+                }),
+              },
+            ]}
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Add new ${groupLabel} card`}
+              disabled={!isOpen || busy}
+              onPress={onOpenAdd}
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.pocketAddBtn,
+                {
+                  width: 32 * scale,
+                  height: 32 * scale,
+                  borderRadius: 16 * scale,
+                  borderColor: `${theme.leather.thread}55`,
+                  transform: [{ scale: pressed ? 0.9 : 1 }],
+                },
+              ]}
+            >
+              <Icon name="plus" size={16} strokeWidth={2.4} color="#f0f1eb" />
+            </Pressable>
+          </Animated.View>
+        ) : null}
+
+        <Animated.View
+          pointerEvents={isOpen ? "none" : "auto"}
+          renderToHardwareTextureAndroid
+          accessibilityElementsHidden={isOpen}
+          importantForAccessibility={isOpen ? "no-hide-descendants" : "auto"}
+          style={[
+            styles.flap,
+            flapMotion,
+            {
+              zIndex: 7,
+              opacity: openAnim.interpolate({
+                inputRange: [0, 0.505, 0.506, 1],
+                outputRange: [1, 1, 0, 0],
+              }),
+            },
+          ]}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${groupLabel} wallet`}
+            onPress={onToggleOpen}
+            style={styles.flapFace}
+          >
+            <LeatherPanel part="flap" finish={theme.leather} />
+            <View pointerEvents="none" style={styles.flapText}>
+              <Icon name="chevron" size={14} color="#e3e9e9" />
+              <Text style={styles.flapLabel}>{groupLabel} · Tap to open</Text>
+            </View>
+          </Pressable>
+        </Animated.View>
+      </Animated.View>
+
+      <Modal transparent visible={!!liftedWallet} animationType="none" statusBarTranslucent onRequestClose={() => liftedWallet && pull(liftedWallet)}>
+        {liftedWallet && (
+          <View style={styles.focusOverlay} accessibilityViewIsModal>
+            <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: "#000000", opacity: lift.interpolate({ inputRange: [0, 1], outputRange: [0, 0.7] }) }]} />
+            <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel="Close selected card" onPress={() => pull(liftedWallet)} />
+            <Animated.View style={[styles.focusCard, { opacity: lift, transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [65, 0] }) }, { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}>
+              <AccountCard
+                wallet={liftedWallet}
+                hidden={hidden}
+                lifted
+                focused
+                disabled={busy}
+                tabHeight={38}
+                cardHeight={190}
+                monthLabel={monthlySummary.monthShortLabel || monthlySummary.monthLabel.slice(0, 3)}
+                flow={walletFlows?.[liftedWallet.id]}
+                onSelect={handleFocusOpen}
+              />
+              <Pressable accessibilityRole="button" accessibilityLabel={"Update " + liftedWallet.name} disabled={busy} style={styles.focusMenu} onPress={() => { const wallet = liftedWallet; void move(async () => { if (await play(0, 260)) { setLiftedId(null); onOpenMenu(wallet); } }); }}>
+                <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
+                  <Defs>
+                    <LinearGradient id="updateLeatherGroup" x1="0%" y1="0%" x2="100%" y2="100%"><Stop offset="0" stopColor={theme.leather.colors[1]} /><Stop offset="0.55" stopColor={theme.leather.colors[1]} /><Stop offset="1" stopColor={theme.leather.colors[2]} /></LinearGradient>
+                    <Pattern id="updateGrainGroup" width={6} height={6} patternUnits="userSpaceOnUse"><Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth="0.7" opacity="0.45" /><Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke="#a2b0bd" strokeWidth="0.65" opacity="0.26" /></Pattern>
+                  </Defs>
+                  <Rect x="1" y="1" width="98%" height="96%" rx="16" fill="url(#updateLeatherGroup)" stroke={theme.leather.edge} strokeWidth="1.5" />
+                  <Rect x="1" y="1" width="98%" height="96%" rx="16" fill="url(#updateGrainGroup)" />
+                  <Rect x="5" y="5" width="90%" height="76%" rx="12" fill="none" stroke={theme.leather.thread} strokeWidth="1" strokeDasharray="3.5 3" opacity="0.82" />
+                </Svg>
+                <Icon name="edit" size={14} color="#ffffff" />
+                <Text style={styles.focusMenuText}>Update</Text>
+              </Pressable>
+            </Animated.View>
+          </View>
+        )}
+      </Modal>
+    </Animated.View>
+  );
+});
+
 const styles = StyleSheet.create({
   wallet: { marginBottom: 14 },
   stage: {

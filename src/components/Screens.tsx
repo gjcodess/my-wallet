@@ -58,11 +58,13 @@ import {
 } from "../lib/motion";
 import {
   getWalletScale,
+  GroupedPhysicalWallet,
   PhysicalWallet,
   WALLET_CLOSE_SCROLL_DISTANCE,
   WALLET_COMPACT_SHIFT_Y,
   WALLET_FLAP_SCROLL_START,
 } from "./PhysicalWallet";
+import { ReorderWalletsModal } from "./ReorderWalletsModal";
 import {
   LEATHER_FINISHES,
   LeatherFinishId,
@@ -1030,6 +1032,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   onToggleHidden,
   onToggleWalletHidden,
   onWallet,
+  onUpdateWallet,
   onReorderWallets,
   onAddWallet,
   onSearch,
@@ -1045,6 +1048,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   onToggleHidden?: () => void;
   onToggleWalletHidden?: (wallet: Wallet) => void;
   onWallet: (w: Wallet) => void;
+  onUpdateWallet?: (w: Wallet) => void;
   onReorderWallets?: (next: Wallet[]) => void;
   onAddWallet?: () => void;
   onSearch?: () => void;
@@ -1053,6 +1057,8 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
 }) {
+  void onToggleWalletHidden;
+  void onDragChange;
   const visibleWallets = useMemo(
     () => wallets.filter((w) => !w.isHidden),
     [wallets]
@@ -1061,9 +1067,10 @@ export const WalletsScreen = React.memo(function WalletsScreen({
     () => wallets.filter((w) => Boolean(w.isHidden)),
     [wallets]
   );
-  const [showHiddenWallets, setShowHiddenWallets] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [reorderModalOpen, setReorderModalOpen] = useState(false);
 
-  const { monthLabel, fullMonthLabel, totalEarned, totalSpent, walletFlows } =
+  const { monthLabel, fullMonthLabel, totalEarned, totalSpent, walletFlows, walletFlowsRecord } =
     useMemo(() => {
       const now = new Date();
       const curYear = now.getFullYear();
@@ -1101,273 +1108,89 @@ export const WalletsScreen = React.memo(function WalletsScreen({
           }
         }
       }
+      const flowRec: Record<number, { earned: number; spent: number }> = {};
+      for (const [id, val] of flows.entries()) {
+        flowRec[id] = val;
+      }
       return {
         monthLabel: shortMonth,
         fullMonthLabel: longMonth,
         totalEarned: earnedSum,
         totalSpent: spentSum,
         walletFlows: flows,
+        walletFlowsRecord: flowRec,
       };
     }, [wallets, activities]);
-  const { width: windowWidth } = useWindowDimensions();
-  const [walletListWidth, setWalletListWidth] = useState(() =>
-    Math.max(260, windowWidth - 40)
-  );
-  const [reordering, setReordering] = useState(false);
-  const tileHeight = reordering ? WALLET_COMPACT_HEIGHT : WALLET_FULL_HEIGHT;
-  const slotHeight = tileHeight + WALLET_TILE_GAP;
-  const slotHeightRef = useRef(slotHeight);
-  slotHeightRef.current = slotHeight;
-  const [dragWalletId, setDragWalletId] = useState<number | null>(null);
 
-  const liftAnim = useRef(new Animated.Value(0)).current;
-  const shiftMapRef = useRef<Map<number, Animated.Value>>(new Map());
-  const dragIndexRef = useRef<number | null>(null);
-  const dragWalletIdRef = useRef<number | null>(null);
-  const hoverIndexRef = useRef<number | null>(null);
-  const isDroppingRef = useRef(false);
-  const reorderingRef = useRef(reordering);
-  reorderingRef.current = reordering;
-  const walletsRef = useRef(visibleWallets);
-  walletsRef.current = visibleWallets;
-  const hiddenWalletsRef = useRef(hiddenWallets);
-  hiddenWalletsRef.current = hiddenWallets;
-
-  const stableReorderIdsRef = useRef<number[]>([]);
-  if (!reordering) {
-    stableReorderIdsRef.current = visibleWallets.map((w) => w.id);
-  } else {
-    const currentIds = new Set(visibleWallets.map((w) => w.id));
-    const kept = stableReorderIdsRef.current.filter((id) => currentIds.has(id));
+  const walletGroups = useMemo(() => {
+    const byType = new Map<string, Wallet[]>();
     for (const w of visibleWallets) {
-      if (!kept.includes(w.id)) kept.push(w.id);
+      const label = (w.type || "").trim() || "Other";
+      const list = byType.get(label) ?? [];
+      list.push(w);
+      byType.set(label, list);
     }
-    stableReorderIdsRef.current = kept;
-  }
-
-  const renderWallets = useMemo(() => {
-    if (!reordering) return visibleWallets;
-    const byId = new Map(visibleWallets.map((w) => [w.id, w]));
-    return stableReorderIdsRef.current
-      .map((id) => byId.get(id))
-      .filter((w): w is Wallet => Boolean(w));
-  }, [reordering, visibleWallets]);
-
-  const getShiftAnim = (id: number) => {
-    let anim = shiftMapRef.current.get(id);
-    if (!anim) {
-      anim = new Animated.Value(0);
-      shiftMapRef.current.set(id, anim);
-    }
-    return anim;
-  };
-
-  useLayoutEffect(() => {
-    liftAnim.stopAnimation();
-    liftAnim.setValue(0);
-    dragIndexRef.current = null;
-    dragWalletIdRef.current = null;
-    hoverIndexRef.current = null;
-    isDroppingRef.current = false;
-    setDragWalletId(null);
-    if (reordering) {
-      walletsRef.current.forEach((w, idx) => {
-        const anim = getShiftAnim(w.id);
-        anim.stopAnimation();
-        anim.setValue(idx * slotHeightRef.current);
-      });
-    } else {
-      for (const anim of shiftMapRef.current.values()) {
-        anim.stopAnimation();
-        anim.setValue(0);
-      }
-    }
-  }, [reordering, liftAnim]);
-
-  const animateSiblingsToHover = (
-    startIdx: number,
-    hoverIdx: number,
-    step: number
-  ) => {
-    walletsRef.current.forEach((w, idx) => {
-      if (idx === startIdx) return;
-      let visualIdx = idx;
-      if (startIdx < hoverIdx && idx > startIdx && idx <= hoverIdx) {
-        visualIdx = idx - 1;
-      } else if (startIdx > hoverIdx && idx >= hoverIdx && idx < startIdx) {
-        visualIdx = idx + 1;
-      }
-      Animated.spring(getShiftAnim(w.id), {
-        toValue: visualIdx * step,
-        useNativeDriver: true,
-        speed: 15,
-        bounciness: 3,
-      }).start();
-    });
-  };
-
-  const startDrag = (walletId: number) => {
-    const list = walletsRef.current;
-    const index = list.findIndex((w) => w.id === walletId);
-    if (isDroppingRef.current || !onReorderWallets || list.length <= 1 || index < 0) {
-      return;
-    }
-    dragIndexRef.current = index;
-    dragWalletIdRef.current = walletId;
-    hoverIndexRef.current = index;
-    setDragWalletId(walletId);
-    getShiftAnim(walletId).setValue(index * slotHeightRef.current);
-    onDragChange?.(true);
-    Animated.spring(liftAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 18,
-      bounciness: 5,
-    }).start();
-  };
-
-  const updateDrag = (dy: number) => {
-    const startIdx = dragIndexRef.current;
-    const draggedId = dragWalletIdRef.current;
-    if (startIdx === null || draggedId === null || isDroppingRef.current) return;
-    const list = walletsRef.current;
-    const step = slotHeightRef.current;
-    const maxTop = Math.max(0, (list.length - 1) * step);
-    const clampedY = Math.max(0, Math.min(maxTop, startIdx * step + dy));
-    getShiftAnim(draggedId).setValue(clampedY);
-
-    const nextHover = Math.max(
-      0,
-      Math.min(list.length - 1, Math.round(clampedY / step))
-    );
-    if (nextHover !== hoverIndexRef.current) {
-      hoverIndexRef.current = nextHover;
-      animateSiblingsToHover(startIdx, nextHover, step);
-    }
-  };
-
-  const finishDrag = () => {
-    const startIdx = dragIndexRef.current;
-    const endIdx = hoverIndexRef.current;
-    const draggedId = dragWalletIdRef.current;
-    if (
-      startIdx === null ||
-      endIdx === null ||
-      draggedId === null ||
-      isDroppingRef.current
-    ) {
-      onDragChange?.(false);
-      return;
-    }
-
-    const draggedAnim = getShiftAnim(draggedId);
-    const step = slotHeightRef.current;
-    const settleEasing = Easing.bezier(0.22, 1, 0.36, 1);
-    if (startIdx === endIdx) {
-      onDragChange?.(false);
-      dragIndexRef.current = null;
-      dragWalletIdRef.current = null;
-      hoverIndexRef.current = null;
-      isDroppingRef.current = false;
-      setDragWalletId(null);
-      walletsRef.current.forEach((w, idx) => {
-        if (w.id !== draggedId) {
-          Animated.spring(getShiftAnim(w.id), {
-            toValue: idx * step,
-            useNativeDriver: true,
-            speed: 15,
-            bounciness: 3,
-          }).start();
+    const preferred = ["Bank", "E-wallet", "Cash"];
+    const orderedKeys = [
+      ...preferred.filter((k) => byType.has(k)),
+      ...Array.from(byType.keys()).filter((k) => !preferred.includes(k)),
+    ];
+    return orderedKeys.map((label) => {
+      const groupWallets = byType.get(label)!;
+      let groupTotal = 0;
+      let groupEarned = 0;
+      let groupSpent = 0;
+      for (const w of groupWallets) {
+        groupTotal += w.balance;
+        const f = walletFlows.get(w.id);
+        if (f) {
+          groupEarned += f.earned;
+          groupSpent += f.spent;
         }
-      });
-      Animated.parallel([
-        Animated.timing(draggedAnim, {
-          toValue: startIdx * step,
-          duration: 165,
-          easing: settleEasing,
-          useNativeDriver: true,
-        }),
-        Animated.timing(liftAnim, {
-          toValue: 0,
-          duration: 165,
-          easing: settleEasing,
-          useNativeDriver: true,
-        }),
-      ]).start();
-      return;
-    }
-
-    isDroppingRef.current = true;
-    Animated.parallel([
-      Animated.timing(draggedAnim, {
-        toValue: endIdx * step,
-        duration: 165,
-        easing: settleEasing,
-        useNativeDriver: true,
-      }),
-      Animated.timing(liftAnim, {
-        toValue: 0,
-        duration: 165,
-        easing: settleEasing,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onDragChange?.(false);
-      dragIndexRef.current = null;
-      dragWalletIdRef.current = null;
-      hoverIndexRef.current = null;
-      isDroppingRef.current = false;
-      setDragWalletId(null);
-      const list = walletsRef.current;
-      if (onReorderWallets && startIdx < list.length && endIdx < list.length) {
-        const next = [...list];
-        const [moved] = next.splice(startIdx, 1);
-        next.splice(endIdx, 0, moved);
-        onReorderWallets([...next, ...hiddenWalletsRef.current]);
       }
+      return {
+        key: label,
+        label,
+        wallets: groupWallets,
+        total: groupTotal,
+        earned: groupEarned,
+        spent: groupSpent,
+      };
     });
-  };
+  }, [visibleWallets, walletFlows]);
 
-  const startDragRef = useRef(startDrag);
-  startDragRef.current = startDrag;
-  const updateDragRef = useRef(updateDrag);
-  updateDragRef.current = updateDrag;
-  const finishDragRef = useRef(finishDrag);
-  finishDragRef.current = finishDrag;
-
-  const walletsOrderKey = visibleWallets.map((w) => w.id).join(",");
-  const rowPanResponders = useMemo(() => {
-    const map = new Map<number, ReturnType<typeof PanResponder.create>>();
-    for (const w of visibleWallets) {
-      map.set(
-        w.id,
-        PanResponder.create({
-          onStartShouldSetPanResponder: () =>
-            reorderingRef.current && !isDroppingRef.current,
-          onStartShouldSetPanResponderCapture: () =>
-            reorderingRef.current && !isDroppingRef.current,
-          onMoveShouldSetPanResponder: () =>
-            reorderingRef.current && !isDroppingRef.current,
-          onMoveShouldSetPanResponderCapture: () =>
-            reorderingRef.current && !isDroppingRef.current,
-          onPanResponderTerminationRequest: () => false,
-          onPanResponderGrant: () => {
-            startDragRef.current(w.id);
-          },
-          onPanResponderMove: (_evt, g) => {
-            updateDragRef.current(g.dy);
-          },
-          onPanResponderRelease: () => {
-            finishDragRef.current();
-          },
-          onPanResponderTerminate: () => {
-            finishDragRef.current();
-          },
-        })
-      );
+  const hiddenGroupSummary = useMemo(() => {
+    let groupTotal = 0;
+    let groupEarned = 0;
+    let groupSpent = 0;
+    for (const w of hiddenWallets) {
+      groupTotal += w.balance;
+      const f = walletFlows.get(w.id);
+      if (f) {
+        groupEarned += f.earned;
+        groupSpent += f.spent;
+      }
     }
-    return map;
-  }, [walletsOrderKey]);
+    return {
+      total: groupTotal,
+      earned: groupEarned,
+      spent: groupSpent,
+    };
+  }, [hiddenWallets, walletFlows]);
+
+  const toggleGroupOpen = useCallback((key: string, defaultOpen: boolean) => {
+    setOpenGroups((prev) => {
+      const current = prev[key] ?? defaultOpen;
+      return { ...prev, [key]: !current };
+    });
+  }, []);
+
+  const handleSaveReorder = useCallback(
+    (orderedVisible: Wallet[]) => {
+      onReorderWallets?.([...orderedVisible, ...hiddenWallets]);
+    },
+    [hiddenWallets, onReorderWallets]
+  );
 
   return (
     <View style={[styles.page, { paddingTop: 0 }]}>
@@ -1461,80 +1284,31 @@ export const WalletsScreen = React.memo(function WalletsScreen({
         <View style={styles.walletsSectionHead}>
           <View style={styles.walletsSectionTitleGroup}>
             <Text style={[styles.walletsSectionCount, { color: theme.muted }]}>
-              {reordering
-                ? "Drag to reorder"
-                : `${visibleWallets.length} ${visibleWallets.length === 1 ? "card" : "cards"}`}
+              {visibleWallets.length} {visibleWallets.length === 1 ? "card" : "cards"} ·{" "}
+              {walletGroups.length} {walletGroups.length === 1 ? "group" : "groups"}
             </Text>
           </View>
           {visibleWallets.length > 1 && onReorderWallets ? (
             <Pressable
-              onPress={() => {
-                if (dragIndexRef.current !== null) return;
-                LayoutAnimation.configureNext(
-                  LayoutAnimation.Presets.easeInEaseOut
-                );
-                setReordering((prev) => !prev);
-              }}
+              onPress={() => setReorderModalOpen(true)}
               style={({ pressed }) => [
                 styles.stitchedReorderBtn,
                 {
                   overflow: "hidden",
-                  backgroundColor: reordering
-                    ? theme.leather.edge
-                    : theme.card,
-                  borderColor: reordering
-                    ? theme.leather.edge
-                    : hexToRgba(theme.leather.accent, 0.28),
+                  backgroundColor: theme.card,
+                  borderColor: hexToRgba(theme.leather.accent, 0.28),
                   transform: [{ scale: pressed ? 0.96 : 1 }],
                 },
                 cardShadow(theme.dark),
               ]}
             >
-              {reordering ? (
-                <DarkLeatherSurface theme={theme} radius={13} />
-              ) : (
-                <LightLeatherSurface theme={theme} radius={13} />
-              )}
-              <Icon
-                name={reordering ? "check" : "grip"}
-                size={13.5}
-                color={reordering ? "#ffffff" : theme.leather.accent}
-              />
-              <Text
-                style={[
-                  styles.stitchedReorderText,
-                  { color: reordering ? "#ffffff" : theme.ink },
-                ]}
-              >
-                {reordering ? "Done" : "Reorder"}
+              <LightLeatherSurface theme={theme} radius={13} />
+              <Icon name="grip" size={13.5} color={theme.leather.accent} />
+              <Text style={[styles.stitchedReorderText, { color: theme.ink }]}>
+                Reorder
               </Text>
             </Pressable>
           ) : null}
-        </View>
-      ) : null}
-
-      {visibleWallets.length > 6 ? (
-        <View
-          style={[
-            styles.walletLimitBanner,
-            {
-              overflow: "hidden",
-              backgroundColor: theme.leather.colors[1],
-              borderColor: theme.leather.edge,
-            },
-            cardShadow(theme.dark),
-          ]}
-        >
-          <DarkLeatherSurface theme={theme} radius={14} />
-          <Icon name="wallet" size={14} color="rgba(255, 255, 255, 0.82)" />
-          <Text
-            style={[styles.walletLimitBannerText, { color: "#ffffff" }]}
-            numberOfLines={1}
-          >
-            {reordering
-              ? "Drag any card into the top 6 to show it on Home"
-              : `Top 6 cards show on Home · All ${visibleWallets.length} count in total`}
-          </Text>
         </View>
       ) : null}
 
@@ -1579,424 +1353,63 @@ export const WalletsScreen = React.memo(function WalletsScreen({
           ) : null}
         </View>
       ) : (
-        <View
-          onLayout={(e) => {
-            const w = Math.round(e.nativeEvent.layout.width);
-            if (w > 0 && Math.abs(w - walletListWidth) > 1) {
-              setWalletListWidth(w);
-            }
-          }}
-          style={[
-            styles.walletList,
-            reordering && {
-              height: Math.max(0, visibleWallets.length * slotHeight - WALLET_TILE_GAP),
-            },
-          ]}
-        >
-          {renderWallets.map((wallet) => {
-            const pal = tonePalette[wallet.tone] || tonePalette.blue;
-            const cardDesign = resolveWalletCardDesign(wallet.logoKey, wallet.name);
-            const cardInk = cardDesign ? cardDesign.ink : pal.ink;
-            const isLightCardInk = cardInk === "#ffffff";
-            const isDragged = dragWalletId === wallet.id;
-            const cardSubInk = isLightCardInk
-              ? "rgba(255, 255, 255, 0.8)"
-              : "rgba(20, 32, 26, 0.72)";
-            const cardBorder = isDragged
-              ? theme.leather.accent
-              : isLightCardInk
-                ? "rgba(255, 255, 255, 0.2)"
-                : "rgba(20, 32, 26, 0.14)";
-            const flowPillBg = isLightCardInk
-              ? "rgba(8, 12, 20, 0.34)"
-              : "rgba(255, 255, 255, 0.65)";
-            const inColor = isLightCardInk ? "#6ee7b7" : "#047857";
-            const outColor = isLightCardInk ? "#fda4af" : "#be123c";
-            const shiftAnim = getShiftAnim(wallet.id);
-            const rowPan = rowPanResponders.get(wallet.id);
-            const flow = walletFlows.get(wallet.id) ?? { earned: 0, spent: 0 };
-
-            return (
-              <Animated.View
-                key={wallet.id}
-                renderToHardwareTextureAndroid={reordering}
-                style={[
-                  reordering && {
-                    position: "absolute",
-                    left: 0,
-                    right: 0,
-                    top: 0,
-                  },
-                  {
-                    zIndex: isDragged ? 20 : 1,
-                    elevation: isDragged ? 12 : 0,
-                    transform: [
-                      { translateY: shiftAnim },
-                      {
-                        scale: isDragged
-                          ? liftAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [1, 1.03],
-                          })
-                          : 1,
-                      },
-                    ],
-                  },
-                ]}
-              >
-                <Pressable
-                  onPress={reordering ? undefined : () => onWallet(wallet)}
-                  style={({ pressed }) => [
-                    styles.walletTile,
-                    {
-                      height: tileHeight,
-                      borderRadius: reordering ? 17 : 22,
-                      backgroundColor: cardDesign
-                        ? cardDesign.isDark
-                          ? "#090e17"
-                          : "#edf3ec"
-                        : pal.to,
-                      overflow: "hidden",
-                      borderColor: cardBorder,
-                      transform: [
-                        { scale: !reordering && pressed ? 0.985 : 1 },
-                      ],
-                    },
-                    cardShadow(theme.dark),
-                    isDragged && {
-                      shadowOpacity: theme.dark ? 0.55 : 0.24,
-                      shadowRadius: 20,
-                      elevation: 12,
-                    },
-                  ]}
-                >
-                  {cardDesign ? (
-                    <>
-                      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-                        <Svg width={walletListWidth} height={tileHeight}>
-                          <SvgImage
-                            href={cardDesign.source}
-                            x={0}
-                            y={0}
-                            width={walletListWidth}
-                            height={tileHeight}
-                            preserveAspectRatio="xMaxYMid slice"
-                          />
-                        </Svg>
-                      </View>
-                      <LinearGradient
-                        pointerEvents="none"
-                        colors={
-                          reordering
-                            ? cardDesign.isDark
-                              ? ["rgba(8, 12, 20, 0.36)", "rgba(8, 12, 20, 0.42)"]
-                              : ["rgba(244, 248, 243, 0.48)", "rgba(232, 238, 230, 0.52)"]
-                            : cardDesign.isDark
-                              ? ["rgba(8, 12, 20, 0.08)", "rgba(8, 12, 20, 0.42)", "rgba(8, 12, 20, 0.72)"]
-                              : ["rgba(244, 248, 243, 0.08)", "rgba(232, 238, 230, 0.52)", "rgba(224, 232, 222, 0.8)"]
-                        }
-                        locations={reordering ? [0, 1] : [0.22, 0.65, 1]}
-                        style={StyleSheet.absoluteFill}
-                      />
-                    </>
-                  ) : (
-                    <TexturedGradientSurface
-                      fromColor={pal.from}
-                      toColor={pal.to}
-                      subtle={reordering}
-                    />
-                  )}
-
-                  {reordering ? (
-                    <View style={styles.walletCompactRow}>
-                      <WalletLogoBadge
-                        logoKey={wallet.logoKey}
-                        name={wallet.name}
-                        mark={wallet.mark}
-                        size={30}
-                        radius={9}
-                        ink={cardInk}
-                        fontSize={10}
-                      />
-                      <Text
-                        style={[
-                          styles.tileName,
-                          { color: cardInk, flex: 1, fontSize: 14.5 },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {wallet.name}
-                      </Text>
-                      <Text
-                        style={[styles.walletCompactBalance, { color: cardSubInk }]}
-                        numberOfLines={1}
-                      >
-                        {hidden ? "₱ ••••" : money(wallet.balance)}
-                      </Text>
-                      <View
-                        {...(rowPan ? rowPan.panHandlers : {})}
-                        onTouchStart={() => {
-                          if (reorderingRef.current) onDragChange?.(true);
-                        }}
-                        onTouchCancel={() => {
-                          if (dragIndexRef.current === null) onDragChange?.(false);
-                        }}
-                        style={styles.dragHandleHitArea}
-                      >
-                        <View
-                          style={[
-                            styles.dragHandleBox,
-                            {
-                              overflow: "hidden",
-                              borderWidth: 1,
-                              borderColor: isDragged
-                                ? theme.leather.edge
-                                : isLightCardInk
-                                  ? "rgba(255,255,255,0.28)"
-                                  : "rgba(20,32,26,0.2)",
-                              backgroundColor: isDragged
-                                ? theme.leather.edge
-                                : isLightCardInk
-                                  ? "rgba(0,0,0,0.34)"
-                                  : "rgba(255,255,255,0.68)",
-                            },
-                          ]}
-                        >
-                          <Icon
-                            name="grip"
-                            size={17}
-                            color={
-                              isDragged
-                                ? "#ffffff"
-                                : isLightCardInk
-                                  ? "#ffffff"
-                                  : theme.ink
-                            }
-                          />
-                        </View>
-                      </View>
-                    </View>
-                  ) : (
-                    <View style={styles.walletCardFullInner}>
-                      <View style={styles.walletCardFullTopRow}>
-                        <View style={styles.walletCardIdentity}>
-                          <WalletLogoBadge
-                            logoKey={wallet.logoKey}
-                            name={wallet.name}
-                            mark={wallet.mark}
-                            size={34}
-                            radius={10}
-                            ink={cardInk}
-                            fontSize={11}
-                          />
-                          <Text
-                            style={[
-                              styles.tileName,
-                              { color: cardInk, fontSize: 15.5, flexShrink: 1 },
-                            ]}
-                            numberOfLines={1}
-                          >
-                            {wallet.name}
-                          </Text>
-                        </View>
-                        <View style={styles.tileValueRow}>
-                          <Text
-                            style={[
-                              styles.tileSub,
-                              { color: cardSubInk, maxWidth: 132 },
-                            ]}
-                            numberOfLines={1}
-                          >
-                            {wallet.type} · {wallet.account}
-                          </Text>
-                          <Icon
-                            name="chevron"
-                            size={15}
-                            color={cardSubInk}
-                          />
-                        </View>
-                      </View>
-
-                      <View style={styles.walletCardFullBottomRow}>
-                        <View style={{ flex: 1 }}>
-                          <Amount
-                            value={wallet.balance}
-                            hidden={hidden}
-                            size="sm"
-                            color={cardInk}
-                          />
-                        </View>
-                        <View
-                          style={[
-                            styles.walletCardFlowPill,
-                            { backgroundColor: flowPillBg },
-                          ]}
-                        >
-                          <Text
-                            style={[styles.tileFlowMonth, { color: cardSubInk }]}
-                          >
-                            {monthLabel}
-                          </Text>
-                          <View style={styles.tileFlowStat}>
-                            <Icon
-                              name="arrow-down"
-                              size={10.5}
-                              strokeWidth={2.5}
-                              color={inColor}
-                            />
-                            <Text
-                              style={[styles.tileFlowVal, { color: inColor }]}
-                              numberOfLines={1}
-                            >
-                              {hidden ? "••" : money(flow.earned, true)}
-                            </Text>
-                          </View>
-                          <View style={styles.tileFlowStat}>
-                            <Icon
-                              name="arrow-up"
-                              size={10.5}
-                              strokeWidth={2.5}
-                              color={outColor}
-                            />
-                            <Text
-                              style={[styles.tileFlowVal, { color: outColor }]}
-                              numberOfLines={1}
-                            >
-                              {hidden ? "••" : money(flow.spent, true)}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    </View>
-                  )}
-                </Pressable>
-              </Animated.View>
-            );
-          })}
+        <View style={{ gap: 6 }}>
+          {walletGroups.map((group) => (
+            <GroupedPhysicalWallet
+              key={group.key}
+              groupLabel={group.label}
+              wallets={group.wallets}
+              total={group.total}
+              hidden={hidden}
+              isOpen={openGroups[group.key] ?? true}
+              onToggleOpen={() => toggleGroupOpen(group.key, true)}
+              monthlySummary={{
+                monthLabel: fullMonthLabel,
+                monthShortLabel: monthLabel,
+                earned: group.earned,
+                spent: group.spent,
+              }}
+              walletFlows={walletFlowsRecord}
+              theme={theme}
+              onWallet={onWallet}
+              onOpenMenu={onUpdateWallet ?? onWallet}
+              onOpenAdd={onAddWallet}
+            />
+          ))}
         </View>
       )}
 
       {hiddenWallets.length > 0 ? (
-        <View
-          style={[
-            styles.hiddenWalletsCard,
-            {
-              overflow: "hidden",
-              backgroundColor: theme.card,
-              borderColor: hexToRgba(theme.leather.accent, 0.24),
-            },
-            cardShadow(theme.dark),
-          ]}
-        >
-          <LightLeatherSurface theme={theme} radius={18} />
-          <Pressable
-            onPress={() => {
-              LayoutAnimation.configureNext(
-                LayoutAnimation.Presets.easeInEaseOut
-              );
-              setShowHiddenWallets((prev) => !prev);
+        <View style={{ marginTop: 8 }}>
+          <GroupedPhysicalWallet
+            groupLabel={`Hidden · ${hiddenWallets.length}`}
+            wallets={hiddenWallets}
+            total={hiddenGroupSummary.total}
+            hidden={hidden}
+            isOpen={openGroups.__hidden__ ?? false}
+            onToggleOpen={() => toggleGroupOpen("__hidden__", false)}
+            monthlySummary={{
+              monthLabel: fullMonthLabel,
+              monthShortLabel: monthLabel,
+              earned: hiddenGroupSummary.earned,
+              spent: hiddenGroupSummary.spent,
             }}
-            style={({ pressed }) => [
-              styles.hiddenWalletsToggle,
-              { opacity: pressed ? 0.78 : 1 },
-            ]}
-          >
-            <Icon name="eye-off" size={15} color={theme.leather.accent} />
-            <Text style={[styles.hiddenWalletsTitle, { color: theme.ink }]}>
-              Hidden cards ({hiddenWallets.length})
-            </Text>
-            <Text style={[styles.hiddenWalletsHint, { color: theme.muted }]}>
-              Excluded from totals
-            </Text>
-            <Icon
-              name={showHiddenWallets ? "down" : "chevron"}
-              size={14}
-              color={theme.muted}
-            />
-          </Pressable>
-
-          {showHiddenWallets ? (
-            <View style={styles.hiddenWalletsList}>
-              {hiddenWallets.map((hw) => {
-                return (
-                  <View key={hw.id}>
-                    <View
-                      style={[
-                        styles.hiddenWalletsDivider,
-                        { backgroundColor: hexToRgba(theme.leather.accent, 0.14) },
-                      ]}
-                    />
-                    <Pressable
-                      onPress={() => onWallet(hw)}
-                      style={({ pressed }) => [
-                        styles.hiddenWalletRow,
-                        { opacity: pressed ? 0.78 : 1 },
-                      ]}
-                    >
-                      <WalletLogoBadge
-                        logoKey={hw.logoKey}
-                        name={hw.name}
-                        mark={hw.mark}
-                        size={36}
-                        radius={11}
-                        ink={theme.ink}
-                        fontSize={10}
-                      />
-                      <View style={{ flex: 1, gap: 1 }}>
-                        <Text
-                          style={[styles.hiddenWalletName, { color: theme.ink }]}
-                          numberOfLines={1}
-                        >
-                          {hw.name}
-                        </Text>
-                        <Text
-                          style={[styles.hiddenWalletBal, { color: theme.muted }]}
-                          numberOfLines={1}
-                        >
-                          {hidden ? "₱••••" : money(hw.balance)} · {hw.type}
-                        </Text>
-                      </View>
-                      {onToggleWalletHidden ? (
-                        <Pressable
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            LayoutAnimation.configureNext(
-                              LayoutAnimation.Presets.easeInEaseOut
-                            );
-                            onToggleWalletHidden(hw);
-                          }}
-                          hitSlop={6}
-                          style={({ pressed }) => [
-                            styles.unhideBtn,
-                            {
-                              backgroundColor: hexToRgba(
-                                theme.leather.accent,
-                                theme.dark ? 0.22 : 0.12
-                              ),
-                              borderColor: hexToRgba(theme.leather.accent, 0.28),
-                              transform: [{ scale: pressed ? 0.95 : 1 }],
-                            },
-                          ]}
-                        >
-                          <Icon name="eye" size={13} color={theme.leather.accent} />
-                          <Text
-                            style={[
-                              styles.unhideBtnText,
-                              { color: theme.leather.accent },
-                            ]}
-                          >
-                            Unhide
-                          </Text>
-                        </Pressable>
-                      ) : null}
-                    </Pressable>
-                  </View>
-                );
-              })}
-            </View>
-          ) : null}
+            walletFlows={walletFlowsRecord}
+            theme={theme}
+            onWallet={onWallet}
+            onOpenMenu={onUpdateWallet ?? onWallet}
+          />
         </View>
       ) : null}
+
+      <ReorderWalletsModal
+        visible={reorderModalOpen}
+        wallets={visibleWallets}
+        hidden={hidden}
+        theme={theme}
+        onSaveOrder={handleSaveReorder}
+        onClose={() => setReorderModalOpen(false)}
+      />
     </View>
   );
 });

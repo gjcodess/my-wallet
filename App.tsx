@@ -1418,6 +1418,7 @@ export default function App() {
                         onToggleHidden={handleToggleHidden}
                         onToggleWalletHidden={handleToggleWalletHidden}
                         onWallet={handleSelectWallet}
+                        onUpdateWallet={(w) => openSheet("update", w)}
                         onReorderWallets={handleReorderWallets}
                         onAddWallet={handleAddWalletSheet}
                         onSearch={handleOpenSearch}
