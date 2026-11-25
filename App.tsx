@@ -993,6 +993,7 @@ export default function App() {
             onUpdate={() => openSheet("update", selected)}
             onTransfer={() => openSheet("transfer", selected)}
             onEdit={() => openSheet("edit", selected)}
+            onToggleWalletHidden={handleToggleWalletHidden}
             onTransaction={openTransactionSheet}
             theme={theme}
           />

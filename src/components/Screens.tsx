@@ -3361,6 +3361,7 @@ export function WalletDetailScreen({
   onUpdate,
   onTransfer,
   onEdit,
+  onToggleWalletHidden,
   onTransaction,
   theme,
 }: {
@@ -3371,6 +3372,7 @@ export function WalletDetailScreen({
   onUpdate: () => void;
   onTransfer: () => void;
   onEdit: () => void;
+  onToggleWalletHidden?: (wallet: Wallet) => void;
   onTransaction?: (item: ActivityItem) => void;
   theme: ThemeColors;
 }) {
@@ -3446,6 +3448,8 @@ export function WalletDetailScreen({
         <View style={styles.heroDetailBar}>
           <Pressable
             onPress={onBack}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
             style={({ pressed }) => [
               styles.heroIconBtn,
               heroControlStyle(theme),
@@ -3454,19 +3458,56 @@ export function WalletDetailScreen({
           >
             <Icon name="back" size={19} color={theme.heroInk} />
           </Pressable>
-          <Text style={[styles.heroDetailTitle, { color: theme.heroInk }]} numberOfLines={1}>
-            {wallet.name}
-          </Text>
-          <Pressable
-            onPress={onEdit}
-            style={({ pressed }) => [
-              styles.heroIconBtn,
-              heroControlStyle(theme),
-              { transform: [{ scale: pressed ? 0.92 : 1 }] },
-            ]}
-          >
-            <Icon name="edit" size={17} color={theme.heroInk} />
-          </Pressable>
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <Text style={[styles.heroDetailTitle, { color: theme.heroInk }]} numberOfLines={1}>
+              {wallet.name}
+            </Text>
+            {wallet.isHidden ? (
+              <Text
+                style={{
+                  fontFamily: "Poppins_600SemiBold",
+                  fontSize: 10.5,
+                  color: theme.heroMuted,
+                }}
+                numberOfLines={1}
+              >
+                Hidden from totals
+              </Text>
+            ) : null}
+          </View>
+          <View style={styles.heroHeaderActions}>
+            {onToggleWalletHidden ? (
+              <Pressable
+                onPress={() => onToggleWalletHidden(wallet)}
+                accessibilityRole="button"
+                accessibilityLabel={wallet.isHidden ? "Unhide wallet" : "Hide wallet"}
+                style={({ pressed }) => [
+                  styles.heroIconBtn,
+                  heroControlStyle(theme),
+                  wallet.isHidden && styles.heroIconBtnActive,
+                  { transform: [{ scale: pressed ? 0.92 : 1 }] },
+                ]}
+              >
+                <Icon
+                  name={wallet.isHidden ? "eye" : "eye-off"}
+                  size={17}
+                  color={theme.heroInk}
+                />
+              </Pressable>
+            ) : null}
+            <Pressable
+              onPress={onEdit}
+              accessibilityRole="button"
+              accessibilityLabel="Edit wallet"
+              style={({ pressed }) => [
+                styles.heroIconBtn,
+                heroControlStyle(theme),
+                { transform: [{ scale: pressed ? 0.92 : 1 }] },
+              ]}
+            >
+              <Icon name="edit" size={17} color={theme.heroInk} />
+            </Pressable>
+          </View>
         </View>
       </HeroHeaderSurface>
 
@@ -3492,17 +3533,17 @@ export function WalletDetailScreen({
               style={({ pressed }) => [
                 styles.detailActionBtn,
                 {
-                  backgroundColor: theme.card,
+                  backgroundColor: theme.leather.colors[1],
+                  borderColor: theme.leather.edge,
                   overflow: "hidden",
                   transform: [{ scale: pressed ? 0.97 : 1 }],
                 },
-                bevelStyle(theme.dark),
                 cardShadow(theme.dark),
               ]}
             >
-              <AccentSurfaceGlow theme={theme} intensity="medium" />
-              <Icon name="edit" size={18} color={theme.accentText} />
-              <Text style={[styles.detailActionText, { color: theme.ink }]}>
+              <DarkLeatherSurface theme={theme} radius={16} />
+              <Icon name="edit" size={17} color="#ffffff" />
+              <Text style={[styles.detailActionText, { color: "#ffffff" }]}>
                 Update balance
               </Text>
             </Pressable>
@@ -3513,15 +3554,15 @@ export function WalletDetailScreen({
                 styles.detailActionBtn,
                 {
                   backgroundColor: theme.card,
+                  borderColor: hexToRgba(theme.leather.accent, 0.28),
                   overflow: "hidden",
                   transform: [{ scale: pressed ? 0.97 : 1 }],
                 },
-                bevelStyle(theme.dark),
                 cardShadow(theme.dark),
               ]}
             >
-              <AccentSurfaceGlow theme={theme} intensity="medium" />
-              <Icon name="swap" size={18} color={theme.accentText} />
+              <LightLeatherSurface theme={theme} radius={16} />
+              <Icon name="swap" size={17} color={theme.leather.accent} />
               <Text style={[styles.detailActionText, { color: theme.ink }]}>
                 Transfer
               </Text>
@@ -3553,18 +3594,29 @@ export function WalletDetailScreen({
               style={[
                 styles.emptyState,
                 {
+                  overflow: "hidden",
                   backgroundColor: theme.card,
+                  borderColor: hexToRgba(theme.leather.accent, 0.24),
                 },
-                bevelStyle(theme.dark),
                 cardShadow(theme.dark),
               ]}
             >
-              <LinearGradient
-                colors={theme.accentGradient}
-                style={styles.emptyStateIcon}
+              <LightLeatherSurface theme={theme} radius={20} />
+              <View
+                style={[
+                  styles.emptyStateIcon,
+                  {
+                    backgroundColor: hexToRgba(
+                      theme.leather.accent,
+                      theme.dark ? 0.2 : 0.1
+                    ),
+                    borderWidth: 1,
+                    borderColor: hexToRgba(theme.leather.accent, 0.22),
+                  },
+                ]}
               >
-                <Icon name="activity" size={22} color={theme.accentInk} />
-              </LinearGradient>
+                <Icon name="activity" size={22} color={theme.leather.accent} />
+              </View>
               <Text style={[styles.emptyStateTitle, { color: theme.ink }]}>
                 No activity yet
               </Text>
