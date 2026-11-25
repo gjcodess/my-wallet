@@ -210,8 +210,8 @@ export function SheetModal({
   const onClose = useCallback(
     () => {
       if (entrySavingRef.current) return;
-      if (type === "entry" && favoriteDraft) { closeFavoriteEditor(); return; }
-      if (type === "entry" && managingFavorites) {
+      if (isEntrySheet && favoriteDraft) { closeFavoriteEditor(); return; }
+      if (isEntrySheet && managingFavorites) {
         scrollToTop();
         setManagingFavorites(false);
         return;
@@ -285,7 +285,7 @@ export function SheetModal({
     setPickingTransferSide(null);
     setUpdateMode("set");
     setEntryStep(scheduledEntry ? 1 : 0);
-    setEntryType(scheduledEntry?.direction ?? "expense");
+    setEntryType(scheduledEntry?.direction ?? (type === "transfer" ? "transfer" : "expense"));
     setEntryError("");
     if (type === "budget") {
       setAmount(monthlyBudget && monthlyBudget > 0 ? String(monthlyBudget) : "");
@@ -404,6 +404,7 @@ export function SheetModal({
   const destWallet = activeWallets.find((w) => w.id === destination) || activeWallets[0];
 
   const isPresetSheet = type === "add" || type === "edit";
+  const isEntrySheet = type === "entry" || type === "transfer";
 
   const globalSearchResults = useMemo(() => {
     if (type !== "search") {
@@ -603,17 +604,17 @@ export function SheetModal({
 
   const handleHeaderBack = useCallback(() => {
     if (entrySavingRef.current) return;
-    if (type === "entry" && favoriteDraft) {
+    if (isEntrySheet && favoriteDraft) {
       closeFavoriteEditor();
       return;
     }
-    if (type === "entry" && managingFavorites) {
+    if (isEntrySheet && managingFavorites) {
       scrollToTop();
       setManagingFavorites(false);
       return;
     }
     const minStep = scheduledEntry ? 1 : 0;
-    if (type === "entry" && entryStep > minStep) {
+    if (isEntrySheet && entryStep > minStep) {
       setEntryStep((prev) => Math.max(minStep, prev - 1));
       scrollToTop();
       return;
@@ -706,7 +707,7 @@ export function SheetModal({
 
   const save = async () => {
     const now = new Date().toISOString();
-    if (type === "entry" && entryType === "transfer") {
+    if (isEntrySheet && entryType === "transfer") {
       if (
         transferInvalid ||
         !sourceWallet ||
@@ -772,7 +773,7 @@ export function SheetModal({
       return;
     }
 
-    if (type === "entry" && entryWallet && !entryInvalid) {
+    if (isEntrySheet && entryWallet && !entryInvalid) {
       if (entrySavingRef.current || closingRef.current) return;
       entrySavingRef.current = true;
       setEntrySaving(true);
@@ -978,9 +979,9 @@ export function SheetModal({
   };
 
   const sheetTitle =
-    type === "favorite" || (type === "entry" && favoriteDraft)
+    type === "favorite" || (isEntrySheet && favoriteDraft)
       ? (managingFavorites ? "Edit favorite" : "New favorite")
-      : type === "entry" && managingFavorites
+      : isEntrySheet && managingFavorites
         ? "Favorites"
         : type === "category-budget"
       ? (budgetCategory ? `${budgetCategory} budget` : "Category budgets")
@@ -1160,7 +1161,7 @@ export function SheetModal({
       };
     }
 
-    if (type === "entry" && entryWallet && !managingFavorites && !favoriteDraft) {
+    if (isEntrySheet && entryWallet && !managingFavorites && !favoriteDraft) {
       const isTransferMode = entryType === "transfer";
       const transferPossible =
         wallets.length >= 2 && Boolean(sourceWallet && destWallet);
@@ -1266,7 +1267,7 @@ export function SheetModal({
               maxHeight:
                 type === "add" ||
                 type === "edit" ||
-                type === "entry" ||
+                isEntrySheet ||
                 type === "update" ||
                 type === "auth" ||
                 type === "search"
@@ -1350,7 +1351,7 @@ export function SheetModal({
                     color={current.isHidden ? "#ffffff" : theme.leather.accent}
                   />
                 </Pressable>
-              ) : (type === "entry" &&
+              ) : (isEntrySheet &&
                   entryStep > (scheduledEntry ? 1 : 0) &&
                   !managingFavorites &&
                   !favoriteDraft) ||
@@ -2518,17 +2519,17 @@ export function SheetModal({
             })()}
 
             {/* ==================== ENTRY (ADD TRANSACTION) SHEET ==================== */}
-            {type === "entry" && favoriteDraft && (
+            {isEntrySheet && favoriteDraft && (
               <FavoriteEditor key={favoriteDraft.favorite.id} draft={favoriteDraft} wallets={wallets} hidden={hidden} theme={theme}
                 onSave={onSaveFavorite} onRemove={managingFavorites ? onRemoveFavorite : undefined} onDone={closeFavoriteEditor} />
             )}
-            {type === "entry" && managingFavorites && !favoriteDraft && (
+            {isEntrySheet && managingFavorites && !favoriteDraft && (
               <FavoriteList favorites={favorites} wallets={wallets} hidden={hidden} theme={theme} onEdit={(item) => {
                 scrollToTop();
                 setFavoriteDraft({ favorite: item, suggestedAmount: item.defaultAmount });
               }} />
             )}
-            {type === "entry" && entryWallet && !managingFavorites && !favoriteDraft && (() => {
+            {isEntrySheet && entryWallet && !managingFavorites && !favoriteDraft && (() => {
               const isTransferMode = entryType === "transfer";
               const transferPossible = wallets.length >= 2 && Boolean(sourceWallet && destWallet);
               const steps = isTransferMode
@@ -3859,8 +3860,8 @@ export function SheetModal({
               );
             })()}
 
-            {/* ==================== TRANSFER SHEET ==================== */}
-            {type === "transfer" && sourceWallet && destWallet && (
+            {/* ==================== LEGACY TRANSFER SHEET (routed via isEntrySheet) ==================== */}
+            {false && type === "transfer" && sourceWallet && destWallet && (
               <View>
                 {/* Side-by-Side From -> To Wallet Cards with Floating Swap */}
                 <View style={styles.transferSideRow}>
