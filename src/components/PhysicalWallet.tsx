@@ -884,6 +884,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
   onOpenAdd?: () => void;
 }) {
   const effectiveOpen = collapsible ? isOpen : true;
+  const maskPocketAmounts = hidden || (collapsible && !effectiveOpen);
   const { width: windowWidth } = useWindowDimensions();
   const [scale, setScale] = useState(() => getWalletScale(windowWidth));
   const [busy, setBusy] = useState(false);
@@ -1222,7 +1223,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
           ]}
         >
           <Text style={styles.pocketLabel}>{groupLabel}</Text>
-          <Amount value={total} hidden={hidden} size="md" color="#f0f1eb" />
+          <Amount value={total} hidden={maskPocketAmounts} size="md" color="#f0f1eb" />
           <Text style={styles.pocketCount}>
             {wallets.length} {wallets.length === 1 ? "card" : "cards"}
           </Text>
@@ -1230,14 +1231,14 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
             <View style={styles.monthlyItem}>
               <Text style={styles.monthlyLabel}>{monthlySummary.monthLabel} in</Text>
               <Text style={[styles.monthlyValue, { color: "#6ee7b7" }]} numberOfLines={1} adjustsFontSizeToFit>
-                {hidden ? "••••" : `+${money(monthlySummary.earned)}`}
+                {maskPocketAmounts ? "••••" : `+${money(monthlySummary.earned)}`}
               </Text>
             </View>
             <View style={styles.monthlyDivider} />
             <View style={styles.monthlyItem}>
               <Text style={styles.monthlyLabel}>{monthlySummary.monthLabel} out</Text>
               <Text style={[styles.monthlyValue, { color: "#fda4af" }]} numberOfLines={1} adjustsFontSizeToFit>
-                {hidden ? "••••" : `-${money(monthlySummary.spent)}`}
+                {maskPocketAmounts ? "••••" : `-${money(monthlySummary.spent)}`}
               </Text>
             </View>
           </View>
