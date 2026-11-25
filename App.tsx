@@ -988,6 +988,11 @@ export default function App() {
                       onSheet={openSheet}
                       schedules={dueSchedules}
                       onRecordScheduled={handleOpenScheduledEntry}
+                      monthlyBudget={monthlyBudget}
+                      monthlySpending={monthlySpending}
+                      categoryLimits={categoryLimits}
+                      onEditBudget={handleOpenBudgetSheet}
+                      onOpenCategoryBudget={handleOpenCategoryBudget}
                       setTab={handleTabChange}
                       onSettings={handleOpenSettings}
                       onStackDragChange={handleStackDragChange}

@@ -338,6 +338,11 @@ export const HomeScreen = React.memo(function HomeScreen({
   onSettings,
   schedules,
   onRecordScheduled,
+  monthlyBudget = 0,
+  monthlySpending,
+  categoryLimits,
+  onEditBudget,
+  onOpenCategoryBudget,
   setTab,
   onStackDragChange,
   walletOpen,
@@ -356,6 +361,11 @@ export const HomeScreen = React.memo(function HomeScreen({
   onSettings: () => void;
   schedules: DueSchedule[];
   onRecordScheduled: (schedule: DueSchedule) => void;
+  monthlyBudget?: number | null;
+  monthlySpending?: MonthlySpending;
+  categoryLimits?: CategoryLimits;
+  onEditBudget?: () => void;
+  onOpenCategoryBudget?: (category: string | null) => void;
   setTab: (t: Tab) => void;
   onStackDragChange?: (dragging: boolean) => void;
   walletOpen: boolean;
@@ -391,6 +401,11 @@ export const HomeScreen = React.memo(function HomeScreen({
     [setHidden, hidden]
   );
   const handleGoActivity = useCallback(() => setTab("activity"), [setTab]);
+  const handleGoOverview = useCallback(() => setTab("overview"), [setTab]);
+  const handleOpenBudget = useCallback(
+    () => (onEditBudget ? onEditBudget() : onSheet("budget")),
+    [onEditBudget, onSheet]
+  );
   const [headerClock, setHeaderClock] = useState(() =>
     getTimeGreeting(new Date())
   );
@@ -423,9 +438,11 @@ export const HomeScreen = React.memo(function HomeScreen({
     const now = new Date();
     const curYear = now.getFullYear();
     const curMonth = now.getMonth();
+    const curDate = now.getDate();
     const monthLabel = now.toLocaleDateString("en-US", { month: "long" });
     let earned = 0;
     let spent = 0;
+    let todaySpent = 0;
     for (const item of activities) {
       const isInc = isIncomeActivity(item);
       const isExp = isExpenseActivity(item);
@@ -433,10 +450,39 @@ export const HomeScreen = React.memo(function HomeScreen({
       const d = getActivityDate(item, now);
       if (d.getFullYear() !== curYear || d.getMonth() !== curMonth) continue;
       if (isInc) earned += item.amount;
-      else spent += Math.abs(item.amount);
+      else {
+        const abs = Math.abs(item.amount);
+        spent += abs;
+        if (d.getDate() === curDate) todaySpent += abs;
+      }
     }
-    return { monthLabel, earned, spent };
+    return { monthLabel, earned, spent, todaySpent };
   }, [activities]);
+
+  const topCategories = useMemo(() => {
+    if (!monthlySpending) return [];
+    return Array.from(monthlySpending.categories.entries())
+      .map(([category, info]) => ({
+        category,
+        amount: info.cents / 100,
+        icon: EXPENSE_CATEGORIES.find(([label]) => label === category)?.[1] || "tag",
+        limit: categoryLimits?.[category] ?? 0,
+      }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 3);
+  }, [monthlySpending, categoryLimits]);
+
+  const netMonth = monthlySummary.earned - monthlySummary.spent;
+  const savedRate =
+    monthlySummary.earned > 0
+      ? Math.max(0, Math.round((netMonth / monthlySummary.earned) * 100))
+      : null;
+  const budgetLimit = monthlyBudget ?? 0;
+  const budgetPct =
+    budgetLimit > 0
+      ? Math.round((monthlySummary.spent / budgetLimit) * 100)
+      : 0;
+  const budgetRemaining = budgetLimit - monthlySummary.spent;
 
   const titleAsset = PITAKA_TITLE_ASSETS.dark;
 
@@ -524,6 +570,285 @@ export const HomeScreen = React.memo(function HomeScreen({
       />
 
       <Animated.View style={{ transform: [{ translateY: belowWalletTranslateY }] }}>
+        {/* Cashflow & Monthly Budget Pulse */}
+        <View
+          style={[
+            styles.homeDashCard,
+            {
+              overflow: "hidden",
+              backgroundColor: theme.card,
+              borderColor: hexToRgba(theme.leather.accent, 0.22),
+            },
+            cardShadow(theme.dark),
+          ]}
+        >
+          <LightLeatherSurface theme={theme} radius={20} />
+          <View style={styles.homePulseRow}>
+            <View style={styles.homePulseCell}>
+              <Text style={[styles.homePulseLabel, { color: theme.muted }]}>
+                Today
+              </Text>
+              <Text
+                style={[styles.homePulseVal, { color: theme.ink }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {hidden ? "₱•••" : money(monthlySummary.todaySpent)}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.homePulseDivider,
+                { backgroundColor: hexToRgba(theme.leather.accent, 0.16) },
+              ]}
+            />
+            <View style={styles.homePulseCell}>
+              <Text style={[styles.homePulseLabel, { color: theme.muted }]}>
+                {monthlySummary.monthLabel} net
+              </Text>
+              <Text
+                style={[
+                  styles.homePulseVal,
+                  {
+                    color:
+                      netMonth >= 0
+                        ? theme.positive
+                        : theme.dark
+                          ? "#fb7185"
+                          : "#e11d48",
+                  },
+                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {hidden
+                  ? "₱•••"
+                  : `${netMonth >= 0 ? "+" : "-"}${money(Math.abs(netMonth))}`}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.homePulseDivider,
+                { backgroundColor: hexToRgba(theme.leather.accent, 0.16) },
+              ]}
+            />
+            <View style={styles.homePulseCell}>
+              <Text style={[styles.homePulseLabel, { color: theme.muted }]}>
+                Saved
+              </Text>
+              <Text
+                style={[
+                  styles.homePulseVal,
+                  { color: savedRate !== null ? theme.ink : theme.muted },
+                ]}
+              >
+                {hidden ? "••" : savedRate !== null ? `${savedRate}%` : "—"}
+              </Text>
+            </View>
+          </View>
+
+          <Pressable
+            onPress={handleOpenBudget}
+            style={({ pressed }) => [
+              styles.homeBudgetSection,
+              {
+                borderTopColor: hexToRgba(theme.leather.accent, 0.16),
+                opacity: pressed ? 0.78 : 1,
+              },
+            ]}
+          >
+            {budgetLimit > 0 ? (
+              <>
+                <View style={styles.homeBudgetTopRow}>
+                  <View style={styles.homeBudgetTitleGroup}>
+                    <Text style={[styles.homeBudgetLabel, { color: theme.ink }]}>
+                      Monthly budget
+                    </Text>
+                    <Text
+                      style={[
+                        styles.homeBudgetPct,
+                        {
+                          color:
+                            budgetPct >= 100
+                              ? "#e11d48"
+                              : budgetPct >= 80
+                                ? "#d97706"
+                                : theme.leather.accent,
+                        },
+                      ]}
+                    >
+                      {budgetPct}%
+                    </Text>
+                  </View>
+                  <Text style={[styles.homeBudgetRatio, { color: theme.muted }]}>
+                    {hidden ? "₱•••" : money(monthlySummary.spent, true)} /{" "}
+                    {hidden ? "₱•••" : money(budgetLimit, true)}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.homeProgressTrack,
+                    { backgroundColor: hexToRgba(theme.leather.accent, 0.14) },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.homeProgressFill,
+                      {
+                        width: `${Math.min(100, Math.max(0, budgetPct))}%`,
+                        backgroundColor:
+                          budgetPct >= 100
+                            ? "#e11d48"
+                            : budgetPct >= 80
+                              ? "#d97706"
+                              : theme.leather.colors[1],
+                      },
+                    ]}
+                  />
+                </View>
+                <View style={styles.homeBudgetSubRow}>
+                  <Text style={[styles.homeBudgetSub, { color: theme.muted }]}>
+                    {budgetRemaining >= 0
+                      ? `${hidden ? "₱•••" : money(budgetRemaining)} left this month`
+                      : `Over budget by ${hidden ? "₱•••" : money(Math.abs(budgetRemaining))}`}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.homeBudgetEditHint,
+                      { color: theme.leather.accent },
+                    ]}
+                  >
+                    Edit
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <View style={styles.homeBudgetEmptyRow}>
+                <View style={styles.homeBudgetTitleGroup}>
+                  <Icon name="pie" size={15} color={theme.leather.accent} />
+                  <Text style={[styles.homeBudgetLabel, { color: theme.ink }]}>
+                    Set monthly budget
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    styles.homeBudgetEditHint,
+                    { color: theme.leather.accent },
+                  ]}
+                >
+                  Tap to set ›
+                </Text>
+              </View>
+            )}
+          </Pressable>
+        </View>
+
+        {/* Top Spending Categories Peek */}
+        {topCategories.length > 0 ? (
+          <View style={[styles.section, { marginTop: 14 }]}>
+            <SectionTitle
+              title="Top Spending"
+              action="Overview"
+              actionIcon="chevron"
+              actionColor={theme.accentText}
+              onPress={handleGoOverview}
+              theme={theme}
+            />
+            <View
+              style={[
+                styles.homeDashCard,
+                {
+                  overflow: "hidden",
+                  backgroundColor: theme.card,
+                  borderColor: hexToRgba(theme.leather.accent, 0.22),
+                  gap: 11,
+                },
+                cardShadow(theme.dark),
+              ]}
+            >
+              <LightLeatherSurface theme={theme} radius={20} />
+              {topCategories.map((cat) => {
+                const maxAmt = topCategories[0]?.amount || 1;
+                const fillPct =
+                  cat.limit > 0
+                    ? Math.min(100, (cat.amount / cat.limit) * 100)
+                    : Math.min(100, (cat.amount / maxAmt) * 100);
+                const overLimit = cat.limit > 0 && cat.amount > cat.limit;
+                const sharePct =
+                  monthlySummary.spent > 0
+                    ? Math.round((cat.amount / monthlySummary.spent) * 100)
+                    : 0;
+                return (
+                  <Pressable
+                    key={cat.category}
+                    onPress={() =>
+                      onOpenCategoryBudget
+                        ? onOpenCategoryBudget(cat.category)
+                        : handleGoOverview()
+                    }
+                    style={({ pressed }) => [
+                      styles.homeCatRow,
+                      { opacity: pressed ? 0.72 : 1 },
+                    ]}
+                  >
+                    <View style={styles.homeCatTop}>
+                      <View style={styles.homeCatLeft}>
+                        <Icon
+                          name={cat.icon}
+                          size={15}
+                          color={theme.leather.accent}
+                        />
+                        <Text
+                          style={[styles.homeCatName, { color: theme.ink }]}
+                          numberOfLines={1}
+                        >
+                          {cat.category}
+                        </Text>
+                        <Text
+                          style={[styles.homeCatShare, { color: theme.muted }]}
+                        >
+                          {cat.limit > 0
+                            ? `of ${hidden ? "₱••" : money(cat.limit, true)}`
+                            : `${sharePct}%`}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.homeCatAmount,
+                          { color: overLimit ? "#e11d48" : theme.ink },
+                        ]}
+                      >
+                        {hidden ? "₱•••" : money(cat.amount)}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.homeProgressTrack,
+                        {
+                          height: 5,
+                          backgroundColor: hexToRgba(theme.leather.accent, 0.14),
+                        },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.homeProgressFill,
+                          {
+                            width: `${Math.max(4, fillPct)}%`,
+                            backgroundColor: overLimit
+                              ? "#e11d48"
+                              : theme.leather.colors[1],
+                          },
+                        ]}
+                      />
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
+
         <Upcoming schedules={schedules} wallets={wallets} hidden={hidden} theme={theme}
           onRecord={onRecordScheduled} onManage={handleOpenSchedules} />
 
@@ -2998,6 +3323,126 @@ export function WalletDetailScreen({
 }
 
 const styles = StyleSheet.create({
+  homeDashCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  homePulseRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  homePulseCell: {
+    flex: 1,
+    alignItems: "center",
+    gap: 2,
+  },
+  homePulseDivider: {
+    width: 1,
+    height: 28,
+  },
+  homePulseLabel: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 10.5,
+  },
+  homePulseVal: {
+    fontFamily: "Poppins_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 14,
+  },
+  homeBudgetSection: {
+    marginTop: 12,
+    paddingTop: 11,
+    borderTopWidth: 1,
+    gap: 6,
+  },
+  homeBudgetTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  homeBudgetTitleGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  homeBudgetLabel: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12.5,
+  },
+  homeBudgetPct: {
+    fontFamily: "Poppins_800ExtraBold",
+    fontWeight: "800",
+    fontSize: 12,
+  },
+  homeBudgetRatio: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 11.5,
+  },
+  homeProgressTrack: {
+    height: 7,
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  homeProgressFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  homeBudgetSubRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  homeBudgetSub: {
+    fontFamily: "Poppins_500Medium",
+    fontWeight: "500",
+    fontSize: 11,
+  },
+  homeBudgetEditHint: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 11,
+  },
+  homeBudgetEmptyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  homeCatRow: {
+    gap: 5,
+  },
+  homeCatTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  homeCatLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  homeCatName: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12.5,
+    flexShrink: 1,
+  },
+  homeCatShare: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 11,
+  },
+  homeCatAmount: {
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 12.5,
+  },
   page: {
     paddingHorizontal: 18,
     paddingTop: 12,
