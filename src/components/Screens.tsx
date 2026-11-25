@@ -916,6 +916,8 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   onWallet,
   onReorderWallets,
   onAddWallet,
+  onSearch,
+  onSettings,
   onDragChange,
   onHeroHeight,
   theme,
@@ -929,6 +931,8 @@ export const WalletsScreen = React.memo(function WalletsScreen({
   onWallet: (w: Wallet) => void;
   onReorderWallets?: (next: Wallet[]) => void;
   onAddWallet?: () => void;
+  onSearch?: () => void;
+  onSettings?: () => void;
   onDragChange?: (dragging: boolean) => void;
   onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
@@ -1280,6 +1284,8 @@ export const WalletsScreen = React.memo(function WalletsScreen({
             {onAddWallet ? (
               <Pressable
                 onPress={onAddWallet}
+                accessibilityRole="button"
+                accessibilityLabel="Add wallet"
                 style={({ pressed }) => [
                   styles.heroIconBtn,
                   heroControlStyle(theme),
@@ -1287,6 +1293,34 @@ export const WalletsScreen = React.memo(function WalletsScreen({
                 ]}
               >
                 <Icon name="plus" size={18} color={theme.heroInk} />
+              </Pressable>
+            ) : null}
+            {onSearch ? (
+              <Pressable
+                onPress={onSearch}
+                accessibilityRole="button"
+                accessibilityLabel="Search"
+                style={({ pressed }) => [
+                  styles.heroIconBtn,
+                  heroControlStyle(theme),
+                  { transform: [{ scale: pressed ? 0.92 : 1 }] },
+                ]}
+              >
+                <Icon name="search" size={17} color={theme.heroInk} />
+              </Pressable>
+            ) : null}
+            {onSettings ? (
+              <Pressable
+                onPress={onSettings}
+                accessibilityRole="button"
+                accessibilityLabel="Settings"
+                style={({ pressed }) => [
+                  styles.heroIconBtn,
+                  heroControlStyle(theme),
+                  { transform: [{ scale: pressed ? 0.92 : 1 }] },
+                ]}
+              >
+                <Icon name="settings" size={17} color={theme.heroInk} />
               </Pressable>
             ) : null}
           </View>
@@ -1867,6 +1901,8 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   wallets = [],
   hidden,
   onToggleHidden,
+  onSearch,
+  onSettings,
   monthlyBudget = null,
   monthlySpending: monthSpending,
   categoryLimits,
@@ -1888,6 +1924,8 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   wallets?: Wallet[];
   hidden: boolean;
   onToggleHidden?: () => void;
+  onSearch?: () => void;
+  onSettings?: () => void;
   monthlyBudget?: number | null;
   monthlySpending: MonthlySpending;
   categoryLimits: CategoryLimits;
@@ -2218,6 +2256,8 @@ export const ActivityScreen = React.memo(function ActivityScreen({
             {mode === "transactions" && onToggleFilters ? (
               <Pressable
                 onPress={onToggleFilters}
+                accessibilityRole="button"
+                accessibilityLabel="Filters"
                 style={({ pressed }) => [
                   styles.heroIconBtn,
                   heroControlStyle(theme),
@@ -2226,6 +2266,34 @@ export const ActivityScreen = React.memo(function ActivityScreen({
                 ]}
               >
                 <Icon name="more" size={18} color={theme.heroInk} />
+              </Pressable>
+            ) : null}
+            {onSearch ? (
+              <Pressable
+                onPress={onSearch}
+                accessibilityRole="button"
+                accessibilityLabel="Search"
+                style={({ pressed }) => [
+                  styles.heroIconBtn,
+                  heroControlStyle(theme),
+                  { transform: [{ scale: pressed ? 0.92 : 1 }] },
+                ]}
+              >
+                <Icon name="search" size={17} color={theme.heroInk} />
+              </Pressable>
+            ) : null}
+            {onSettings ? (
+              <Pressable
+                onPress={onSettings}
+                accessibilityRole="button"
+                accessibilityLabel="Settings"
+                style={({ pressed }) => [
+                  styles.heroIconBtn,
+                  heroControlStyle(theme),
+                  { transform: [{ scale: pressed ? 0.92 : 1 }] },
+                ]}
+              >
+                <Icon name="settings" size={17} color={theme.heroInk} />
               </Pressable>
             ) : null}
           </View>

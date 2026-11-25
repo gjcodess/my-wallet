@@ -572,6 +572,11 @@ export default function App() {
     setSheet(next);
   }, []);
 
+  const handleOpenSearch = useCallback(
+    () => openSheet("search"),
+    [openSheet]
+  );
+
   const openTransactionSheet = useCallback((item: ActivityItem) => {
     setScheduledEntry(null);
     setSheetActivity(item);
@@ -1064,6 +1069,8 @@ export default function App() {
                       onWallet={handleSelectWallet}
                       onReorderWallets={handleReorderWallets}
                       onAddWallet={handleAddWalletSheet}
+                      onSearch={handleOpenSearch}
+                      onSettings={handleOpenSettings}
                       onDragChange={handleStackDragChange}
                       onHeroHeight={handleWalletsHeroHeight}
                       theme={theme}
@@ -1079,6 +1086,8 @@ export default function App() {
                       wallets={wallets}
                       hidden={hidden}
                       onToggleHidden={handleToggleHidden}
+                      onSearch={handleOpenSearch}
+                      onSettings={handleOpenSettings}
                       monthlyBudget={monthlyBudget}
                       monthlySpending={monthlySpending}
                       categoryLimits={categoryLimits}
@@ -1105,6 +1114,8 @@ export default function App() {
                       wallets={visibleWallets}
                       hidden={hidden}
                       onToggleHidden={handleToggleHidden}
+                      onSearch={handleOpenSearch}
+                      onSettings={handleOpenSettings}
                       monthlyBudget={monthlyBudget}
                       monthlySpending={monthlySpending}
                       categoryLimits={categoryLimits}
