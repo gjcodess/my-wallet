@@ -860,6 +860,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
   total,
   hidden,
   isOpen,
+  collapsible = true,
   onToggleOpen,
   monthlySummary,
   walletFlows,
@@ -873,7 +874,8 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
   total: number;
   hidden: boolean;
   isOpen: boolean;
-  onToggleOpen: () => void;
+  collapsible?: boolean;
+  onToggleOpen?: () => void;
   monthlySummary: { monthLabel: string; monthShortLabel?: string; earned: number; spent: number };
   walletFlows?: Record<number, { earned: number; spent: number }>;
   theme: ThemeColors;
@@ -881,13 +883,14 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
   onOpenMenu: (wallet: Wallet) => void;
   onOpenAdd?: () => void;
 }) {
+  const effectiveOpen = collapsible ? isOpen : true;
   const { width: windowWidth } = useWindowDimensions();
   const [scale, setScale] = useState(() => getWalletScale(windowWidth));
   const [busy, setBusy] = useState(false);
   const [activeId, setActiveId] = useState<Wallet["id"] | null>(null);
   const [liftedId, setLiftedId] = useState<Wallet["id"] | null>(null);
 
-  const openAnim = useRef(new Animated.Value(isOpen ? 1 : 0)).current;
+  const openAnim = useRef(new Animated.Value(effectiveOpen ? 1 : 0)).current;
   const lift = useRef(new Animated.Value(0)).current;
   const running = useRef<Animated.CompositeAnimation | null>(null);
   const openAnimRunning = useRef<Animated.CompositeAnimation | null>(null);
@@ -919,11 +922,11 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
   useEffect(() => {
     openAnimRunning.current?.stop();
     if (reduceMotion.current) {
-      openAnim.setValue(isOpen ? 1 : 0);
+      openAnim.setValue(effectiveOpen ? 1 : 0);
       return;
     }
     const anim = Animated.timing(openAnim, {
-      toValue: isOpen ? 1 : 0,
+      toValue: effectiveOpen ? 1 : 0,
       duration: 280,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
@@ -932,9 +935,9 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
     anim.start(() => {
       openAnimRunning.current = null;
     });
-  }, [isOpen, openAnim]);
+  }, [effectiveOpen, openAnim]);
 
-  const liftedWallet = isOpen
+  const liftedWallet = effectiveOpen
     ? wallets.find((wallet) => wallet.id === liftedId)
     : undefined;
 
@@ -975,7 +978,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
 
   const pull = useCallback(
     (wallet: Wallet) => {
-      if (!isOpen) return;
+      if (!effectiveOpen) return;
       void move(async () => {
         if (liftedId !== null && !(await play(0, 260))) return;
         if (liftedId === wallet.id) {
@@ -987,7 +990,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
         await play(1, 400);
       });
     },
-    [isOpen, liftedId, move, play],
+    [effectiveOpen, liftedId, move, play],
   );
 
   const handleFocusOpen = useCallback(
@@ -1107,9 +1110,9 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
         />
 
         <View
-          pointerEvents={isOpen && !busy ? "box-none" : "none"}
-          accessibilityElementsHidden={!isOpen}
-          importantForAccessibility={isOpen ? "auto" : "no-hide-descendants"}
+          pointerEvents={effectiveOpen && !busy ? "box-none" : "none"}
+          accessibilityElementsHidden={!effectiveOpen}
+          importantForAccessibility={effectiveOpen ? "auto" : "no-hide-descendants"}
           style={[styles.bay, { height: bottomY }]}
         >
           {wallets.map((wallet, slot) => {
@@ -1164,13 +1167,16 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
         </View>
 
         <Pressable
-          accessibilityRole="button"
+          accessibilityRole={collapsible ? "button" : undefined}
           accessibilityLabel={
-            isOpen
-              ? `Collapse ${groupLabel} wallet`
-              : `Open ${groupLabel} wallet`
+            collapsible
+              ? effectiveOpen
+                ? `Collapse ${groupLabel} wallet`
+                : `Open ${groupLabel} wallet`
+              : undefined
           }
-          onPress={onToggleOpen}
+          disabled={!collapsible}
+          onPress={collapsible ? onToggleOpen : undefined}
           style={[
             styles.closedSummary,
             {
@@ -1183,7 +1189,8 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
           <Text style={styles.pocketLabel}>{groupLabel}</Text>
           <Amount value={total} hidden={hidden} size="md" color="#f0f1eb" />
           <Text style={styles.pocketCount}>
-            {wallets.length} {wallets.length === 1 ? "card" : "cards"} · Tap to {isOpen ? "close" : "open"}
+            {wallets.length} {wallets.length === 1 ? "card" : "cards"}
+            {collapsible ? ` · Tap to ${effectiveOpen ? "close" : "open"}` : ""}
           </Text>
           <View style={styles.monthlyFlow}>
             <View style={styles.monthlyItem}>
@@ -1204,9 +1211,9 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
 
         {onOpenAdd ? (
           <Animated.View
-            pointerEvents={isOpen && !busy ? "box-none" : "none"}
-            accessibilityElementsHidden={!isOpen}
-            importantForAccessibility={isOpen ? "auto" : "no-hide-descendants"}
+            pointerEvents={effectiveOpen && !busy ? "box-none" : "none"}
+            accessibilityElementsHidden={!effectiveOpen}
+            importantForAccessibility={effectiveOpen ? "auto" : "no-hide-descendants"}
             style={[
               styles.pocketAddWrap,
               {
@@ -1223,7 +1230,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Add new ${groupLabel} card`}
-              disabled={!isOpen || busy}
+              disabled={!effectiveOpen || busy}
               onPress={onOpenAdd}
               hitSlop={8}
               style={({ pressed }) => [
@@ -1243,10 +1250,10 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
         ) : null}
 
         <Animated.View
-          pointerEvents={isOpen ? "none" : "auto"}
+          pointerEvents={effectiveOpen ? "none" : "auto"}
           renderToHardwareTextureAndroid
-          accessibilityElementsHidden={isOpen}
-          importantForAccessibility={isOpen ? "no-hide-descendants" : "auto"}
+          accessibilityElementsHidden={effectiveOpen}
+          importantForAccessibility={effectiveOpen ? "no-hide-descendants" : "auto"}
           style={[
             styles.flap,
             flapMotion,
@@ -1262,7 +1269,8 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Open ${groupLabel} wallet`}
-            onPress={onToggleOpen}
+            disabled={!collapsible}
+            onPress={collapsible ? onToggleOpen : undefined}
             style={styles.flapFace}
           >
             <LeatherPanel part="flap" finish={theme.leather} />

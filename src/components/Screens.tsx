@@ -1361,8 +1361,8 @@ export const WalletsScreen = React.memo(function WalletsScreen({
               wallets={group.wallets}
               total={group.total}
               hidden={hidden}
-              isOpen={openGroups[group.key] ?? true}
-              onToggleOpen={() => toggleGroupOpen(group.key, true)}
+              isOpen
+              collapsible={false}
               monthlySummary={{
                 monthLabel: fullMonthLabel,
                 monthShortLabel: monthLabel,
