@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Animated,
   AppState,
+  BackHandler,
   Easing,
   Modal,
   NativeScrollEvent,
@@ -268,8 +269,13 @@ export default function App() {
     [navAnim]
   );
 
+  const prevNonSettingsTabRef = useRef<Tab>("home");
+
   const handleTabChange = useCallback(
     (nextTab: Tab) => {
+      if (nextTab !== "settings") {
+        prevNonSettingsTabRef.current = nextTab;
+      }
       setTab(nextTab);
       setVisitedTabs((prev) =>
         prev[nextTab] ? prev : { ...prev, [nextTab]: true }
@@ -825,6 +831,99 @@ export default function App() {
       onDone?.();
     });
   }, [hideSheetAnim]);
+
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+  const [renderedExitConfirm, setRenderedExitConfirm] = useState(false);
+  const exitSheetAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (exitConfirmOpen) {
+      setRenderedExitConfirm(true);
+      exitSheetAnim.setValue(0);
+      Animated.timing(exitSheetAnim, {
+        toValue: 1,
+        duration: 210,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    } else if (renderedExitConfirm) {
+      Animated.timing(exitSheetAnim, {
+        toValue: 0,
+        duration: 170,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) setRenderedExitConfirm(false);
+      });
+    }
+  }, [exitConfirmOpen, renderedExitConfirm, exitSheetAnim]);
+
+  const dismissExitConfirm = useCallback(
+    (onDone?: () => void) => {
+      Animated.timing(exitSheetAnim, {
+        toValue: 0,
+        duration: 170,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(() => {
+        setExitConfirmOpen(false);
+        setRenderedExitConfirm(false);
+        onDone?.();
+      });
+    },
+    [exitSheetAnim]
+  );
+
+  const backHandlerStateRef = useRef({
+    renderedExitConfirm: false,
+    renderedHideWallet: null as Wallet | null,
+    lockModalMode: null as AppLockMode | null,
+    isLocked: false,
+    selectedId: null as number | null,
+    tab: "home" as Tab,
+  });
+  backHandlerStateRef.current = {
+    renderedExitConfirm,
+    renderedHideWallet,
+    lockModalMode,
+    isLocked,
+    selectedId,
+    tab,
+  };
+
+  const hasTopConfirmModal = renderedHideWallet !== null || renderedExitConfirm;
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      const s = backHandlerStateRef.current;
+      if (s.renderedExitConfirm) {
+        dismissExitConfirm();
+        return true;
+      }
+      if (s.renderedHideWallet) {
+        dismissHideConfirm();
+        return true;
+      }
+      if (s.lockModalMode !== null) {
+        setLockModalMode(null);
+        return true;
+      }
+      if (s.isLocked) {
+        return false;
+      }
+      if (s.selectedId !== null) {
+        setSelectedId(null);
+        return true;
+      }
+      if (s.tab === "settings") {
+        handleTabChange(prevNonSettingsTabRef.current);
+        return true;
+      }
+      setExitConfirmOpen(true);
+      return true;
+    });
+    return () => sub.remove();
+  }, [hasTopConfirmModal, dismissExitConfirm, dismissHideConfirm, handleTabChange]);
 
   const applyToggleWalletHidden = useCallback(
     (targetWallet: Wallet) => {
@@ -1495,6 +1594,116 @@ export default function App() {
                   <Text style={styles.confirmPrimaryText}>
                     {renderedHideWallet.isHidden ? "Unhide card" : "Hide card"}
                   </Text>
+                </Pressable>
+              </View>
+            </Animated.View>
+          ) : null}
+        </View>
+      </Modal>
+      <Modal
+        visible={renderedExitConfirm}
+        transparent
+        animationType="none"
+        statusBarTranslucent
+        onRequestClose={() => dismissExitConfirm()}
+      >
+        <View style={styles.confirmModalRoot}>
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFill,
+              styles.confirmBackdrop,
+              { opacity: exitSheetAnim },
+            ]}
+          >
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={() => dismissExitConfirm()}
+            />
+          </Animated.View>
+          {renderedExitConfirm ? (
+            <Animated.View
+              style={[
+                styles.confirmCard,
+                {
+                  overflow: "hidden",
+                  backgroundColor: theme.page,
+                  borderColor: hexToRgba(theme.leather.accent, 0.24),
+                  transform: [
+                    {
+                      translateY: exitSheetAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [340, 0],
+                      }),
+                    },
+                  ],
+                },
+                cardShadow(theme.dark),
+              ]}
+            >
+              <SaffianoSheetSurface theme={theme} radius={28} />
+              <View
+                style={[
+                  styles.confirmHandle,
+                  { backgroundColor: hexToRgba(theme.leather.accent, 0.26) },
+                ]}
+              />
+              <View
+                style={[
+                  styles.confirmIconBox,
+                  {
+                    backgroundColor: hexToRgba(
+                      theme.leather.accent,
+                      theme.dark ? 0.22 : 0.12
+                    ),
+                    borderColor: hexToRgba(theme.leather.accent, 0.26),
+                  },
+                ]}
+              >
+                <Icon name="logout" size={20} color={theme.leather.accent} />
+              </View>
+              <Text style={[styles.confirmTitle, { color: theme.ink }]}>
+                Exit Pitaka?
+              </Text>
+              <Text style={[styles.confirmSub, { color: theme.muted }]}>
+                Are you sure you want to close the app?
+              </Text>
+              <View style={styles.confirmBtnRow}>
+                <Pressable
+                  onPress={() => dismissExitConfirm()}
+                  style={({ pressed }) => [
+                    styles.confirmBtn,
+                    {
+                      overflow: "hidden",
+                      backgroundColor: theme.card,
+                      borderColor: hexToRgba(theme.leather.accent, 0.26),
+                      transform: [{ scale: pressed ? 0.97 : 1 }],
+                    },
+                  ]}
+                >
+                  <LightLeatherSurface theme={theme} radius={16} />
+                  <Text style={[styles.confirmCancelText, { color: theme.ink }]}>
+                    Stay
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    dismissExitConfirm(() => {
+                      BackHandler.exitApp();
+                    });
+                  }}
+                  style={({ pressed }) => [
+                    styles.confirmBtn,
+                    {
+                      overflow: "hidden",
+                      backgroundColor: theme.leather.colors[1],
+                      borderColor: theme.leather.edge,
+                      transform: [{ scale: pressed ? 0.97 : 1 }],
+                    },
+                    cardShadow(theme.dark),
+                  ]}
+                >
+                  <DarkLeatherSurface theme={theme} radius={16} />
+                  <Text style={styles.confirmPrimaryText}>Exit app</Text>
                 </Pressable>
               </View>
             </Animated.View>
