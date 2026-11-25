@@ -1007,7 +1007,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
 
   const extraY = Math.max(0, wallets.length - VISIBLE_CARDS) * CARD_STEP;
   const shadowPadBottom = 14;
-  const shadowPadX = 10;
+  const shadowPadX = 28;
   const stageHeight = (HEIGHT + extraY) * scale;
   const hingeY = (HINGE_Y + extraY) * scale;
   const pocketY = (POCKET_Y + extraY) * scale;
@@ -1017,7 +1017,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
     (200 + extraY - Math.max(0, wallets.length - 1) * CARD_STEP) * scale;
   const coverCropY = collapsible
     ? 0
-    : Math.max(0, Math.min(hingeY - 2 * scale, topCardRestY - 10 * scale));
+    : Math.max(0, Math.min(hingeY - 2 * scale, topCardRestY - 18 * scale));
   const closedHeight = (leather.shell.height + 2) * scale + shadowPadBottom;
   const openHeight = stageHeight - coverCropY + shadowPadBottom;
   const flapHeight = leather.flap.height * scale;
@@ -1036,7 +1036,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
     top: hingeY - flapHeight,
     height: 2 * flapHeight,
     transform: [
-      { perspective: 1000 },
+      { perspective: 1400 },
       {
         rotateX: openAnim.interpolate({
           inputRange: [0, 1],
@@ -1063,7 +1063,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
       }}
       style={{
         height: wrapperHeight,
-        overflow: "hidden",
+        overflow: collapsible ? "hidden" : "visible",
         alignSelf: "stretch",
         paddingHorizontal: shadowPadX,
         marginHorizontal: -shadowPadX,
@@ -1098,7 +1098,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
         {collapsible ? (
           <>
             <Animated.View
-              pointerEvents="none"
+              pointerEvents={effectiveOpen ? "auto" : "none"}
               renderToHardwareTextureAndroid
               style={[
                 styles.flap,
@@ -1112,9 +1112,28 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
                 },
               ]}
             >
-              <View style={styles.flapFace}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Collapse ${groupLabel} wallet`}
+                disabled={!effectiveOpen}
+                onPress={onToggleOpen}
+                style={styles.flapFace}
+              >
                 <LeatherPanel part="flap" lining finish={theme.leather} />
-              </View>
+                <View
+                  pointerEvents="none"
+                  style={[
+                    styles.flapText,
+                    {
+                      top: "35%",
+                      transform: [{ scaleY: -1 }],
+                    },
+                  ]}
+                >
+                  <Icon name="lock" size={14} color="#e3e9e9" />
+                  <Text style={styles.flapLabel}>Tap to close</Text>
+                </View>
+              </Pressable>
             </Animated.View>
 
             <CardGradient
@@ -1289,7 +1308,7 @@ export const GroupedPhysicalWallet = React.memo(function GroupedPhysicalWallet({
               style={styles.flapFace}
             >
               <LeatherPanel part="flap" finish={theme.leather} />
-              <View pointerEvents="none" style={styles.flapText}>
+              <View pointerEvents="none" style={[styles.flapText, { top: "36%" }]}>
                 <Icon name="lock" size={14} color="#e3e9e9" />
                 <Text style={styles.flapLabel}>Tap to open</Text>
               </View>
