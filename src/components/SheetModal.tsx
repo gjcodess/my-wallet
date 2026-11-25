@@ -3706,7 +3706,7 @@ export function SheetModal({
                       compact
                       onChange={(next) => setEntryAttachments(next)}
                       onRemoveExisting={(removed) => deleteAttachmentFiles([removed])}
-                      emptyActionLabel="Add receipt or photo (optional)"
+                      emptyActionLabel="Add a receipt or photo as proof (optional)"
                       theme={theme}
                     />
 
@@ -4754,7 +4754,7 @@ export function SheetModal({
                         );
                         setTxAttachments(next);
                       }}
-                      emptyActionLabel="Attach receipt or photo"
+                      emptyActionLabel="Attach a receipt or photo as proof"
                       theme={theme}
                     />
 
@@ -5008,7 +5008,7 @@ export function SheetModal({
                       };
                       onUpdateActivity(updatedItem, wallets);
                     }}
-                    emptyActionLabel="Attach receipt or photo"
+                    emptyActionLabel="Attach a receipt or photo as proof"
                     theme={theme}
                   />
 

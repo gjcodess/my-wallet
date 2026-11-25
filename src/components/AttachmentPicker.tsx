@@ -20,6 +20,7 @@ import { ScalePressable } from "../lib/motion";
 import { Icon } from "./Icon";
 import {
   cardShadow,
+  DarkLeatherSurface,
   hexToRgba,
   LightLeatherSurface,
   ThemeColors,
@@ -31,7 +32,7 @@ export const TransactionAttachmentsSection = React.memo(
     canEdit = true,
     onChange,
     onRemoveExisting,
-    emptyActionLabel = "Attach receipt photo",
+    emptyActionLabel = "Attach a receipt or photo for proof",
     compact = false,
     theme,
   }: {
@@ -135,7 +136,7 @@ export const TransactionAttachmentsSection = React.memo(
           </View>
           <View style={styles.metaBadge}>
             <Text style={[styles.metaText, { color: theme.muted }]}>
-              {attachments.length}/{MAX_ATTACHMENTS} · Compressed
+              {attachments.length}/{MAX_ATTACHMENTS} · Proof
             </Text>
           </View>
         </View>
@@ -197,7 +198,7 @@ export const TransactionAttachmentsSection = React.memo(
           </ScrollView>
         ) : canEdit ? (
           <Text style={[styles.emptyHint, { color: theme.muted }]}>
-            {emptyActionLabel} — resized & compressed automatically.
+            {emptyActionLabel}
           </Text>
         ) : null}
 
@@ -210,24 +211,22 @@ export const TransactionAttachmentsSection = React.memo(
               style={[
                 styles.actionBtn,
                 {
-                  backgroundColor: hexToRgba(
-                    theme.leather.accent,
-                    theme.dark ? 0.18 : 0.1
-                  ),
-                  borderColor: hexToRgba(theme.leather.accent, 0.28),
+                  overflow: "hidden",
+                  backgroundColor: theme.leather.colors[1],
+                  borderColor: theme.leather.edge,
                   opacity: busySource === "camera" ? 0.5 : 1,
                 },
+                cardShadow(theme.dark),
               ]}
             >
+              <DarkLeatherSurface theme={theme} radius={12} />
               {busySource === "library" ? (
-                <ActivityIndicator size="small" color={theme.leather.accent} />
+                <ActivityIndicator size="small" color="#ffffff" />
               ) : (
-                <Icon name="image" size={15} color={theme.leather.accent} />
+                <Icon name="image" size={15} color="#ffffff" />
               )}
-              <Text
-                style={[styles.actionBtnText, { color: theme.leather.accent }]}
-              >
-                {busySource === "library" ? "Compressing…" : "Gallery"}
+              <Text style={[styles.actionBtnText, { color: "#ffffff" }]}>
+                {busySource === "library" ? "Attaching…" : "Gallery"}
               </Text>
             </ScalePressable>
 
@@ -238,24 +237,22 @@ export const TransactionAttachmentsSection = React.memo(
               style={[
                 styles.actionBtn,
                 {
-                  backgroundColor: hexToRgba(
-                    theme.leather.accent,
-                    theme.dark ? 0.18 : 0.1
-                  ),
-                  borderColor: hexToRgba(theme.leather.accent, 0.28),
+                  overflow: "hidden",
+                  backgroundColor: theme.leather.colors[1],
+                  borderColor: theme.leather.edge,
                   opacity: busySource === "library" ? 0.5 : 1,
                 },
+                cardShadow(theme.dark),
               ]}
             >
+              <DarkLeatherSurface theme={theme} radius={12} />
               {busySource === "camera" ? (
-                <ActivityIndicator size="small" color={theme.leather.accent} />
+                <ActivityIndicator size="small" color="#ffffff" />
               ) : (
-                <Icon name="camera" size={15} color={theme.leather.accent} />
+                <Icon name="camera" size={15} color="#ffffff" />
               )}
-              <Text
-                style={[styles.actionBtnText, { color: theme.leather.accent }]}
-              >
-                {busySource === "camera" ? "Compressing…" : "Camera"}
+              <Text style={[styles.actionBtnText, { color: "#ffffff" }]}>
+                {busySource === "camera" ? "Attaching…" : "Camera"}
               </Text>
             </ScalePressable>
           </View>
@@ -292,7 +289,7 @@ export const TransactionAttachmentsSection = React.memo(
                 </Text>
                 {activePreview?.sizeLabel ? (
                   <Text style={styles.lightboxSub}>
-                    Compressed JPEG · {activePreview.sizeLabel}
+                    Transaction proof · {activePreview.sizeLabel}
                   </Text>
                 ) : null}
               </View>
