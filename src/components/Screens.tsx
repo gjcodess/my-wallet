@@ -548,27 +548,6 @@ export const HomeScreen = React.memo(function HomeScreen({
               />
             ))}
           </View>
-          {activities.length > 5 ? (
-            <Pressable
-              onPress={handleGoActivity}
-              style={({ pressed }) => [
-                styles.viewAllBtn,
-                {
-                  backgroundColor: theme.card,
-                  overflow: "hidden",
-                  transform: [{ scale: pressed ? 0.985 : 1 }],
-                },
-                bevelStyle(theme.dark),
-                cardShadow(theme.dark),
-              ]}
-            >
-              <AccentSurfaceGlow theme={theme} intensity="medium" />
-              <Text style={[styles.viewAllText, { color: theme.accentText }]}>
-                View all transactions ({activities.length})
-              </Text>
-              <Icon name="chevron" size={15} color={theme.accentText} />
-            </Pressable>
-          ) : null}
         </View>
       </Animated.View>
     </View>
