@@ -6,6 +6,8 @@ import { categoryLimitKey, readCategoryLimits } from "../types/budget";
 import type { CategoryLimits } from "../types/budget";
 import { favoriteKey, readFavorites } from "../types/favorite";
 import type { Favorite } from "../types/favorite";
+import { HomeSectionConfig, normalizeHomeSections } from "../types/homeLayout";
+import { PayLaterAccount, readPayLaterAccounts } from "../types/paylater";
 import type { PitakaBackupPayload } from "./backup";
 import { AccentPaletteId, isAccentPaletteId } from "../components/SharedUI";
 import {
@@ -184,6 +186,8 @@ export async function loadLocalState(): Promise<{
   monthlyBudget: number | null;
   categoryLimits: CategoryLimits;
   favorites: Favorite[];
+  homeSections: HomeSectionConfig[];
+  payLaterAccounts: PayLaterAccount[];
 }> {
   const db = await getDb();
   const walletRows = await db.getAllAsync<{
@@ -266,6 +270,16 @@ export async function loadLocalState(): Promise<{
     ? rawAccent
     : "coral";
 
+  const rawHomeSections = settingsMap.get("home_sections");
+  let parsedHomeSections: unknown = null;
+  if (rawHomeSections) {
+    try {
+      parsedHomeSections = JSON.parse(rawHomeSections);
+    } catch {
+      parsedHomeSections = null;
+    }
+  }
+
   return {
     wallets: wallets.length || isSeeded ? wallets : initialWallets,
     activities: activities.length || isSeeded ? activities : initialActivities,
@@ -282,6 +296,8 @@ export async function loadLocalState(): Promise<{
     monthlyBudget,
     categoryLimits: readCategoryLimits(settingsMap),
     favorites: readFavorites(settingsMap),
+    homeSections: normalizeHomeSections(parsedHomeSections),
+    payLaterAccounts: readPayLaterAccounts(settingsMap),
   };
 }
 

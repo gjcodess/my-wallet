@@ -87,8 +87,19 @@ import { Amount, WalletFolder, WalletLogoBadge } from "./WalletFolder";
 import { Upcoming } from "./Schedules";
 import type { DueSchedule } from "../types/schedule";
 import type { CategoryLimits, MonthlySpending } from "../types/budget";
+import {
+  DEFAULT_HOME_SECTIONS,
+  type HomeSectionConfig,
+  type HomeSectionId,
+} from "../types/homeLayout";
+import {
+  getPayLaterDueStatus,
+  getPayLaterPreset,
+  type PayLaterAccount,
+} from "../types/paylater";
 import { CategoryBudgetOverview } from "./CategoryBudgets";
 import { CategoryTreemap, WalletTreemap } from "./WalletTreemap";
+import { CustomizeHomeModal } from "./CustomizeHomeModal";
 
 const PITAKA_TITLE_ASSETS = {
   dark: require("../../assets/brand/pitaka-title-white.png"),
@@ -375,6 +386,9 @@ export const HomeScreen = React.memo(function HomeScreen({
   onHeroHeight,
   entranceActive = true,
   entranceReplayKey = 0,
+  homeSections = DEFAULT_HOME_SECTIONS,
+  payLaterAccounts = [],
+  onOpenPayLater,
   theme,
 }: {
   wallets: Wallet[];
@@ -401,6 +415,9 @@ export const HomeScreen = React.memo(function HomeScreen({
   onHeroHeight?: (height: number) => void;
   entranceActive?: boolean;
   entranceReplayKey?: number;
+  homeSections?: HomeSectionConfig[];
+  payLaterAccounts?: PayLaterAccount[];
+  onOpenPayLater?: () => void;
   theme: ThemeColors;
 }) {
   const { width: windowWidth } = useWindowDimensions();
@@ -654,376 +671,522 @@ export const HomeScreen = React.memo(function HomeScreen({
       </StaggerReveal>
 
       <Animated.View style={{ transform: [{ translateY: belowWalletTranslateY }] }}>
-        {/* Cashflow & Monthly Budget Pulse (Dark Stitched Leather) */}
-        <StaggerReveal
-          active={entranceActive}
-          replayKey={entranceReplayKey}
-          index={1.5}
-          offsetY={10}
-          startOpacity={0.72}
-          duration={240}
-        >
-          <View
-            style={[
-              styles.homeDashCard,
-              {
-                overflow: "hidden",
-                backgroundColor: theme.leather.edge,
-                borderColor: theme.leather.edge,
-              },
-              cardShadow(theme.dark),
-            ]}
-          >
-            <DarkLeatherSurface theme={theme} radius={20} />
-            <View style={styles.homePulseRow}>
-              <View style={styles.homePulseCell}>
-                <Text
-                  style={[styles.homePulseLabel, { color: theme.leather.thread }]}
+        {homeSections
+          .filter((sec) => sec.visible)
+          .map((sec) => {
+            const renderSection: Record<HomeSectionId, () => React.ReactNode> = {
+              pulse: () => (
+                <StaggerReveal
+                  key="pulse"
+                  active={entranceActive}
+                  replayKey={entranceReplayKey}
+                  index={1.5}
+                  offsetY={10}
+                  startOpacity={0.72}
+                  duration={240}
                 >
-                  Spent today
-                </Text>
-                <Text
-                  style={[styles.homePulseVal, { color: "#ffffff" }]}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                >
-                  {hidden ? (
-                    "₱•••"
-                  ) : monthlySummary.todaySpent > 0 ? (
-                    <>
-                      <Text style={{ color: "#fda4af" }}>-</Text>
-                      {money(monthlySummary.todaySpent)}
-                    </>
-                  ) : (
-                    money(0)
-                  )}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.homePulseDivider,
-                  { backgroundColor: "rgba(255, 255, 255, 0.16)" },
-                ]}
-              />
-              <View style={styles.homePulseCell}>
-                <Text
-                  style={[styles.homePulseLabel, { color: theme.leather.thread }]}
-                >
-                  {monthlySummary.monthLabel} net
-                </Text>
-                <Text
-                  style={[styles.homePulseVal, { color: "#ffffff" }]}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                >
-                  {hidden ? (
-                    "₱•••"
-                  ) : (
-                    <>
-                      <Text style={{ color: netMonth >= 0 ? "#6ee7b7" : "#fda4af" }}>
-                        {netMonth >= 0 ? "+" : "-"}
-                      </Text>
-                      {money(Math.abs(netMonth))}
-                    </>
-                  )}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.homePulseDivider,
-                  { backgroundColor: "rgba(255, 255, 255, 0.16)" },
-                ]}
-              />
-              <View style={styles.homePulseCell}>
-                <Text
-                  style={[styles.homePulseLabel, { color: theme.leather.thread }]}
-                >
-                  Saved
-                </Text>
-                <Text
-                  style={[
-                    styles.homePulseVal,
-                    {
-                      color:
-                        savedRate !== null ? "#ffffff" : theme.leather.thread,
-                    },
-                  ]}
-                >
-                  {hidden ? "••" : savedRate !== null ? `${savedRate}%` : "—"}
-                </Text>
-              </View>
-            </View>
-
-            <ScalePressable
-              onPress={handleOpenBudget}
-              scaleTo={0.985}
-              pressOpacity={0.86}
-              style={[
-                styles.homeBudgetSection,
-                {
-                  borderTopColor: "rgba(255, 255, 255, 0.14)",
-                },
-              ]}
-            >
-              {budgetLimit > 0 ? (
-                <>
-                  <View style={styles.homeBudgetTopRow}>
-                    <View style={styles.homeBudgetTitleGroup}>
-                      <Text style={[styles.homeBudgetLabel, { color: "#ffffff" }]}>
-                        Monthly budget
-                      </Text>
-                      <Text
-                        style={[
-                          styles.homeBudgetPct,
-                          {
-                            color:
-                              budgetPct >= 100
-                                ? "#fda4af"
-                                : budgetPct >= 80
-                                  ? "#fcd34d"
-                                  : "#6ee7b7",
-                          },
-                        ]}
-                      >
-                        {budgetPct}%
-                      </Text>
-                    </View>
-                    <Text
-                      style={[
-                        styles.homeBudgetRatio,
-                        { color: theme.leather.thread },
-                      ]}
-                    >
-                      {hidden ? "₱•••" : money(monthlySummary.spent, true)} /{" "}
-                      {hidden ? "₱•••" : money(budgetLimit, true)}
-                    </Text>
-                  </View>
                   <View
                     style={[
-                      styles.homeProgressTrack,
-                      { backgroundColor: "rgba(255, 255, 255, 0.14)" },
+                      styles.homeDashCard,
+                      {
+                        overflow: "hidden",
+                        backgroundColor: theme.leather.edge,
+                        borderColor: theme.leather.edge,
+                      },
+                      cardShadow(theme.dark),
                     ]}
                   >
-                    <AnimatedBarFill
-                      pct={budgetPct}
-                      active={entranceActive}
-                      animateKey={`${entranceReplayKey}-${budgetPct}`}
-                      delayMs={180}
-                      style={[
-                        styles.homeProgressFill,
-                        {
-                          backgroundColor:
-                            budgetPct >= 100
-                              ? "#fb7185"
-                              : budgetPct >= 80
-                                ? "#fbbf24"
-                                : "#34d399",
-                        },
-                      ]}
-                    />
-                  </View>
-                  <View style={styles.homeBudgetSubRow}>
-                    <Text
-                      style={[
-                        styles.homeBudgetSub,
-                        { color: theme.leather.thread },
-                      ]}
-                    >
-                      {budgetRemaining >= 0
-                        ? `${hidden ? "₱•••" : money(budgetRemaining)} left this month`
-                        : `Over budget by ${hidden ? "₱•••" : money(Math.abs(budgetRemaining))}`}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.homeBudgetEditHint,
-                        { color: "#ffffff" },
-                      ]}
-                    >
-                      Edit
-                    </Text>
-                  </View>
-                </>
-              ) : (
-                <View style={styles.homeBudgetEmptyRow}>
-                  <View style={styles.homeBudgetTitleGroup}>
-                    <Icon name="pie" size={15} color={theme.leather.thread} />
-                    <Text style={[styles.homeBudgetLabel, { color: "#ffffff" }]}>
-                      Set monthly budget
-                    </Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.homeBudgetEditHint,
-                      { color: theme.leather.thread },
-                    ]}
-                  >
-                    Tap to set ›
-                  </Text>
-                </View>
-              )}
-            </ScalePressable>
-          </View>
-        </StaggerReveal>
-
-        {/* Top Spending Categories Peek */}
-        {topCategories.length > 0 ? (
-          <StaggerReveal
-            active={entranceActive}
-            replayKey={entranceReplayKey}
-            index={2.4}
-            offsetY={10}
-            startOpacity={0.72}
-            duration={240}
-          >
-            <View style={[styles.section, { marginTop: 14 }]}>
-              <SectionTitle
-                title="Top Spending"
-                action="Overview"
-                actionIcon="chevron"
-                actionColor={theme.accentText}
-                onPress={handleGoOverview}
-                theme={theme}
-              />
-              <View
-                style={[
-                  styles.homeDashCard,
-                  {
-                    overflow: "hidden",
-                    backgroundColor: theme.card,
-                    borderColor: hexToRgba(theme.leather.accent, 0.22),
-                    gap: 11,
-                  },
-                  cardShadow(theme.dark),
-                ]}
-              >
-                <LightLeatherSurface theme={theme} radius={20} />
-                {topCategories.map((cat, idx) => {
-                  const maxAmt = topCategories[0]?.amount || 1;
-                  const fillPct =
-                    cat.limit > 0
-                      ? Math.min(100, (cat.amount / cat.limit) * 100)
-                      : Math.min(100, (cat.amount / maxAmt) * 100);
-                  const overLimit = cat.limit > 0 && cat.amount > cat.limit;
-                  const sharePct =
-                    monthlySummary.spent > 0
-                      ? Math.round((cat.amount / monthlySummary.spent) * 100)
-                      : 0;
-                  const catTint = overLimit ? "#e11d48" : theme.leather.accent;
-                  return (
-                    <ScalePressable
-                      key={cat.category}
-                      onPress={() =>
-                        onOpenCategoryBudget
-                          ? onOpenCategoryBudget(cat.category)
-                          : handleGoOverview()
-                      }
-                      scaleTo={0.985}
-                      pressOpacity={0.82}
-                      style={styles.homeCatRow}
-                    >
-                      <View style={styles.homeCatTop}>
-                        <View style={styles.homeCatLeft}>
-                          <Icon name={cat.icon} size={15} color={catTint} />
-                          <Text
-                            style={[styles.homeCatName, { color: theme.ink }]}
-                            numberOfLines={1}
-                          >
-                            {cat.category}
-                          </Text>
-                          <Text
-                            style={[styles.homeCatShare, { color: catTint }]}
-                          >
-                            {cat.limit > 0
-                              ? `of ${hidden ? "₱••" : money(cat.limit, true)}`
-                              : `${sharePct}%`}
-                          </Text>
-                        </View>
+                    <DarkLeatherSurface theme={theme} radius={20} />
+                    <View style={styles.homePulseRow}>
+                      <View style={styles.homePulseCell}>
                         <Text
-                          style={[
-                            styles.homeCatAmount,
-                            { color: overLimit ? "#e11d48" : theme.ink },
-                          ]}
+                          style={[styles.homePulseLabel, { color: theme.leather.thread }]}
                         >
-                          {hidden ? "₱•••" : money(cat.amount)}
+                          Spent today
+                        </Text>
+                        <Text
+                          style={[styles.homePulseVal, { color: "#ffffff" }]}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                        >
+                          {hidden ? (
+                            "₱•••"
+                          ) : monthlySummary.todaySpent > 0 ? (
+                            <>
+                              <Text style={{ color: "#fda4af" }}>-</Text>
+                              {money(monthlySummary.todaySpent)}
+                            </>
+                          ) : (
+                            money(0)
+                          )}
                         </Text>
                       </View>
                       <View
                         style={[
-                          styles.homeProgressTrack,
+                          styles.homePulseDivider,
+                          { backgroundColor: "rgba(255, 255, 255, 0.16)" },
+                        ]}
+                      />
+                      <View style={styles.homePulseCell}>
+                        <Text
+                          style={[styles.homePulseLabel, { color: theme.leather.thread }]}
+                        >
+                          {monthlySummary.monthLabel} net
+                        </Text>
+                        <Text
+                          style={[styles.homePulseVal, { color: "#ffffff" }]}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                        >
+                          {hidden ? (
+                            "₱•••"
+                          ) : (
+                            <>
+                              <Text style={{ color: netMonth >= 0 ? "#6ee7b7" : "#fda4af" }}>
+                                {netMonth >= 0 ? "+" : "-"}
+                              </Text>
+                              {money(Math.abs(netMonth))}
+                            </>
+                          )}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.homePulseDivider,
+                          { backgroundColor: "rgba(255, 255, 255, 0.16)" },
+                        ]}
+                      />
+                      <View style={styles.homePulseCell}>
+                        <Text
+                          style={[styles.homePulseLabel, { color: theme.leather.thread }]}
+                        >
+                          Saved
+                        </Text>
+                        <Text
+                          style={[
+                            styles.homePulseVal,
+                            {
+                              color:
+                                savedRate !== null ? "#ffffff" : theme.leather.thread,
+                            },
+                          ]}
+                        >
+                          {hidden ? "••" : savedRate !== null ? `${savedRate}%` : "—"}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <ScalePressable
+                      onPress={handleOpenBudget}
+                      scaleTo={0.985}
+                      pressOpacity={0.86}
+                      style={[
+                        styles.homeBudgetSection,
+                        {
+                          borderTopColor: "rgba(255, 255, 255, 0.14)",
+                        },
+                      ]}
+                    >
+                      {budgetLimit > 0 ? (
+                        <>
+                          <View style={styles.homeBudgetTopRow}>
+                            <View style={styles.homeBudgetTitleGroup}>
+                              <Text style={[styles.homeBudgetLabel, { color: "#ffffff" }]}>
+                                Monthly budget
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.homeBudgetPct,
+                                  {
+                                    color:
+                                      budgetPct >= 100
+                                        ? "#fda4af"
+                                        : budgetPct >= 80
+                                          ? "#fcd34d"
+                                          : "#6ee7b7",
+                                  },
+                                ]}
+                              >
+                                {budgetPct}%
+                              </Text>
+                            </View>
+                            <Text
+                              style={[
+                                styles.homeBudgetRatio,
+                                { color: theme.leather.thread },
+                              ]}
+                            >
+                              {hidden ? "₱•••" : money(monthlySummary.spent, true)} /{" "}
+                              {hidden ? "₱•••" : money(budgetLimit, true)}
+                            </Text>
+                          </View>
+                          <View
+                            style={[
+                              styles.homeProgressTrack,
+                              { backgroundColor: "rgba(255, 255, 255, 0.14)" },
+                            ]}
+                          >
+                            <AnimatedBarFill
+                              pct={budgetPct}
+                              active={entranceActive}
+                              animateKey={`${entranceReplayKey}-${budgetPct}`}
+                              delayMs={180}
+                              style={[
+                                styles.homeProgressFill,
+                                {
+                                  backgroundColor:
+                                    budgetPct >= 100
+                                      ? "#fb7185"
+                                      : budgetPct >= 80
+                                        ? "#fbbf24"
+                                        : "#34d399",
+                                },
+                              ]}
+                            />
+                          </View>
+                          <View style={styles.homeBudgetSubRow}>
+                            <Text
+                              style={[
+                                styles.homeBudgetSub,
+                                { color: theme.leather.thread },
+                              ]}
+                            >
+                              {budgetRemaining >= 0
+                                ? `${hidden ? "₱•••" : money(budgetRemaining)} left this month`
+                                : `Over budget by ${hidden ? "₱•••" : money(Math.abs(budgetRemaining))}`}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.homeBudgetEditHint,
+                                { color: "#ffffff" },
+                              ]}
+                            >
+                              Edit
+                            </Text>
+                          </View>
+                        </>
+                      ) : (
+                        <View style={styles.homeBudgetEmptyRow}>
+                          <View style={styles.homeBudgetTitleGroup}>
+                            <Icon name="pie" size={15} color={theme.leather.thread} />
+                            <Text style={[styles.homeBudgetLabel, { color: "#ffffff" }]}>
+                              Set monthly budget
+                            </Text>
+                          </View>
+                          <Text
+                            style={[
+                              styles.homeBudgetEditHint,
+                              { color: theme.leather.thread },
+                            ]}
+                          >
+                            Tap to set ›
+                          </Text>
+                        </View>
+                      )}
+                    </ScalePressable>
+                  </View>
+                </StaggerReveal>
+              ),
+              payLater: () => {
+                if (payLaterAccounts.length === 0) return null;
+                const now = new Date();
+                const sorted = [...payLaterAccounts].sort((a, b) => {
+                  const sa = getPayLaterDueStatus(a, now);
+                  const sb = getPayLaterDueStatus(b, now);
+                  if (sa.paid !== sb.paid) return sa.paid ? 1 : -1;
+                  return sa.daysUntil - sb.daysUntil;
+                });
+                const unpaidSum = sorted.reduce((acc, item) => {
+                  const st = getPayLaterDueStatus(item, now);
+                  return st.paid ? acc : acc + item.dueAmount;
+                }, 0);
+                return (
+                  <StaggerReveal
+                    key="payLater"
+                    active={entranceActive}
+                    replayKey={entranceReplayKey}
+                    index={2.0}
+                    offsetY={10}
+                    startOpacity={0.72}
+                    duration={240}
+                  >
+                    <View style={[styles.section, { marginTop: 14 }]}>
+                      <SectionTitle
+                        title="PayLater Bills"
+                        action={
+                          unpaidSum > 0
+                            ? `${hidden ? "₱•••" : money(unpaidSum)} due`
+                            : "Manage"
+                        }
+                        actionIcon="chevron"
+                        actionColor={theme.accentText}
+                        onPress={onOpenPayLater}
+                        theme={theme}
+                      />
+                      <View
+                        style={[
+                          styles.homeDashCard,
                           {
-                            height: 5,
-                            backgroundColor: hexToRgba(catTint, 0.16),
+                            overflow: "hidden",
+                            backgroundColor: theme.card,
+                            borderColor: hexToRgba(theme.leather.accent, 0.22),
+                            gap: 10,
                           },
+                          cardShadow(theme.dark),
                         ]}
                       >
-                        <AnimatedBarFill
-                          pct={Math.max(4, fillPct)}
-                          active={entranceActive}
-                          animateKey={`${entranceReplayKey}-${cat.category}-${fillPct}`}
-                          delayMs={200 + idx * 45}
-                          style={[
-                            styles.homeProgressFill,
-                            { backgroundColor: catTint },
-                          ]}
-                        />
+                        <LightLeatherSurface theme={theme} radius={20} />
+                        {sorted.slice(0, 3).map((item) => {
+                          const preset = getPayLaterPreset(item.providerKey);
+                          const st = getPayLaterDueStatus(item, now);
+                          const stColor =
+                            st.tone === "paid"
+                              ? "#10b981"
+                              : st.tone === "overdue"
+                                ? "#e11d48"
+                                : st.tone === "soon"
+                                  ? "#d97706"
+                                  : theme.muted;
+                          return (
+                            <ScalePressable
+                              key={item.id}
+                              onPress={onOpenPayLater}
+                              scaleTo={0.985}
+                              pressOpacity={0.82}
+                              style={styles.homeCatTop}
+                            >
+                              <View style={[styles.homeCatLeft, { gap: 10 }]}>
+                                <View
+                                  style={{
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: 9,
+                                    backgroundColor: preset.accent,
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  <Text
+                                    style={{
+                                      color: preset.ink,
+                                      fontFamily: "Poppins_800ExtraBold",
+                                      fontWeight: "800",
+                                      fontSize: 10,
+                                      includeFontPadding: false,
+                                    }}
+                                  >
+                                    {preset.short}
+                                  </Text>
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                  <Text
+                                    style={[styles.homeCatName, { color: theme.ink }]}
+                                    numberOfLines={1}
+                                  >
+                                    {item.name}
+                                  </Text>
+                                  <Text
+                                    style={[styles.homeCatShare, { color: stColor }]}
+                                    numberOfLines={1}
+                                  >
+                                    {st.label}
+                                    {item.totalMonths
+                                      ? ` · ${item.paidMonthsCount ?? 0}/${item.totalMonths} mos`
+                                      : ""}
+                                  </Text>
+                                </View>
+                              </View>
+                              <Text
+                                style={[
+                                  styles.homeCatAmount,
+                                  {
+                                    color: st.paid ? theme.muted : theme.ink,
+                                    textDecorationLine: st.paid ? "line-through" : "none",
+                                  },
+                                ]}
+                              >
+                                {hidden ? "₱•••" : money(item.dueAmount)}
+                              </Text>
+                            </ScalePressable>
+                          );
+                        })}
                       </View>
-                    </ScalePressable>
-                  );
-                })}
-              </View>
-            </View>
-          </StaggerReveal>
-        ) : null}
-
-        <StaggerReveal
-          active={entranceActive}
-          replayKey={entranceReplayKey}
-          index={4}
-          offsetY={12}
-          duration={260}
-        >
-          <Upcoming schedules={schedules} wallets={wallets} hidden={hidden} theme={theme}
-            onRecord={onRecordScheduled} onManage={handleOpenSchedules} />
-        </StaggerReveal>
-
-        {/* Recent Transactions */}
-        <StaggerReveal
-          active={entranceActive}
-          replayKey={entranceReplayKey}
-          index={4.5}
-          offsetY={12}
-          duration={260}
-        >
-          <View style={[styles.section, { marginTop: 10 }]}>
-            <SectionTitle
-              title="Recent Transactions"
-              action="View all"
-              actionIcon="chevron"
-              actionColor={theme.accentText}
-              onPress={handleGoActivity}
-              theme={theme}
-            />
-            <View style={styles.txList}>
-              {recentActivities.map((item, idx) => (
+                    </View>
+                  </StaggerReveal>
+                );
+              },
+              topSpending: () =>
+                topCategories.length > 0 ? (
+                  <StaggerReveal
+                    key="topSpending"
+                    active={entranceActive}
+                    replayKey={entranceReplayKey}
+                    index={2.4}
+                    offsetY={10}
+                    startOpacity={0.72}
+                    duration={240}
+                  >
+                    <View style={[styles.section, { marginTop: 14 }]}>
+                      <SectionTitle
+                        title="Top Spending"
+                        action="Overview"
+                        actionIcon="chevron"
+                        actionColor={theme.accentText}
+                        onPress={handleGoOverview}
+                        theme={theme}
+                      />
+                      <View
+                        style={[
+                          styles.homeDashCard,
+                          {
+                            overflow: "hidden",
+                            backgroundColor: theme.card,
+                            borderColor: hexToRgba(theme.leather.accent, 0.22),
+                            gap: 11,
+                          },
+                          cardShadow(theme.dark),
+                        ]}
+                      >
+                        <LightLeatherSurface theme={theme} radius={20} />
+                        {topCategories.map((cat, idx) => {
+                          const maxAmt = topCategories[0]?.amount || 1;
+                          const fillPct =
+                            cat.limit > 0
+                              ? Math.min(100, (cat.amount / cat.limit) * 100)
+                              : Math.min(100, (cat.amount / maxAmt) * 100);
+                          const overLimit = cat.limit > 0 && cat.amount > cat.limit;
+                          const sharePct =
+                            monthlySummary.spent > 0
+                              ? Math.round((cat.amount / monthlySummary.spent) * 100)
+                              : 0;
+                          const catTint = overLimit ? "#e11d48" : theme.leather.accent;
+                          return (
+                            <ScalePressable
+                              key={cat.category}
+                              onPress={() =>
+                                onOpenCategoryBudget
+                                  ? onOpenCategoryBudget(cat.category)
+                                  : handleGoOverview()
+                              }
+                              scaleTo={0.985}
+                              pressOpacity={0.82}
+                              style={styles.homeCatRow}
+                            >
+                              <View style={styles.homeCatTop}>
+                                <View style={styles.homeCatLeft}>
+                                  <Icon name={cat.icon} size={15} color={catTint} />
+                                  <Text
+                                    style={[styles.homeCatName, { color: theme.ink }]}
+                                    numberOfLines={1}
+                                  >
+                                    {cat.category}
+                                  </Text>
+                                  <Text
+                                    style={[styles.homeCatShare, { color: catTint }]}
+                                  >
+                                    {cat.limit > 0
+                                      ? `of ${hidden ? "₱••" : money(cat.limit, true)}`
+                                      : `${sharePct}%`}
+                                  </Text>
+                                </View>
+                                <Text
+                                  style={[
+                                    styles.homeCatAmount,
+                                    { color: overLimit ? "#e11d48" : theme.ink },
+                                  ]}
+                                >
+                                  {hidden ? "₱•••" : money(cat.amount)}
+                                </Text>
+                              </View>
+                              <View
+                                style={[
+                                  styles.homeProgressTrack,
+                                  {
+                                    height: 5,
+                                    backgroundColor: hexToRgba(catTint, 0.16),
+                                  },
+                                ]}
+                              >
+                                <AnimatedBarFill
+                                  pct={Math.max(4, fillPct)}
+                                  active={entranceActive}
+                                  animateKey={`${entranceReplayKey}-${cat.category}-${fillPct}`}
+                                  delayMs={200 + idx * 45}
+                                  style={[
+                                    styles.homeProgressFill,
+                                    { backgroundColor: catTint },
+                                  ]}
+                                />
+                              </View>
+                            </ScalePressable>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  </StaggerReveal>
+                ) : null,
+              upcoming: () => (
                 <StaggerReveal
-                  key={item.id}
+                  key="upcoming"
                   active={entranceActive}
                   replayKey={entranceReplayKey}
-                  index={4.7 + idx * 0.45}
-                  offsetY={10}
-                  duration={240}
+                  index={4}
+                  offsetY={12}
+                  duration={260}
                 >
-                  <TxRow
-                    item={item}
+                  <Upcoming
+                    schedules={schedules}
+                    wallets={wallets}
                     hidden={hidden}
-                    onPress={onTransaction ? () => onTransaction(item) : undefined}
                     theme={theme}
+                    onRecord={onRecordScheduled}
+                    onManage={handleOpenSchedules}
                   />
                 </StaggerReveal>
-              ))}
-            </View>
-          </View>
-        </StaggerReveal>
+              ),
+              recent: () => (
+                <StaggerReveal
+                  key="recent"
+                  active={entranceActive}
+                  replayKey={entranceReplayKey}
+                  index={4.5}
+                  offsetY={12}
+                  duration={260}
+                >
+                  <View style={[styles.section, { marginTop: 10 }]}>
+                    <SectionTitle
+                      title="Recent Transactions"
+                      action="View all"
+                      actionIcon="chevron"
+                      actionColor={theme.accentText}
+                      onPress={handleGoActivity}
+                      theme={theme}
+                    />
+                    <View style={styles.txList}>
+                      {recentActivities.map((item, idx) => (
+                        <StaggerReveal
+                          key={item.id}
+                          active={entranceActive}
+                          replayKey={entranceReplayKey}
+                          index={4.7 + idx * 0.45}
+                          offsetY={10}
+                          duration={240}
+                        >
+                          <TxRow
+                            item={item}
+                            hidden={hidden}
+                            onPress={onTransaction ? () => onTransaction(item) : undefined}
+                            theme={theme}
+                          />
+                        </StaggerReveal>
+                      ))}
+                    </View>
+                  </View>
+                </StaggerReveal>
+              ),
+            };
+            return renderSection[sec.id]();
+          })}
       </Animated.View>
 
       <ReorderWalletsModal
@@ -2898,6 +3061,11 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   onOpenBudget,
   onOpenCategoryBudgets,
   onOpenSchedules,
+  payLaterCount = 0,
+  payLaterUnpaidTotal = 0,
+  onOpenPayLater,
+  homeSections = DEFAULT_HOME_SECTIONS,
+  onOpenCustomizeHome,
   onHeroHeight,
   theme,
 }: {
@@ -2924,9 +3092,15 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   onOpenBudget?: () => void;
   onOpenCategoryBudgets?: () => void;
   onOpenSchedules?: () => void;
+  payLaterCount?: number;
+  payLaterUnpaidTotal?: number;
+  onOpenPayLater?: () => void;
+  homeSections?: HomeSectionConfig[];
+  onOpenCustomizeHome?: () => void;
   onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
 }) {
+  const visibleHomeCount = homeSections.filter((s) => s.visible).length;
 
 
   return (
@@ -3019,9 +3193,19 @@ export const SettingsScreen = React.memo(function SettingsScreen({
                 theme={theme}
               />
             }
-            isLast
+            isLast={!onOpenCustomizeHome}
             theme={theme}
           />
+          {onOpenCustomizeHome ? (
+            <SettingRow
+              icon="sliders"
+              title="Customize Home"
+              subtitle={`${visibleHomeCount} of ${homeSections.length} sections visible`}
+              onPress={onOpenCustomizeHome}
+              isLast
+              theme={theme}
+            />
+          ) : null}
         </SettingsGroup>
       </StaggerReveal>
 
@@ -3060,6 +3244,20 @@ export const SettingsScreen = React.memo(function SettingsScreen({
                   : "No schedules yet"
               }
               onPress={onOpenSchedules}
+              isLast={!onOpenPayLater}
+              theme={theme}
+            />
+          ) : null}
+          {onOpenPayLater ? (
+            <SettingRow
+              icon="card"
+              title="PayLater bills"
+              subtitle={
+                payLaterCount > 0
+                  ? `${payLaterCount} ${payLaterCount === 1 ? "account" : "accounts"} · ${hidden ? "••••" : money(payLaterUnpaidTotal)} unpaid`
+                  : "SPayLater, LazPayLater, Atome"
+              }
+              onPress={onOpenPayLater}
               isLast
               theme={theme}
             />

@@ -55,6 +55,17 @@ import { categoryLimitKey, getMonthlySpending } from "./src/types/budget";
 import type { CategoryLimits } from "./src/types/budget";
 import { favoriteKey } from "./src/types/favorite";
 import type { Favorite, FavoriteDraft } from "./src/types/favorite";
+import {
+  DEFAULT_HOME_SECTIONS,
+  type HomeSectionConfig,
+} from "./src/types/homeLayout";
+import {
+  currentMonthKey,
+  getPayLaterDueStatus,
+  type PayLaterAccount,
+} from "./src/types/paylater";
+import { CustomizeHomeModal } from "./src/components/CustomizeHomeModal";
+import { PayLaterModal } from "./src/components/PayLaterModal";
 import { refreshReminders } from "./src/lib/scheduleReminders";
 import {
   loadLocalState,
@@ -169,6 +180,12 @@ export default function App() {
     fileName: string;
   } | null>(null);
   const [confirmEraseOpen, setConfirmEraseOpen] = useState(false);
+  const [homeSections, setHomeSections] = useState<HomeSectionConfig[]>(
+    DEFAULT_HOME_SECTIONS
+  );
+  const [customizeHomeOpen, setCustomizeHomeOpen] = useState(false);
+  const [payLaterAccounts, setPayLaterAccounts] = useState<PayLaterAccount[]>([]);
+  const [payLaterOpen, setPayLaterOpen] = useState(false);
   const [appLockPin, setAppLockPin] = useState<string | null>(null);
   const [biometricsSupported, setBiometricsSupported] = useState(false);
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
@@ -529,6 +546,8 @@ export default function App() {
         setMonthlyBudget(state.monthlyBudget);
         setCategoryLimits(state.categoryLimits);
         setFavorites(state.favorites);
+        setHomeSections(state.homeSections);
+        setPayLaterAccounts(state.payLaterAccounts);
         if (state.appLockPin) {
           setIsLocked(true);
         }
@@ -713,11 +732,70 @@ export default function App() {
       setSelectedId(null);
       setAppLockPin(null);
       setBiometricsEnabled(false);
+      setHomeSections(DEFAULT_HOME_SECTIONS);
+      setPayLaterAccounts([]);
       setToast("All local data erased");
     } catch {
       setToast("Could not erase data");
     }
   }, []);
+
+  const handleSaveHomeSections = useCallback((next: HomeSectionConfig[]) => {
+    setHomeSections(next);
+    saveSettingToSQLite("home_sections", JSON.stringify(next)).catch(() => {});
+    setToast("Home layout updated");
+  }, []);
+
+  const persistPayLaterAccounts = useCallback((next: PayLaterAccount[]) => {
+    setPayLaterAccounts(next);
+    saveSettingToSQLite("paylater_accounts", JSON.stringify(next)).catch(() => {});
+  }, []);
+
+  const handleSavePayLaterAccount = useCallback(
+    (item: PayLaterAccount) => {
+      const exists = payLaterAccounts.some((a) => a.id === item.id);
+      const next = exists
+        ? payLaterAccounts.map((a) => (a.id === item.id ? item : a))
+        : [item, ...payLaterAccounts];
+      persistPayLaterAccounts(next);
+      setToast(exists ? `${item.name} updated` : `${item.name} added`);
+    },
+    [payLaterAccounts, persistPayLaterAccounts]
+  );
+
+  const handleDeletePayLaterAccount = useCallback(
+    (id: string) => {
+      const next = payLaterAccounts.filter((a) => a.id !== id);
+      persistPayLaterAccounts(next);
+      setToast("PayLater removed");
+    },
+    [payLaterAccounts, persistPayLaterAccounts]
+  );
+
+  const handleTogglePayLaterPaid = useCallback(
+    (id: string) => {
+      const monthKey = currentMonthKey();
+      const next = payLaterAccounts.map((a) =>
+        a.id === id
+          ? {
+              ...a,
+              paidMonth: a.paidMonth === monthKey ? undefined : monthKey,
+              updatedAt: new Date().toISOString(),
+            }
+          : a
+      );
+      persistPayLaterAccounts(next);
+    },
+    [payLaterAccounts, persistPayLaterAccounts]
+  );
+
+  const payLaterUnpaidTotal = useMemo(() => {
+    const now = new Date();
+    return payLaterAccounts.reduce((sum, item) => {
+      const st = getPayLaterDueStatus(item, now);
+      return st.paid ? sum : sum + item.dueAmount;
+    }, 0);
+  }, [payLaterAccounts]);
 
   // 5. Auto-hide Toast after 2.4s
   useEffect(() => {
@@ -1409,6 +1487,9 @@ export default function App() {
                         onHeroHeight={handleHomeHeroHeight}
                         entranceActive={introDismissing || !showIntro}
                         entranceReplayKey={entranceReplayKey}
+                        homeSections={homeSections}
+                        payLaterAccounts={payLaterAccounts}
+                        onOpenPayLater={() => setPayLaterOpen(true)}
                         theme={theme}
                       />
                     ),
@@ -1519,6 +1600,11 @@ export default function App() {
                         onOpenBudget={handleOpenBudgetSheet}
                         onOpenCategoryBudgets={() => handleOpenCategoryBudget(null)}
                         onOpenSchedules={() => openSheet("schedule")}
+                        payLaterCount={payLaterAccounts.length}
+                        payLaterUnpaidTotal={payLaterUnpaidTotal}
+                        onOpenPayLater={() => setPayLaterOpen(true)}
+                        homeSections={homeSections}
+                        onOpenCustomizeHome={() => setCustomizeHomeOpen(true)}
                         onHeroHeight={handleSettingsHeroHeight}
                         theme={theme}
                       />
@@ -2037,6 +2123,60 @@ export default function App() {
         onConfirm={handleConfirmEraseData}
         onCancel={() => setConfirmEraseOpen(false)}
         theme={theme}
+      />
+      <CustomizeHomeModal
+        visible={customizeHomeOpen}
+        sections={homeSections}
+        theme={theme}
+        onSave={handleSaveHomeSections}
+        onClose={() => setCustomizeHomeOpen(false)}
+      />
+      <PayLaterModal
+        visible={payLaterOpen}
+        accounts={payLaterAccounts}
+        wallets={wallets}
+        hidden={hidden}
+        theme={theme}
+        onSaveAccount={handleSavePayLaterAccount}
+        onDeleteAccount={handleDeletePayLaterAccount}
+        onPayAccount={(item, wallet) => {
+          const nowIso = new Date().toISOString();
+          const monthKey = currentMonthKey();
+          const nextWallets = walletsRef.current.map((w) =>
+            w.id === wallet.id
+              ? { ...w, balance: w.balance - item.dueAmount, updatedAt: nowIso, synced: false }
+              : w
+          );
+          walletsRef.current = nextWallets;
+          setWallets(nextWallets);
+          recordActivity({
+            title: `Paid ${item.name}`,
+            wallet: wallet.name,
+            walletLocalId: getWalletLocalId(wallet),
+            amount: -Math.abs(item.dueAmount),
+            icon: "card",
+            kind: "Bills",
+            occurredAt: nowIso,
+          });
+          persistPayLaterAccounts(
+            payLaterAccounts.map((a) =>
+              a.id === item.id
+                ? {
+                    ...a,
+                    paidMonth: monthKey,
+                    lastPaidAt: nowIso,
+                    paidMonthsCount: a.totalMonths
+                      ? Math.min(a.totalMonths, (a.paidMonthsCount ?? 0) + 1)
+                      : a.paidMonthsCount,
+                    updatedAt: nowIso,
+                  }
+                : a
+            )
+          );
+          setToast(`Paid ${item.name} from ${wallet.name}`);
+        }}
+        onTogglePaid={handleTogglePayLaterPaid}
+        onClose={() => setPayLaterOpen(false)}
       />
       </View>
     </SafeAreaProvider>
