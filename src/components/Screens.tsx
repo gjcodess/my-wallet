@@ -80,6 +80,7 @@ import { Upcoming } from "./Schedules";
 import type { DueSchedule } from "../types/schedule";
 import type { CategoryLimits, MonthlySpending } from "../types/budget";
 import { CategoryBudgetOverview } from "./CategoryBudgets";
+import { WalletTreemap } from "./WalletTreemap";
 
 const PITAKA_TITLE_ASSETS = {
   dark: require("../../assets/brand/pitaka-title-white.png"),
@@ -1909,6 +1910,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   categoryLimits,
   onOpenCategoryBudget,
   onEditBudget,
+  onOpenWallet,
   onTransaction,
   onShowToast,
   showFilters = false,
@@ -1932,6 +1934,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
   categoryLimits: CategoryLimits;
   onOpenCategoryBudget: (category: string | null) => void;
   onEditBudget?: () => void;
+  onOpenWallet?: (wallet: Wallet) => void;
   onTransaction?: (item: ActivityItem) => void;
   onShowToast?: (msg: string) => void;
   showFilters?: boolean;
@@ -2512,6 +2515,14 @@ export const ActivityScreen = React.memo(function ActivityScreen({
           </View>
         </View>
       </View>
+
+      {/* Squarified Wallet Distribution Treemap */}
+      <WalletTreemap
+        wallets={wallets}
+        hidden={hidden}
+        onSelectWallet={onOpenWallet}
+        theme={theme}
+      />
 
       {/* Expense / Income Breakdown Donut Chart */}
       <View

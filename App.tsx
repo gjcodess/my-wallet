@@ -1276,6 +1276,7 @@ export default function App() {
                       onToggleHidden={handleToggleHidden}
                       onSearch={handleOpenSearch}
                       onSettings={handleOpenSettings}
+                      onOpenWallet={handleSelectWallet}
                       monthlyBudget={monthlyBudget}
                       monthlySpending={monthlySpending}
                       categoryLimits={categoryLimits}
