@@ -570,26 +570,28 @@ export const HomeScreen = React.memo(function HomeScreen({
       />
 
       <Animated.View style={{ transform: [{ translateY: belowWalletTranslateY }] }}>
-        {/* Cashflow & Monthly Budget Pulse */}
+        {/* Cashflow & Monthly Budget Pulse (Dark Stitched Leather) */}
         <View
           style={[
             styles.homeDashCard,
             {
               overflow: "hidden",
-              backgroundColor: theme.card,
-              borderColor: hexToRgba(theme.leather.accent, 0.22),
+              backgroundColor: theme.leather.edge,
+              borderColor: theme.leather.edge,
             },
             cardShadow(theme.dark),
           ]}
         >
-          <LightLeatherSurface theme={theme} radius={20} />
+          <DarkLeatherSurface theme={theme} radius={20} />
           <View style={styles.homePulseRow}>
             <View style={styles.homePulseCell}>
-              <Text style={[styles.homePulseLabel, { color: theme.muted }]}>
+              <Text
+                style={[styles.homePulseLabel, { color: theme.leather.thread }]}
+              >
                 Today
               </Text>
               <Text
-                style={[styles.homePulseVal, { color: theme.ink }]}
+                style={[styles.homePulseVal, { color: "#ffffff" }]}
                 numberOfLines={1}
                 adjustsFontSizeToFit
               >
@@ -599,23 +601,20 @@ export const HomeScreen = React.memo(function HomeScreen({
             <View
               style={[
                 styles.homePulseDivider,
-                { backgroundColor: hexToRgba(theme.leather.accent, 0.16) },
+                { backgroundColor: "rgba(255, 255, 255, 0.16)" },
               ]}
             />
             <View style={styles.homePulseCell}>
-              <Text style={[styles.homePulseLabel, { color: theme.muted }]}>
+              <Text
+                style={[styles.homePulseLabel, { color: theme.leather.thread }]}
+              >
                 {monthlySummary.monthLabel} net
               </Text>
               <Text
                 style={[
                   styles.homePulseVal,
                   {
-                    color:
-                      netMonth >= 0
-                        ? theme.positive
-                        : theme.dark
-                          ? "#fb7185"
-                          : "#e11d48",
+                    color: netMonth >= 0 ? "#6ee7b7" : "#fda4af",
                   },
                 ]}
                 numberOfLines={1}
@@ -629,17 +628,22 @@ export const HomeScreen = React.memo(function HomeScreen({
             <View
               style={[
                 styles.homePulseDivider,
-                { backgroundColor: hexToRgba(theme.leather.accent, 0.16) },
+                { backgroundColor: "rgba(255, 255, 255, 0.16)" },
               ]}
             />
             <View style={styles.homePulseCell}>
-              <Text style={[styles.homePulseLabel, { color: theme.muted }]}>
+              <Text
+                style={[styles.homePulseLabel, { color: theme.leather.thread }]}
+              >
                 Saved
               </Text>
               <Text
                 style={[
                   styles.homePulseVal,
-                  { color: savedRate !== null ? theme.ink : theme.muted },
+                  {
+                    color:
+                      savedRate !== null ? "#ffffff" : theme.leather.thread,
+                  },
                 ]}
               >
                 {hidden ? "••" : savedRate !== null ? `${savedRate}%` : "—"}
@@ -652,7 +656,7 @@ export const HomeScreen = React.memo(function HomeScreen({
             style={({ pressed }) => [
               styles.homeBudgetSection,
               {
-                borderTopColor: hexToRgba(theme.leather.accent, 0.16),
+                borderTopColor: "rgba(255, 255, 255, 0.14)",
                 opacity: pressed ? 0.78 : 1,
               },
             ]}
@@ -661,7 +665,7 @@ export const HomeScreen = React.memo(function HomeScreen({
               <>
                 <View style={styles.homeBudgetTopRow}>
                   <View style={styles.homeBudgetTitleGroup}>
-                    <Text style={[styles.homeBudgetLabel, { color: theme.ink }]}>
+                    <Text style={[styles.homeBudgetLabel, { color: "#ffffff" }]}>
                       Monthly budget
                     </Text>
                     <Text
@@ -670,17 +674,22 @@ export const HomeScreen = React.memo(function HomeScreen({
                         {
                           color:
                             budgetPct >= 100
-                              ? "#e11d48"
+                              ? "#fda4af"
                               : budgetPct >= 80
-                                ? "#d97706"
-                                : theme.leather.accent,
+                                ? "#fcd34d"
+                                : "#6ee7b7",
                         },
                       ]}
                     >
                       {budgetPct}%
                     </Text>
                   </View>
-                  <Text style={[styles.homeBudgetRatio, { color: theme.muted }]}>
+                  <Text
+                    style={[
+                      styles.homeBudgetRatio,
+                      { color: theme.leather.thread },
+                    ]}
+                  >
                     {hidden ? "₱•••" : money(monthlySummary.spent, true)} /{" "}
                     {hidden ? "₱•••" : money(budgetLimit, true)}
                   </Text>
@@ -688,7 +697,7 @@ export const HomeScreen = React.memo(function HomeScreen({
                 <View
                   style={[
                     styles.homeProgressTrack,
-                    { backgroundColor: hexToRgba(theme.leather.accent, 0.14) },
+                    { backgroundColor: "rgba(255, 255, 255, 0.14)" },
                   ]}
                 >
                   <View
@@ -698,16 +707,21 @@ export const HomeScreen = React.memo(function HomeScreen({
                         width: `${Math.min(100, Math.max(0, budgetPct))}%`,
                         backgroundColor:
                           budgetPct >= 100
-                            ? "#e11d48"
+                            ? "#fb7185"
                             : budgetPct >= 80
-                              ? "#d97706"
-                              : theme.leather.colors[1],
+                              ? "#fbbf24"
+                              : "#34d399",
                       },
                     ]}
                   />
                 </View>
                 <View style={styles.homeBudgetSubRow}>
-                  <Text style={[styles.homeBudgetSub, { color: theme.muted }]}>
+                  <Text
+                    style={[
+                      styles.homeBudgetSub,
+                      { color: theme.leather.thread },
+                    ]}
+                  >
                     {budgetRemaining >= 0
                       ? `${hidden ? "₱•••" : money(budgetRemaining)} left this month`
                       : `Over budget by ${hidden ? "₱•••" : money(Math.abs(budgetRemaining))}`}
@@ -715,7 +729,7 @@ export const HomeScreen = React.memo(function HomeScreen({
                   <Text
                     style={[
                       styles.homeBudgetEditHint,
-                      { color: theme.leather.accent },
+                      { color: "#ffffff" },
                     ]}
                   >
                     Edit
@@ -725,15 +739,15 @@ export const HomeScreen = React.memo(function HomeScreen({
             ) : (
               <View style={styles.homeBudgetEmptyRow}>
                 <View style={styles.homeBudgetTitleGroup}>
-                  <Icon name="pie" size={15} color={theme.leather.accent} />
-                  <Text style={[styles.homeBudgetLabel, { color: theme.ink }]}>
+                  <Icon name="pie" size={15} color={theme.leather.thread} />
+                  <Text style={[styles.homeBudgetLabel, { color: "#ffffff" }]}>
                     Set monthly budget
                   </Text>
                 </View>
                 <Text
                   style={[
                     styles.homeBudgetEditHint,
-                    { color: theme.leather.accent },
+                    { color: theme.leather.thread },
                   ]}
                 >
                   Tap to set ›
@@ -778,6 +792,7 @@ export const HomeScreen = React.memo(function HomeScreen({
                   monthlySummary.spent > 0
                     ? Math.round((cat.amount / monthlySummary.spent) * 100)
                     : 0;
+                const catTint = overLimit ? "#e11d48" : theme.leather.accent;
                 return (
                   <Pressable
                     key={cat.category}
@@ -793,11 +808,7 @@ export const HomeScreen = React.memo(function HomeScreen({
                   >
                     <View style={styles.homeCatTop}>
                       <View style={styles.homeCatLeft}>
-                        <Icon
-                          name={cat.icon}
-                          size={15}
-                          color={theme.leather.accent}
-                        />
+                        <Icon name={cat.icon} size={15} color={catTint} />
                         <Text
                           style={[styles.homeCatName, { color: theme.ink }]}
                           numberOfLines={1}
@@ -805,7 +816,7 @@ export const HomeScreen = React.memo(function HomeScreen({
                           {cat.category}
                         </Text>
                         <Text
-                          style={[styles.homeCatShare, { color: theme.muted }]}
+                          style={[styles.homeCatShare, { color: catTint }]}
                         >
                           {cat.limit > 0
                             ? `of ${hidden ? "₱••" : money(cat.limit, true)}`
@@ -826,7 +837,7 @@ export const HomeScreen = React.memo(function HomeScreen({
                         styles.homeProgressTrack,
                         {
                           height: 5,
-                          backgroundColor: hexToRgba(theme.leather.accent, 0.14),
+                          backgroundColor: hexToRgba(catTint, 0.16),
                         },
                       ]}
                     >
@@ -835,9 +846,7 @@ export const HomeScreen = React.memo(function HomeScreen({
                           styles.homeProgressFill,
                           {
                             width: `${Math.max(4, fillPct)}%`,
-                            backgroundColor: overLimit
-                              ? "#e11d48"
-                              : theme.leather.colors[1],
+                            backgroundColor: catTint,
                           },
                         ]}
                       />
