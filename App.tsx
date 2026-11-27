@@ -177,7 +177,18 @@ export default function App() {
     setIntroDismissing(true);
     setShowIntro(false);
   }, []);
-  const handleFinishOnboarding = useCallback(() => {
+  const handleFinishOnboarding = useCallback((enteredName?: string) => {
+    const trimmed = enteredName?.trim();
+    if (trimmed) {
+      const parts = trimmed.split(/\s+/);
+      const initials =
+        parts.length >= 2
+          ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+          : trimmed.slice(0, 2).toUpperCase();
+      setProfile({ fullName: trimmed, initials });
+      saveSettingToSQLite("full_name", trimmed).catch(() => {});
+      saveSettingToSQLite("initials", initials).catch(() => {});
+    }
     setShowOnboarding(false);
     saveSettingToSQLite("onboarding_seen", "1").catch(() => {});
   }, []);
@@ -1869,6 +1880,7 @@ export default function App() {
         <OnboardingSlides
           theme={theme}
           leatherFinish={leatherFinish}
+          initialName={profile.fullName}
           onSelectLeatherFinish={setLeatherFinish}
           onFinish={handleFinishOnboarding}
         />

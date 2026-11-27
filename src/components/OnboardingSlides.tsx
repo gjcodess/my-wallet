@@ -2,12 +2,16 @@ import React, { useCallback, useRef, useState } from "react";
 import {
   Animated,
   Image,
+  Keyboard,
+  KeyboardAvoidingView,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -100,6 +104,14 @@ const SLIDES: SlideSpec[] = [
       { icon: "fingerprint", text: "4-digit PIN & biometric app lock" },
       { icon: "download", text: "One-tap JSON backup & restore" },
     ],
+  },
+  {
+    id: "name",
+    eyebrow: "MAKE IT YOURS",
+    title: "What should we call you?",
+    subtitle:
+      "We'll use your first name for your daily greeting on the Home wallet. You can change this anytime in Settings.",
+    features: [],
   },
 ];
 
@@ -646,49 +658,75 @@ const OnboardingLeatherHeader = React.memo(function OnboardingLeatherHeader({
 export const OnboardingSlides = React.memo(function OnboardingSlides({
   theme,
   leatherFinish,
+  initialName = "",
   onSelectLeatherFinish,
   onFinish,
 }: {
   theme: ThemeColors;
   leatherFinish: LeatherFinishId;
+  initialName?: string;
   onSelectLeatherFinish?: (id: LeatherFinishId) => void;
-  onFinish: () => void;
+  onFinish: (enteredName?: string) => void;
 }) {
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const scrollRef = useRef<React.ComponentRef<typeof Animated.ScrollView>>(null);
+  const nameInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   const exitAnim = useRef(new Animated.Value(1)).current;
   const exitingRef = useRef(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const defaultCleanName =
+    initialName &&
+    initialName.trim() !== "Justin Santos" &&
+    initialName.trim() !== "My Wallet"
+      ? initialName.trim()
+      : "";
+  const [nameInput, setNameInput] = useState(defaultCleanName);
 
   const isLast = activeIndex === SLIDES.length - 1;
 
-  const handleComplete = useCallback(() => {
-    if (exitingRef.current) return;
-    exitingRef.current = true;
-    Animated.timing(exitAnim, {
-      toValue: 0,
-      duration: 210,
-      easing: MOTION_EASE,
-      useNativeDriver: true,
-    }).start(() => {
-      onFinish();
-    });
-  }, [exitAnim, onFinish]);
+  const handleComplete = useCallback(
+    (saveName: boolean) => {
+      if (exitingRef.current) return;
+      exitingRef.current = true;
+      Keyboard.dismiss();
+      const finalName = saveName ? nameInput.trim() : undefined;
+      Animated.timing(exitAnim, {
+        toValue: 0,
+        duration: 210,
+        easing: MOTION_EASE,
+        useNativeDriver: true,
+      }).start(() => {
+        onFinish(finalName || undefined);
+      });
+    },
+    [exitAnim, nameInput, onFinish]
+  );
 
   const goToIndex = useCallback(
     (nextIndex: number) => {
       const clamped = Math.max(0, Math.min(SLIDES.length - 1, nextIndex));
+      if (clamped !== SLIDES.length - 1) {
+        Keyboard.dismiss();
+      }
       scrollRef.current?.scrollTo({ x: clamped * windowWidth, animated: true });
       setActiveIndex(clamped);
     },
     [windowWidth]
   );
 
+  const handleSkip = useCallback(() => {
+    if (!isLast) {
+      goToIndex(SLIDES.length - 1);
+    } else {
+      handleComplete(false);
+    }
+  }, [goToIndex, handleComplete, isLast]);
+
   const handleNext = useCallback(() => {
     if (isLast) {
-      handleComplete();
+      handleComplete(true);
     } else {
       goToIndex(activeIndex + 1);
     }
@@ -744,32 +782,31 @@ export const OnboardingSlides = React.memo(function OnboardingSlides({
             resizeMode="contain"
             accessibilityLabel="Pitaka"
           />
-          {!isLast ? (
-            <ScalePressable
-              onPress={handleComplete}
-              accessibilityRole="button"
-              accessibilityLabel="Skip onboarding"
-              scaleTo={0.95}
-              style={styles.skipBtn}
-            >
-              <Text style={styles.skipText}>Skip</Text>
-            </ScalePressable>
-          ) : (
-            <View style={styles.stepPill}>
-              <Text style={styles.skipText}>
-                {activeIndex + 1} / {SLIDES.length}
-              </Text>
-            </View>
-          )}
+          <ScalePressable
+            onPress={handleSkip}
+            accessibilityRole="button"
+            accessibilityLabel={isLast ? "Skip naming for now" : "Skip tour"}
+            scaleTo={0.95}
+            style={styles.skipBtn}
+          >
+            <Text style={styles.skipText}>
+              {isLast ? "Skip for now" : "Skip"}
+            </Text>
+          </ScalePressable>
         </View>
       </OnboardingLeatherHeader>
 
+      <KeyboardAvoidingView
+        style={styles.pager}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
       {/* Swipeable Slides */}
       <Animated.ScrollView
         ref={scrollRef}
         horizontal
         pagingEnabled
         bounces={false}
+        keyboardShouldPersistTaps="handled"
         showsHorizontalScrollIndicator={false}
         scrollEventThrottle={16}
         onScroll={onScroll}
@@ -780,6 +817,7 @@ export const OnboardingSlides = React.memo(function OnboardingSlides({
           <View key={slide.id} style={[styles.slidePage, { width: windowWidth }]}>
             <ScrollView
               bounces={false}
+              keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.slideInner}
             >
@@ -808,47 +846,100 @@ export const OnboardingSlides = React.memo(function OnboardingSlides({
                 </Text>
               </View>
 
-              {/* Feature Highlights Card */}
-              <View
-                style={[
-                  styles.featureCard,
-                  {
-                    backgroundColor: theme.card,
-                    borderColor: hexToRgba(theme.leather.accent, 0.22),
-                  },
-                  cardShadow(theme.dark),
-                ]}
-              >
-                <LightLeatherSurface theme={theme} radius={20} />
-                {slide.features.map((feat, fIdx) => (
+              {/* Feature Highlights Card OR Name Input Card */}
+              {slide.id === "name" ? (
+                <View
+                  style={[
+                    styles.nameInputCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: hexToRgba(theme.leather.accent, 0.24),
+                    },
+                    cardShadow(theme.dark),
+                  ]}
+                >
+                  <LightLeatherSurface theme={theme} radius={20} />
+                  <Text style={[styles.nameInputLabel, { color: theme.muted }]}>
+                    Your name
+                  </Text>
                   <View
-                    key={feat.text}
                     style={[
-                      styles.featureRow,
-                      fIdx > 0 && {
-                        borderTopWidth: StyleSheet.hairlineWidth,
-                        borderTopColor: hexToRgba(theme.leather.accent, 0.14),
+                      styles.nameInputRow,
+                      {
+                        backgroundColor: theme.page,
+                        borderColor: hexToRgba(theme.leather.accent, 0.24),
                       },
                     ]}
                   >
+                    <Icon name="user" size={16} color={theme.leather.accent} />
+                    <TextInput
+                      ref={nameInputRef}
+                      value={nameInput}
+                      onChangeText={setNameInput}
+                      placeholder="e.g. Glenn"
+                      placeholderTextColor={theme.muted}
+                      autoCapitalize="words"
+                      autoCorrect={false}
+                      maxLength={40}
+                      returnKeyType="done"
+                      onSubmitEditing={handleNext}
+                      style={[styles.nameTextInput, { color: theme.ink }]}
+                    />
+                    {nameInput.length > 0 ? (
+                      <Pressable
+                        onPress={() => setNameInput("")}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel="Clear name"
+                      >
+                        <Icon name="close" size={14} color={theme.muted} />
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
+              ) : (
+                <View
+                  style={[
+                    styles.featureCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: hexToRgba(theme.leather.accent, 0.22),
+                    },
+                    cardShadow(theme.dark),
+                  ]}
+                >
+                  <LightLeatherSurface theme={theme} radius={20} />
+                  {slide.features.map((feat, fIdx) => (
                     <View
+                      key={feat.text}
                       style={[
-                        styles.featureIconWrap,
-                        { backgroundColor: hexToRgba(theme.leather.accent, 0.12) },
+                        styles.featureRow,
+                        fIdx > 0 && {
+                          borderTopWidth: StyleSheet.hairlineWidth,
+                          borderTopColor: hexToRgba(theme.leather.accent, 0.14),
+                        },
                       ]}
                     >
-                      <Icon name={feat.icon} size={14} color={theme.leather.accent} />
+                      <View
+                        style={[
+                          styles.featureIconWrap,
+                          { backgroundColor: hexToRgba(theme.leather.accent, 0.12) },
+                        ]}
+                      >
+                        <Icon name={feat.icon} size={14} color={theme.leather.accent} />
+                      </View>
+                      <Text style={[styles.featureText, { color: theme.ink }]}>
+                        {feat.text}
+                      </Text>
                     </View>
-                    <Text style={[styles.featureText, { color: theme.ink }]}>
-                      {feat.text}
-                    </Text>
-                  </View>
-                ))}
-              </View>
+                  ))}
+                </View>
+              )}
             </ScrollView>
           </View>
         ))}
       </Animated.ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Bottom Controls: Pagination Dots + Stitched Leather CTA */}
       <View style={styles.footer}>
@@ -1416,6 +1507,38 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
+  },
+  /* Slide 5: Name Input */
+  nameInputCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: "hidden",
+    padding: 14,
+    gap: 8,
+  },
+  nameInputLabel: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 11.5,
+    lineHeight: 15,
+    includeFontPadding: false,
+  },
+  nameInputRow: {
+    height: 46,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  nameTextInput: {
+    flex: 1,
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 14.5,
+    includeFontPadding: false,
+    paddingVertical: 0,
   },
   /* Copy & Feature Highlights */
   copyBlock: {
