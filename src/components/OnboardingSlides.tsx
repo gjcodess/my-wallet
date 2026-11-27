@@ -12,7 +12,15 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Pattern, Rect, Stop } from "react-native-svg";
+import Svg, {
+  Defs,
+  LinearGradient as SvgLinearGradient,
+  Path,
+  Pattern,
+  RadialGradient as SvgRadialGradient,
+  Rect,
+  Stop,
+} from "react-native-svg";
 import { MOTION_EASE, ScalePressable } from "../lib/motion";
 import { Icon } from "./Icon";
 import {
@@ -24,6 +32,7 @@ import {
   LightLeatherSurface,
   ThemeColors,
 } from "./SharedUI";
+import { WalletLogoBadge } from "./WalletFolder";
 
 const PITAKA_TITLE_WHITE = require("../../assets/brand/pitaka-title-white.webp");
 const CARD_CASH = require("../../assets/cards/cash.webp");
@@ -97,6 +106,39 @@ const SLIDES: SlideSpec[] = [
 /* -------------------------------------------------------------------------- */
 /* Slide 1 Visual: Miniature Stitched Leather Wallet Pocket with Cards        */
 /* -------------------------------------------------------------------------- */
+const PREVIEW_CARDS = [
+  {
+    key: "cash",
+    logoKey: "cash",
+    name: "Cash",
+    mark: "CA",
+    amount: "₱ 6,350.00",
+    bg: "#090e17",
+    source: CARD_CASH,
+    top: 14,
+  },
+  {
+    key: "gcash",
+    logoKey: "gcash",
+    name: "GCash",
+    mark: "GC",
+    amount: "₱ 18,139.75",
+    bg: "#0057e7",
+    source: CARD_GCASH,
+    top: 44,
+  },
+  {
+    key: "bpi",
+    logoKey: "bpi",
+    name: "BPI Savings",
+    mark: "BP",
+    amount: "₱ 37,840.50",
+    bg: "#090e17",
+    source: CARD_BPI,
+    top: 74,
+  },
+] as const;
+
 const WalletShowcase = React.memo(function WalletShowcase({
   theme,
 }: {
@@ -120,29 +162,65 @@ const WalletShowcase = React.memo(function WalletShowcase({
       >
         <DarkLeatherSurface theme={theme} radius={26} />
 
-        {/* Mini stacked cards peeking from top */}
+        {/* Mini stacked cards matching PhysicalWallet AccountCard */}
         <View style={styles.miniCardStack}>
-          <View style={[styles.miniCard, styles.miniCardBack, { backgroundColor: "#14532d" }]}>
-            <Image source={CARD_CASH} style={StyleSheet.absoluteFill} resizeMode="cover" />
-            <View style={styles.miniCardRow}>
-              <Text style={styles.miniCardName}>Cash</Text>
-              <Text style={styles.miniCardAmt}>₱ 6,350</Text>
-            </View>
-          </View>
-          <View style={[styles.miniCard, styles.miniCardMid, { backgroundColor: "#0057e7" }]}>
-            <Image source={CARD_GCASH} style={StyleSheet.absoluteFill} resizeMode="cover" />
-            <View style={styles.miniCardRow}>
-              <Text style={styles.miniCardName}>GCash</Text>
-              <Text style={styles.miniCardAmt}>₱ 18,139</Text>
-            </View>
-          </View>
-          <View style={[styles.miniCard, styles.miniCardFront, { backgroundColor: "#7f1d1d" }]}>
-            <Image source={CARD_BPI} style={StyleSheet.absoluteFill} resizeMode="cover" />
-            <View style={styles.miniCardRow}>
-              <Text style={styles.miniCardName}>BPI Savings</Text>
-              <Text style={styles.miniCardAmt}>₱ 37,840</Text>
-            </View>
-          </View>
+          {PREVIEW_CARDS.map((card) => {
+            const fadeId = `obCardFade_${uid}_${card.key}`;
+            return (
+              <View
+                key={card.key}
+                style={[styles.miniCardWrap, { top: card.top }]}
+              >
+                <View pointerEvents="none" style={styles.miniCardShadow} />
+                <View
+                  pointerEvents="none"
+                  style={[styles.miniCardFace, { backgroundColor: card.bg }]}
+                >
+                  <Image
+                    source={card.source}
+                    style={styles.miniCardBg}
+                    resizeMode="cover"
+                  />
+                  <Svg
+                    pointerEvents="none"
+                    width="100%"
+                    height={58}
+                    style={styles.miniCardAmountFade}
+                  >
+                    <Defs>
+                      <SvgRadialGradient
+                        id={fadeId}
+                        cx="100%"
+                        cy="0%"
+                        rx="58%"
+                        ry="100%"
+                      >
+                        <Stop offset="0" stopColor="#000000" stopOpacity="0.28" />
+                        <Stop offset="1" stopColor="#000000" stopOpacity="0" />
+                      </SvgRadialGradient>
+                    </Defs>
+                    <Rect width="100%" height="100%" fill={`url(#${fadeId})`} />
+                  </Svg>
+                  <View style={styles.miniCardRow}>
+                    <WalletLogoBadge
+                      logoKey={card.logoKey}
+                      name={card.name}
+                      mark={card.mark}
+                      size={18}
+                      radius={5}
+                      ink="#ffffff"
+                    />
+                    <Text style={styles.miniCardName} numberOfLines={1}>
+                      {card.name}
+                    </Text>
+                    <Text style={styles.miniCardAmt} numberOfLines={1}>
+                      {card.amount}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            );
+          })}
         </View>
 
         {/* Stitched leather pocket lip overlapping bottom of cards */}
@@ -946,38 +1024,55 @@ const styles = StyleSheet.create({
   miniCardStack: {
     paddingHorizontal: 18,
     paddingTop: 18,
-    height: 136,
+    height: 140,
     position: "relative",
   },
-  miniCard: {
+  miniCardWrap: {
     position: "absolute",
     left: 20,
     right: 20,
-    height: 82,
-    borderRadius: 15,
+    height: 132,
+  },
+  miniCardShadow: {
+    position: "absolute",
+    top: 1,
+    left: 1,
+    right: 1,
+    bottom: 1,
+    borderRadius: 13,
+    backgroundColor: "#000000",
+    boxShadow: "0px -5px 12px rgba(0, 0, 0, 0.65), 0px -1px 4px rgba(0, 0, 0, 0.4)",
+  },
+  miniCardFace: {
+    ...StyleSheet.absoluteFill,
     overflow: "hidden",
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.18)",
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255, 255, 255, 0.16)",
   },
-  miniCardBack: {
-    top: 16,
+  miniCardBg: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
   },
-  miniCardMid: {
-    top: 44,
-  },
-  miniCardFront: {
-    top: 72,
+  miniCardAmountFade: {
+    position: "absolute",
+    top: 0,
+    left: 0,
   },
   miniCardRow: {
+    height: 30,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    gap: 7,
   },
   miniCardName: {
-    fontFamily: "Poppins_600SemiBold",
-    fontWeight: "600",
+    flex: 1,
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
     fontSize: 12,
     lineHeight: 15,
     includeFontPadding: false,
@@ -986,8 +1081,8 @@ const styles = StyleSheet.create({
   miniCardAmt: {
     fontFamily: "Poppins_700Bold",
     fontWeight: "700",
-    fontSize: 12,
-    lineHeight: 15,
+    fontSize: 12.5,
+    lineHeight: 16,
     includeFontPadding: false,
     color: "#ffffff",
   },
