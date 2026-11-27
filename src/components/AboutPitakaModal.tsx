@@ -4,7 +4,6 @@ import {
   BackHandler,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -16,6 +15,7 @@ import { Icon } from "./Icon";
 import {
   cardShadow,
   DarkLeatherSurface,
+  EdgeFade,
   hexToRgba,
   LightLeatherSurface,
   SaffianoSheetSurface,
@@ -118,8 +118,9 @@ export const AboutPitakaModal = React.memo(function AboutPitakaModal({
   const sheetStartY = Math.min(Math.max(windowHeight, 560), 760);
   const [page, setPage] = useState<AboutPage>("about");
   const openAnim = useRef(new Animated.Value(0)).current;
+  const scrollY = useRef(new Animated.Value(0)).current;
   const closingRef = useRef(false);
-  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const scrollRef = useRef<React.ComponentRef<typeof Animated.ScrollView>>(null);
 
   useEffect(() => {
     closingRef.current = false;
@@ -150,8 +151,15 @@ export const AboutPitakaModal = React.memo(function AboutPitakaModal({
 
   const navigatePage = useCallback((next: AboutPage) => {
     setPage(next);
+    scrollY.setValue(0);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
-  }, []);
+  }, [scrollY]);
+
+  const onScroll = useRef(
+    Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+      useNativeDriver: true,
+    })
+  ).current;
 
   const handleRequestClose = useCallback(() => {
     if (page !== "about") {
@@ -267,14 +275,17 @@ export const AboutPitakaModal = React.memo(function AboutPitakaModal({
             </ScalePressable>
           </View>
 
-          <ScrollView
-            ref={scrollRef}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={[
-              styles.scrollContent,
-              { paddingBottom: Math.max(28, insets.bottom + 18) },
-            ]}
-          >
+          <View style={{ flexShrink: 1, position: "relative" }}>
+            <Animated.ScrollView
+              ref={scrollRef}
+              showsVerticalScrollIndicator={false}
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              contentContainerStyle={[
+                styles.scrollContent,
+                { paddingBottom: Math.max(32, insets.bottom + 20) },
+              ]}
+            >
             {page === "about" ? (
               <>
                 {/* Branded Leather Hero Card */}
@@ -562,7 +573,23 @@ export const AboutPitakaModal = React.memo(function AboutPitakaModal({
                 </View>
               </>
             )}
-          </ScrollView>
+            </Animated.ScrollView>
+            <EdgeFade
+              position="top"
+              color={theme.page}
+              size={20}
+              opacity={scrollY.interpolate({
+                inputRange: [0, 14],
+                outputRange: [0, 1],
+                extrapolate: "clamp",
+              })}
+            />
+            <EdgeFade
+              position="bottom"
+              color={theme.page}
+              size={Math.max(32, insets.bottom + 18)}
+            />
+          </View>
         </Animated.View>
       </View>
     </View>
