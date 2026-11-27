@@ -1,17 +1,17 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
-  Easing,
+  BackHandler,
   Image,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ScalePressable } from "../lib/motion";
+import { MOTION_DURATIONS, MOTION_EASE, MOTION_EASE_EXIT, ScalePressable } from "../lib/motion";
 import { Icon } from "./Icon";
 import {
   cardShadow,
@@ -107,50 +107,46 @@ const PRIVACY_SECTIONS: LegalSection[] = [
 ];
 
 export const AboutPitakaModal = React.memo(function AboutPitakaModal({
-  visible,
   theme,
   onClose,
 }: {
-  visible: boolean;
   theme: ThemeColors;
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const [renderedVisible, setRenderedVisible] = useState(visible);
+  const { height: windowHeight } = useWindowDimensions();
+  const sheetStartY = Math.min(Math.max(windowHeight, 560), 760);
   const [page, setPage] = useState<AboutPage>("about");
-  const sheetAnim = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const openAnim = useRef(new Animated.Value(0)).current;
   const closingRef = useRef(false);
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
 
   useEffect(() => {
-    if (visible) {
-      closingRef.current = false;
-      setRenderedVisible(true);
-      setPage("about");
-      sheetAnim.stopAnimation();
-      sheetAnim.setValue(0);
-      Animated.timing(sheetAnim, {
+    closingRef.current = false;
+    openAnim.setValue(0);
+    const raf = requestAnimationFrame(() => {
+      Animated.timing(openAnim, {
         toValue: 1,
-        duration: 270,
-        easing: Easing.out(Easing.cubic),
+        duration: MOTION_DURATIONS.sheetIn,
+        easing: MOTION_EASE,
         useNativeDriver: true,
       }).start();
-    } else if (renderedVisible && !closingRef.current) {
-      closingRef.current = true;
-      sheetAnim.stopAnimation();
-      Animated.timing(sheetAnim, {
-        toValue: 0,
-        duration: 210,
-        easing: Easing.in(Easing.cubic),
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (finished) {
-          closingRef.current = false;
-          setRenderedVisible(false);
-        }
-      });
-    }
-  }, [visible, renderedVisible, sheetAnim]);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [openAnim]);
+
+  const dismiss = useCallback(() => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    Animated.timing(openAnim, {
+      toValue: 0,
+      duration: MOTION_DURATIONS.sheetOut,
+      easing: MOTION_EASE_EXIT,
+      useNativeDriver: true,
+    }).start(() => {
+      onClose();
+    });
+  }, [onClose, openAnim]);
 
   const navigatePage = useCallback((next: AboutPage) => {
     setPage(next);
@@ -162,10 +158,16 @@ export const AboutPitakaModal = React.memo(function AboutPitakaModal({
       navigatePage("about");
       return;
     }
-    onClose();
-  }, [navigatePage, onClose, page]);
+    dismiss();
+  }, [dismiss, navigatePage, page]);
 
-  if (!renderedVisible) return null;
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      handleRequestClose();
+      return true;
+    });
+    return () => sub.remove();
+  }, [handleRequestClose]);
 
   const headerTitle =
     page === "terms"
@@ -175,44 +177,45 @@ export const AboutPitakaModal = React.memo(function AboutPitakaModal({
         : "About Pitaka";
 
   return (
-    <Modal
-      visible={renderedVisible}
-      transparent
-      statusBarTranslucent
-      animationType="none"
-      onRequestClose={handleRequestClose}
-    >
-      <View style={styles.modalRoot}>
+    <View style={[styles.overlayRoot, { paddingTop: insets.top }]}>
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.backdrop, { opacity: openAnim }]}
+      />
+      <View style={styles.sheetLayer}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} />
         <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            styles.backdrop,
-            { opacity: sheetAnim },
-          ]}
-        >
-          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        </Animated.View>
-
-        <Animated.View
+          renderToHardwareTextureAndroid
           style={[
             styles.sheet,
             {
               backgroundColor: theme.page,
-              borderColor: hexToRgba(theme.leather.accent, 0.24),
-              paddingBottom: Math.max(insets.bottom, 16),
               transform: [
                 {
-                  translateY: sheetAnim.interpolate({
+                  translateY: openAnim.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [48, 0],
+                    outputRange: [sheetStartY, 0],
+                  }),
+                },
+                {
+                  scale: openAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.982, 1],
                   }),
                 },
               ],
-              opacity: sheetAnim,
             },
           ]}
         >
-          <SaffianoSheetSurface theme={theme} radius={28} />
+          <View pointerEvents="none" style={styles.sheetTextureClip}>
+            <SaffianoSheetSurface theme={theme} radius={32} />
+          </View>
+          <View
+            style={[
+              styles.handle,
+              { backgroundColor: hexToRgba(theme.leather.accent, 0.25) },
+            ]}
+          />
 
           {/* Sheet Header */}
           <View style={styles.headerRow}>
@@ -225,12 +228,14 @@ export const AboutPitakaModal = React.memo(function AboutPitakaModal({
                 style={[
                   styles.headerBtn,
                   {
-                    backgroundColor: theme.card,
-                    borderColor: hexToRgba(theme.leather.accent, 0.22),
+                    backgroundColor: theme.leather.edge,
+                    borderColor: theme.leather.edge,
                   },
+                  cardShadow(theme.dark),
                 ]}
               >
-                <Icon name="back" size={17} color={theme.leather.accent} />
+                <DarkLeatherSurface theme={theme} radius={21} />
+                <Icon name="back" size={18} strokeWidth={2.3} color="#ffffff" />
               </ScalePressable>
             ) : (
               <View style={styles.headerBtnPlaceholder} />
@@ -244,26 +249,31 @@ export const AboutPitakaModal = React.memo(function AboutPitakaModal({
             </Text>
 
             <ScalePressable
-              onPress={onClose}
+              onPress={dismiss}
               accessibilityRole="button"
               accessibilityLabel="Close"
               scaleTo={0.92}
               style={[
                 styles.headerBtn,
                 {
-                  backgroundColor: theme.card,
-                  borderColor: hexToRgba(theme.leather.accent, 0.22),
+                  backgroundColor: theme.leather.edge,
+                  borderColor: theme.leather.edge,
                 },
+                cardShadow(theme.dark),
               ]}
             >
-              <Icon name="close" size={16} color={theme.leather.accent} />
+              <DarkLeatherSurface theme={theme} radius={21} />
+              <Icon name="close" size={17} strokeWidth={2.3} color="#ffffff" />
             </ScalePressable>
           </View>
 
           <ScrollView
             ref={scrollRef}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: Math.max(28, insets.bottom + 18) },
+            ]}
           >
             {page === "about" ? (
               <>
@@ -323,15 +333,17 @@ export const AboutPitakaModal = React.memo(function AboutPitakaModal({
                     <View
                       key={release.version}
                       style={[
-                        styles.cardBox,
+                        styles.cardOuter,
                         {
                           backgroundColor: theme.card,
                           borderColor: hexToRgba(theme.leather.accent, 0.22),
                         },
-                        cardShadow(theme.dark),
+                        styles.softCardShadow,
                       ]}
                     >
-                      <LightLeatherSurface theme={theme} radius={20} />
+                      <View style={styles.cardInnerClip}>
+                        <LightLeatherSurface theme={theme} radius={20} />
+                        <View style={styles.cardBoxBody}>
                       <View style={styles.releaseHeader}>
                         <View style={styles.releaseTitleWrap}>
                           <Text style={[styles.releaseVer, { color: theme.ink }]}>
@@ -377,6 +389,8 @@ export const AboutPitakaModal = React.memo(function AboutPitakaModal({
                           </View>
                         ))}
                       </View>
+                        </View>
+                      </View>
                     </View>
                   ))}
                 </View>
@@ -388,15 +402,16 @@ export const AboutPitakaModal = React.memo(function AboutPitakaModal({
                   </Text>
                   <View
                     style={[
-                      styles.legalCard,
+                      styles.cardOuter,
                       {
                         backgroundColor: theme.card,
                         borderColor: hexToRgba(theme.leather.accent, 0.22),
                       },
-                      cardShadow(theme.dark),
+                      styles.softCardShadow,
                     ]}
                   >
-                    <LightLeatherSurface theme={theme} radius={20} />
+                    <View style={styles.cardInnerClip}>
+                      <LightLeatherSurface theme={theme} radius={20} />
                     <Pressable
                       onPress={() => navigatePage("terms")}
                       accessibilityRole="button"
@@ -476,6 +491,7 @@ export const AboutPitakaModal = React.memo(function AboutPitakaModal({
                       </View>
                       <Icon name="chevron" size={15} color={theme.muted} />
                     </Pressable>
+                    </View>
                   </View>
                 </View>
               </>
@@ -502,68 +518,102 @@ export const AboutPitakaModal = React.memo(function AboutPitakaModal({
 
                 <View
                   style={[
-                    styles.cardBox,
+                    styles.cardOuter,
                     {
                       backgroundColor: theme.card,
                       borderColor: hexToRgba(theme.leather.accent, 0.22),
                     },
-                    cardShadow(theme.dark),
+                    styles.softCardShadow,
                   ]}
                 >
-                  <LightLeatherSurface theme={theme} radius={20} />
-                  <Text style={[styles.docMeta, { color: theme.muted }]}>
-                    Pitaka v{APP_VERSION} · Effective November 2026
-                  </Text>
-                  {(page === "terms" ? TERMS_SECTIONS : PRIVACY_SECTIONS).map(
-                    (sec, idx) => (
-                      <View
-                        key={sec.heading}
-                        style={[
-                          styles.docSection,
-                          idx > 0 && {
-                            borderTopWidth: StyleSheet.hairlineWidth,
-                            borderTopColor: hexToRgba(
-                              theme.leather.accent,
-                              0.14
-                            ),
-                            paddingTop: 12,
-                          },
-                        ]}
-                      >
-                        <Text style={[styles.docHeading, { color: theme.ink }]}>
-                          {sec.heading}
-                        </Text>
-                        <Text style={[styles.docBody, { color: theme.muted }]}>
-                          {sec.body}
-                        </Text>
-                      </View>
-                    )
-                  )}
+                  <View style={styles.cardInnerClip}>
+                    <LightLeatherSurface theme={theme} radius={20} />
+                    <View style={styles.cardBoxBody}>
+                      <Text style={[styles.docMeta, { color: theme.muted }]}>
+                        Pitaka v{APP_VERSION} · Effective November 2026
+                      </Text>
+                      {(page === "terms" ? TERMS_SECTIONS : PRIVACY_SECTIONS).map(
+                        (sec, idx) => (
+                          <View
+                            key={sec.heading}
+                            style={[
+                              styles.docSection,
+                              idx > 0 && {
+                                borderTopWidth: StyleSheet.hairlineWidth,
+                                borderTopColor: hexToRgba(
+                                  theme.leather.accent,
+                                  0.14
+                                ),
+                                paddingTop: 12,
+                              },
+                            ]}
+                          >
+                            <Text style={[styles.docHeading, { color: theme.ink }]}>
+                              {sec.heading}
+                            </Text>
+                            <Text style={[styles.docBody, { color: theme.muted }]}>
+                              {sec.body}
+                            </Text>
+                          </View>
+                        )
+                      )}
+                    </View>
+                  </View>
                 </View>
               </>
             )}
           </ScrollView>
         </Animated.View>
       </View>
-    </Modal>
+    </View>
   );
 });
 
 const styles = StyleSheet.create({
-  modalRoot: {
+  overlayRoot: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 80,
+  },
+  sheetLayer: {
     flex: 1,
     justifyContent: "flex-end",
   },
   backdrop: {
-    backgroundColor: "rgba(9, 14, 24, 0.56)",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.64)",
   },
   sheet: {
+    width: "100%",
     maxHeight: "88%",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    borderTopWidth: 1,
-    overflow: "hidden",
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     paddingTop: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 20,
+  },
+  sheetTextureClip: {
+    ...StyleSheet.absoluteFill,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    overflow: "hidden",
+  },
+  handle: {
+    width: 42,
+    height: 4,
+    borderRadius: 3,
+    alignSelf: "center",
+    marginBottom: 10,
   },
   headerRow: {
     flexDirection: "row",
@@ -574,16 +624,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   headerBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     borderWidth: 1,
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
   },
   headerBtnPlaceholder: {
-    width: 36,
-    height: 36,
+    width: 42,
+    height: 42,
   },
   headerTitle: {
     flex: 1,
@@ -596,9 +647,8 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   scrollContent: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
     paddingTop: 4,
-    paddingBottom: 20,
     gap: 16,
   },
   brandCard: {
@@ -694,12 +744,24 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
     paddingHorizontal: 2,
   },
-  cardBox: {
+  cardOuter: {
     borderRadius: 20,
     borderWidth: 1,
+  },
+  cardInnerClip: {
+    borderRadius: 19,
     overflow: "hidden",
+  },
+  cardBoxBody: {
     padding: 16,
     gap: 10,
+  },
+  softCardShadow: {
+    shadowColor: "#121a2d",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 2,
   },
   releaseHeader: {
     flexDirection: "row",
@@ -760,11 +822,6 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     fontSize: 12.5,
     lineHeight: 18.5,
-  },
-  legalCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    overflow: "hidden",
   },
   legalRow: {
     flexDirection: "row",

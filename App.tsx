@@ -2200,11 +2200,12 @@ export default function App() {
         onTogglePaid={handleTogglePayLaterPaid}
         onClose={() => setPayLaterOpen(false)}
       />
-      <AboutPitakaModal
-        visible={aboutOpen}
-        theme={theme}
-        onClose={() => setAboutOpen(false)}
-      />
+      {aboutOpen ? (
+        <AboutPitakaModal
+          theme={theme}
+          onClose={() => setAboutOpen(false)}
+        />
+      ) : null}
       </View>
     </SafeAreaProvider>
   );
