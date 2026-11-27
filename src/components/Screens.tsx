@@ -102,28 +102,28 @@ import { CategoryTreemap, WalletTreemap } from "./WalletTreemap";
 import { CustomizeHomeModal } from "./CustomizeHomeModal";
 
 const PITAKA_TITLE_ASSETS = {
-  dark: require("../../assets/brand/pitaka-title-white.png"),
-  light: require("../../assets/brand/pitaka-title-dark.png"),
+  dark: require("../../assets/brand/pitaka-title-white.webp"),
+  light: require("../../assets/brand/pitaka-title-dark.webp"),
 };
 
 const PITAKA_HEADER_TITLE_ASSETS = {
   wallets: {
-    source: require("../../assets/brand/pitaka-header-wallets.png"),
+    source: require("../../assets/brand/pitaka-header-wallets.webp"),
     aspect: 1455 / 460,
     label: "Wallets",
   },
   activity: {
-    source: require("../../assets/brand/pitaka-header-activity.png"),
+    source: require("../../assets/brand/pitaka-header-activity.webp"),
     aspect: 1562 / 460,
     label: "Activity",
   },
   overview: {
-    source: require("../../assets/brand/pitaka-header-overview.png"),
+    source: require("../../assets/brand/pitaka-header-overview.webp"),
     aspect: 1828 / 460,
     label: "Overview",
   },
   settings: {
-    source: require("../../assets/brand/pitaka-header-settings.png"),
+    source: require("../../assets/brand/pitaka-header-settings.webp"),
     aspect: 1631 / 460,
     label: "Settings",
   },

@@ -16,10 +16,10 @@ import Svg, {
 import { MOTION_EASE } from "../lib/motion";
 import { hexToRgba, ThemeColors } from "./SharedUI";
 
-const PITAKA_MARK_WHITE = require("../../assets/brand/pitaka-mark-white.png");
-const PITAKA_MARK_DARK = require("../../assets/brand/pitaka-mark-dark.png");
-const PITAKA_TITLE_WHITE = require("../../assets/brand/pitaka-title-white.png");
-const PITAKA_TITLE_DARK = require("../../assets/brand/pitaka-title-dark.png");
+const PITAKA_MARK_WHITE = require("../../assets/brand/pitaka-mark-white.webp");
+const PITAKA_MARK_DARK = require("../../assets/brand/pitaka-mark-dark.webp");
+const PITAKA_TITLE_WHITE = require("../../assets/brand/pitaka-title-white.webp");
+const PITAKA_TITLE_DARK = require("../../assets/brand/pitaka-title-dark.webp");
 
 export const LaunchIntro = React.memo(function LaunchIntro({
   theme,
