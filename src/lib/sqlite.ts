@@ -188,6 +188,7 @@ export async function loadLocalState(): Promise<{
   favorites: Favorite[];
   homeSections: HomeSectionConfig[];
   payLaterAccounts: PayLaterAccount[];
+  onboardingSeen: boolean;
 }> {
   const db = await getDb();
   const walletRows = await db.getAllAsync<{
@@ -298,6 +299,7 @@ export async function loadLocalState(): Promise<{
     favorites: readFavorites(settingsMap),
     homeSections: normalizeHomeSections(parsedHomeSections),
     payLaterAccounts: readPayLaterAccounts(settingsMap),
+    onboardingSeen: settingsMap.get("onboarding_seen") === "1",
   };
 }
 

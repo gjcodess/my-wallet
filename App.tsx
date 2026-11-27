@@ -108,6 +108,7 @@ import {
 import { SheetModal } from "./src/components/SheetModal";
 import { AppLockModal, AppLockMode } from "./src/components/AppLockModal";
 import { LaunchIntro } from "./src/components/LaunchIntro";
+import { OnboardingSlides } from "./src/components/OnboardingSlides";
 import { HomeSkeleton } from "./src/components/HomeSkeleton";
 import { Icon } from "./src/components/Icon";
 import { deleteAttachmentFiles, deleteCardBgFile } from "./src/lib/attachments";
@@ -167,12 +168,17 @@ export default function App() {
   const [toast, setToast] = useState("");
   const [dbReady, setDbReady] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [introDismissing, setIntroDismissing] = useState(false);
   const [entranceReplayKey, setEntranceReplayKey] = useState(0);
   const handleIntroDismissStart = useCallback(() => setIntroDismissing(true), []);
   const handleFinishIntro = useCallback(() => {
     setIntroDismissing(true);
     setShowIntro(false);
+  }, []);
+  const handleFinishOnboarding = useCallback(() => {
+    setShowOnboarding(false);
+    saveSettingToSQLite("onboarding_seen", "1").catch(() => {});
   }, []);
   const [confirmExportOpen, setConfirmExportOpen] = useState(false);
   const [pendingRestore, setPendingRestore] = useState<{
@@ -548,6 +554,9 @@ export default function App() {
         setFavorites(state.favorites);
         setHomeSections(state.homeSections);
         setPayLaterAccounts(state.payLaterAccounts);
+        if (!state.onboardingSeen) {
+          setShowOnboarding(true);
+        }
         if (state.appLockPin) {
           setIsLocked(true);
         }
@@ -1606,6 +1615,7 @@ export default function App() {
                         onOpenPayLater={() => setPayLaterOpen(true)}
                         homeSections={homeSections}
                         onOpenCustomizeHome={() => setCustomizeHomeOpen(true)}
+                        onReplayOnboarding={() => setShowOnboarding(true)}
                         onHeroHeight={handleSettingsHeroHeight}
                         theme={theme}
                       />
@@ -1848,6 +1858,14 @@ export default function App() {
             ).catch(() => {});
           }}
           theme={theme}
+        />
+      )}
+      {showOnboarding && (
+        <OnboardingSlides
+          theme={theme}
+          leatherFinish={leatherFinish}
+          onSelectLeatherFinish={setLeatherFinish}
+          onFinish={handleFinishOnboarding}
         />
       )}
       {showIntro && (

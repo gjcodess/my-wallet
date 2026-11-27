@@ -3179,6 +3179,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   onOpenPayLater,
   homeSections = DEFAULT_HOME_SECTIONS,
   onOpenCustomizeHome,
+  onReplayOnboarding,
   onHeroHeight,
   theme,
 }: {
@@ -3210,6 +3211,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   onOpenPayLater?: () => void;
   homeSections?: HomeSectionConfig[];
   onOpenCustomizeHome?: () => void;
+  onReplayOnboarding?: () => void;
   onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
 }) {
@@ -3466,6 +3468,15 @@ export const SettingsScreen = React.memo(function SettingsScreen({
             onPress={onRequestEraseData}
             theme={theme}
           />
+          {onReplayOnboarding ? (
+            <SettingRow
+              icon="book"
+              title="App tour"
+              subtitle="View Pitaka onboarding slides"
+              onPress={onReplayOnboarding}
+              theme={theme}
+            />
+          ) : null}
           <SettingRow
             icon="info"
             title="About Pitaka"
