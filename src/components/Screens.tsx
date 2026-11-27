@@ -3180,6 +3180,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   homeSections = DEFAULT_HOME_SECTIONS,
   onOpenCustomizeHome,
   onReplayOnboarding,
+  onOpenAbout,
   onHeroHeight,
   theme,
 }: {
@@ -3212,6 +3213,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   homeSections?: HomeSectionConfig[];
   onOpenCustomizeHome?: () => void;
   onReplayOnboarding?: () => void;
+  onOpenAbout?: () => void;
   onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
 }) {
@@ -3480,8 +3482,11 @@ export const SettingsScreen = React.memo(function SettingsScreen({
           <SettingRow
             icon="info"
             title="About Pitaka"
-            subtitle="Version 1.0 · Offline-first"
-            onPress={() => showToast("Offline-first · Data stays on your device")}
+            subtitle="Version 1.0.0 · Patch notes & legal"
+            onPress={
+              onOpenAbout ??
+              (() => showToast("Offline-first · Data stays on your device"))
+            }
             isLast
             theme={theme}
           />

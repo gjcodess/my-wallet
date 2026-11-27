@@ -107,6 +107,7 @@ import {
 } from "./src/components/Screens";
 import { SheetModal } from "./src/components/SheetModal";
 import { AppLockModal, AppLockMode } from "./src/components/AppLockModal";
+import { AboutPitakaModal } from "./src/components/AboutPitakaModal";
 import { LaunchIntro } from "./src/components/LaunchIntro";
 import { OnboardingSlides } from "./src/components/OnboardingSlides";
 import { HomeSkeleton } from "./src/components/HomeSkeleton";
@@ -190,6 +191,7 @@ export default function App() {
     DEFAULT_HOME_SECTIONS
   );
   const [customizeHomeOpen, setCustomizeHomeOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [payLaterAccounts, setPayLaterAccounts] = useState<PayLaterAccount[]>([]);
   const [payLaterOpen, setPayLaterOpen] = useState(false);
   const [appLockPin, setAppLockPin] = useState<string | null>(null);
@@ -1616,6 +1618,7 @@ export default function App() {
                         homeSections={homeSections}
                         onOpenCustomizeHome={() => setCustomizeHomeOpen(true)}
                         onReplayOnboarding={() => setShowOnboarding(true)}
+                        onOpenAbout={() => setAboutOpen(true)}
                         onHeroHeight={handleSettingsHeroHeight}
                         theme={theme}
                       />
@@ -2196,6 +2199,11 @@ export default function App() {
         }}
         onTogglePaid={handleTogglePayLaterPaid}
         onClose={() => setPayLaterOpen(false)}
+      />
+      <AboutPitakaModal
+        visible={aboutOpen}
+        theme={theme}
+        onClose={() => setAboutOpen(false)}
       />
       </View>
     </SafeAreaProvider>
