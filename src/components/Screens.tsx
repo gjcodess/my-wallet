@@ -3181,6 +3181,8 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   onOpenCustomizeHome,
   onReplayOnboarding,
   onOpenAbout,
+  onOpenTerms,
+  onOpenPrivacy,
   onHeroHeight,
   theme,
 }: {
@@ -3214,6 +3216,8 @@ export const SettingsScreen = React.memo(function SettingsScreen({
   onOpenCustomizeHome?: () => void;
   onReplayOnboarding?: () => void;
   onOpenAbout?: () => void;
+  onOpenTerms?: () => void;
+  onOpenPrivacy?: () => void;
   onHeroHeight?: (height: number) => void;
   theme: ThemeColors;
 }) {
@@ -3468,8 +3472,15 @@ export const SettingsScreen = React.memo(function SettingsScreen({
             subtitle="Reset app and delete all local records"
             destructive
             onPress={onRequestEraseData}
+            isLast
             theme={theme}
           />
+        </SettingsGroup>
+      </StaggerReveal>
+
+      {/* About Pitaka Group */}
+      <StaggerReveal index={4} offsetY={10} duration={230}>
+        <SettingsGroup title="About Pitaka" theme={theme}>
           {onReplayOnboarding ? (
             <SettingRow
               icon="book"
@@ -3482,10 +3493,37 @@ export const SettingsScreen = React.memo(function SettingsScreen({
           <SettingRow
             icon="info"
             title="About Pitaka"
-            subtitle="Version 1.0.0 · Patch notes & legal"
+            subtitle="Version 1.0.0 · Patch notes"
             onPress={
               onOpenAbout ??
-              (() => showToast("Offline-first · Data stays on your device"))
+              (() => showToast("Version 1.0.0 · Crafted by gjcodes"))
+            }
+            isLast
+            theme={theme}
+          />
+        </SettingsGroup>
+      </StaggerReveal>
+
+      {/* Legal & Privacy Group */}
+      <StaggerReveal index={5} offsetY={10} duration={230}>
+        <SettingsGroup title="Legal & privacy" theme={theme}>
+          <SettingRow
+            icon="book"
+            title="Terms & Conditions"
+            subtitle="Usage terms, offline data & disclaimers"
+            onPress={
+              onOpenTerms ??
+              (() => showToast("Terms & Conditions"))
+            }
+            theme={theme}
+          />
+          <SettingRow
+            icon="shield"
+            title="Data Privacy Policy"
+            subtitle="How your data stays private on device"
+            onPress={
+              onOpenPrivacy ??
+              (() => showToast("Data stays locally on your device"))
             }
             isLast
             theme={theme}

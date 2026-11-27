@@ -107,7 +107,7 @@ import {
 } from "./src/components/Screens";
 import { SheetModal } from "./src/components/SheetModal";
 import { AppLockModal, AppLockMode } from "./src/components/AppLockModal";
-import { AboutPitakaModal } from "./src/components/AboutPitakaModal";
+import { AboutPage, AboutPitakaModal } from "./src/components/AboutPitakaModal";
 import { LaunchIntro } from "./src/components/LaunchIntro";
 import { OnboardingSlides } from "./src/components/OnboardingSlides";
 import { HomeSkeleton } from "./src/components/HomeSkeleton";
@@ -191,7 +191,7 @@ export default function App() {
     DEFAULT_HOME_SECTIONS
   );
   const [customizeHomeOpen, setCustomizeHomeOpen] = useState(false);
-  const [aboutOpen, setAboutOpen] = useState(false);
+  const [aboutPage, setAboutPage] = useState<AboutPage | null>(null);
   const [payLaterAccounts, setPayLaterAccounts] = useState<PayLaterAccount[]>([]);
   const [payLaterOpen, setPayLaterOpen] = useState(false);
   const [appLockPin, setAppLockPin] = useState<string | null>(null);
@@ -1618,7 +1618,9 @@ export default function App() {
                         homeSections={homeSections}
                         onOpenCustomizeHome={() => setCustomizeHomeOpen(true)}
                         onReplayOnboarding={() => setShowOnboarding(true)}
-                        onOpenAbout={() => setAboutOpen(true)}
+                        onOpenAbout={() => setAboutPage("about")}
+                        onOpenTerms={() => setAboutPage("terms")}
+                        onOpenPrivacy={() => setAboutPage("privacy")}
                         onHeroHeight={handleSettingsHeroHeight}
                         theme={theme}
                       />
@@ -2200,10 +2202,11 @@ export default function App() {
         onTogglePaid={handleTogglePayLaterPaid}
         onClose={() => setPayLaterOpen(false)}
       />
-      {aboutOpen ? (
+      {aboutPage ? (
         <AboutPitakaModal
+          initialPage={aboutPage}
           theme={theme}
-          onClose={() => setAboutOpen(false)}
+          onClose={() => setAboutPage(null)}
         />
       ) : null}
       </View>

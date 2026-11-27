@@ -27,7 +27,7 @@ const PITAKA_MARK_WHITE = require("../../assets/brand/pitaka-mark-white.webp");
 
 const APP_VERSION = "1.0.0";
 
-type AboutPage = "about" | "terms" | "privacy";
+export type AboutPage = "about" | "terms" | "privacy";
 
 type ReleaseNote = {
   version: string;
@@ -107,20 +107,28 @@ const PRIVACY_SECTIONS: LegalSection[] = [
 ];
 
 export const AboutPitakaModal = React.memo(function AboutPitakaModal({
+  initialPage = "about",
   theme,
   onClose,
 }: {
+  initialPage?: AboutPage;
   theme: ThemeColors;
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const sheetStartY = Math.min(Math.max(windowHeight, 560), 760);
-  const [page, setPage] = useState<AboutPage>("about");
+  const [page, setPage] = useState<AboutPage>(initialPage);
   const openAnim = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
   const closingRef = useRef(false);
   const scrollRef = useRef<React.ComponentRef<typeof Animated.ScrollView>>(null);
+
+  useEffect(() => {
+    setPage(initialPage);
+    scrollY.setValue(0);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [initialPage, scrollY]);
 
   useEffect(() => {
     closingRef.current = false;
@@ -149,33 +157,19 @@ export const AboutPitakaModal = React.memo(function AboutPitakaModal({
     });
   }, [onClose, openAnim]);
 
-  const navigatePage = useCallback((next: AboutPage) => {
-    setPage(next);
-    scrollY.setValue(0);
-    scrollRef.current?.scrollTo({ y: 0, animated: false });
-  }, [scrollY]);
-
   const onScroll = useRef(
     Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
       useNativeDriver: true,
     })
   ).current;
 
-  const handleRequestClose = useCallback(() => {
-    if (page !== "about") {
-      navigatePage("about");
-      return;
-    }
-    dismiss();
-  }, [dismiss, navigatePage, page]);
-
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      handleRequestClose();
+      dismiss();
       return true;
     });
     return () => sub.remove();
-  }, [handleRequestClose]);
+  }, [dismiss]);
 
   const headerTitle =
     page === "terms"
@@ -227,27 +221,7 @@ export const AboutPitakaModal = React.memo(function AboutPitakaModal({
 
           {/* Sheet Header */}
           <View style={styles.headerRow}>
-            {page !== "about" ? (
-              <ScalePressable
-                onPress={() => navigatePage("about")}
-                accessibilityRole="button"
-                accessibilityLabel="Back to About Pitaka"
-                scaleTo={0.92}
-                style={[
-                  styles.headerBtn,
-                  {
-                    backgroundColor: theme.leather.edge,
-                    borderColor: theme.leather.edge,
-                  },
-                  cardShadow(theme.dark),
-                ]}
-              >
-                <DarkLeatherSurface theme={theme} radius={21} />
-                <Icon name="back" size={18} strokeWidth={2.3} color="#ffffff" />
-              </ScalePressable>
-            ) : (
-              <View style={styles.headerBtnPlaceholder} />
-            )}
+            <View style={styles.headerBtnPlaceholder} />
 
             <Text
               style={[styles.headerTitle, { color: theme.ink }]}
@@ -404,106 +378,6 @@ export const AboutPitakaModal = React.memo(function AboutPitakaModal({
                       </View>
                     </View>
                   ))}
-                </View>
-
-                {/* Legal Section */}
-                <View style={styles.sectionBlock}>
-                  <Text style={[styles.sectionLabel, { color: theme.ink }]}>
-                    Legal & privacy
-                  </Text>
-                  <View
-                    style={[
-                      styles.cardOuter,
-                      {
-                        backgroundColor: theme.card,
-                        borderColor: hexToRgba(theme.leather.accent, 0.22),
-                      },
-                      styles.softCardShadow,
-                    ]}
-                  >
-                    <View style={styles.cardInnerClip}>
-                      <LightLeatherSurface theme={theme} radius={20} />
-                    <Pressable
-                      onPress={() => navigatePage("terms")}
-                      accessibilityRole="button"
-                      style={({ pressed }) => [
-                        styles.legalRow,
-                        pressed && {
-                          backgroundColor: hexToRgba(theme.leather.accent, 0.06),
-                        },
-                      ]}
-                    >
-                      <View
-                        style={[
-                          styles.legalIconWrap,
-                          {
-                            backgroundColor: hexToRgba(
-                              theme.leather.accent,
-                              0.12
-                            ),
-                          },
-                        ]}
-                      >
-                        <Icon name="book" size={16} color={theme.leather.accent} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.legalTitle, { color: theme.ink }]}>
-                          Terms & Conditions
-                        </Text>
-                        <Text style={[styles.legalSub, { color: theme.muted }]}>
-                          Usage terms, offline data & disclaimers
-                        </Text>
-                      </View>
-                      <Icon name="chevron" size={15} color={theme.muted} />
-                    </Pressable>
-
-                    <View
-                      style={[
-                        styles.legalDivider,
-                        {
-                          backgroundColor: hexToRgba(
-                            theme.leather.accent,
-                            0.14
-                          ),
-                        },
-                      ]}
-                    />
-
-                    <Pressable
-                      onPress={() => navigatePage("privacy")}
-                      accessibilityRole="button"
-                      style={({ pressed }) => [
-                        styles.legalRow,
-                        pressed && {
-                          backgroundColor: hexToRgba(theme.leather.accent, 0.06),
-                        },
-                      ]}
-                    >
-                      <View
-                        style={[
-                          styles.legalIconWrap,
-                          {
-                            backgroundColor: hexToRgba(
-                              theme.leather.accent,
-                              0.12
-                            ),
-                          },
-                        ]}
-                      >
-                        <Icon name="shield" size={16} color={theme.leather.accent} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.legalTitle, { color: theme.ink }]}>
-                          Data Privacy Policy
-                        </Text>
-                        <Text style={[styles.legalSub, { color: theme.muted }]}>
-                          How your data stays private on device
-                        </Text>
-                      </View>
-                      <Icon name="chevron" size={15} color={theme.muted} />
-                    </Pressable>
-                    </View>
-                  </View>
                 </View>
               </>
             ) : (
@@ -849,39 +723,6 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     fontSize: 12.5,
     lineHeight: 18.5,
-  },
-  legalRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-  },
-  legalIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  legalTitle: {
-    fontFamily: "Poppins_600SemiBold",
-    fontWeight: "600",
-    fontSize: 13.5,
-    lineHeight: 18,
-    includeFontPadding: false,
-  },
-  legalSub: {
-    fontFamily: "Poppins_400Regular",
-    fontWeight: "400",
-    fontSize: 11.5,
-    lineHeight: 15,
-    includeFontPadding: false,
-    marginTop: 2,
-  },
-  legalDivider: {
-    height: StyleSheet.hairlineWidth,
-    marginHorizontal: 14,
   },
   privacyBanner: {
     borderRadius: 18,
