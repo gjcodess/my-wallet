@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     height: 48,
   },
   titleWordmark: {
-    width: 118,
-    height: 41,
+    width: 142,
+    height: 49,
   },
 });

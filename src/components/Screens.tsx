@@ -106,16 +106,73 @@ const PITAKA_TITLE_ASSETS = {
   light: require("../../assets/brand/pitaka-title-dark.png"),
 };
 
-function getTimeGreeting(date: Date): { greeting: string; dateLabel: string } {
+const PITAKA_HEADER_TITLE_ASSETS = {
+  wallets: {
+    source: require("../../assets/brand/pitaka-header-wallets.png"),
+    aspect: 1455 / 460,
+    label: "Wallets",
+  },
+  activity: {
+    source: require("../../assets/brand/pitaka-header-activity.png"),
+    aspect: 1562 / 460,
+    label: "Activity",
+  },
+  overview: {
+    source: require("../../assets/brand/pitaka-header-overview.png"),
+    aspect: 1828 / 460,
+    label: "Overview",
+  },
+  settings: {
+    source: require("../../assets/brand/pitaka-header-settings.png"),
+    aspect: 1631 / 460,
+    label: "Settings",
+  },
+} as const;
+
+function HeroEmbroideredTitle({
+  kind,
+  height = 44,
+}: {
+  kind: keyof typeof PITAKA_HEADER_TITLE_ASSETS;
+  height?: number;
+}) {
+  const asset = PITAKA_HEADER_TITLE_ASSETS[kind];
+  return (
+    <View
+      style={styles.heroBrandRow}
+      accessible
+      accessibilityRole="header"
+      accessibilityLabel={asset.label}
+    >
+      <Image
+        source={asset.source}
+        style={{ width: Math.round(height * asset.aspect), height }}
+        resizeMode="contain"
+      />
+    </View>
+  );
+}
+
+function getTimeGreeting(date: Date): {
+  greeting: string;
+  weekdayLabel: string;
+  monthDayLabel: string;
+  dateLabel: string;
+} {
   const hour = date.getHours();
   const greeting =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  const dateLabel = date.toLocaleDateString("en-US", {
-    weekday: "long",
+  const weekdayLabel = date.toLocaleDateString("en-US", { weekday: "long" });
+  const monthDayLabel = date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
   });
-  return { greeting, dateLabel };
+  return {
+    greeting,
+    weekdayLabel,
+    monthDayLabel,
+    dateLabel: `${weekdayLabel}, ${monthDayLabel}`,
+  };
 }
 
 const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
@@ -189,8 +246,8 @@ const HeroHeaderSurface = React.memo(function HeroHeaderSurface({
           paddingTop: insets.top + (compact ? 10 : 14),
           paddingBottom: archBottom
             ? compact
-              ? 38
-              : 44
+              ? 24
+              : 27
             : compact
               ? 20
               : 26,
@@ -389,6 +446,7 @@ export const HomeScreen = React.memo(function HomeScreen({
   homeSections = DEFAULT_HOME_SECTIONS,
   payLaterAccounts = [],
   onOpenPayLater,
+  userName,
   theme,
 }: {
   wallets: Wallet[];
@@ -418,6 +476,7 @@ export const HomeScreen = React.memo(function HomeScreen({
   homeSections?: HomeSectionConfig[];
   payLaterAccounts?: PayLaterAccount[];
   onOpenPayLater?: () => void;
+  userName?: string;
   theme: ThemeColors;
 }) {
   const { width: windowWidth } = useWindowDimensions();
@@ -562,6 +621,12 @@ export const HomeScreen = React.memo(function HomeScreen({
       : 0;
   const budgetRemaining = budgetLimit - monthlySummary.spent;
 
+  const firstName = useMemo(() => {
+    const trimmed = (userName ?? "").trim();
+    if (!trimmed) return "";
+    return trimmed.split(/\s+/)[0];
+  }, [userName]);
+
   const titleAsset = PITAKA_TITLE_ASSETS.dark;
 
   return (
@@ -624,18 +689,53 @@ export const HomeScreen = React.memo(function HomeScreen({
           </View>
 
           <View style={styles.heroGreetingBlock}>
-            <Text
-              style={[styles.heroGreetingTitle, { color: theme.heroInk }]}
-              numberOfLines={1}
-            >
-              {headerClock.greeting}
-            </Text>
-            <Text
-              style={[styles.heroGreetingSub, { color: theme.heroMuted, opacity: 1 }]}
-              numberOfLines={1}
-            >
-              {headerClock.dateLabel}
-            </Text>
+            {firstName ? (
+              <>
+                <View style={styles.heroGreetingRow}>
+                  <Text
+                    style={[styles.heroGreetingTitle, { color: theme.heroMuted, opacity: 1 }]}
+                    numberOfLines={1}
+                  >
+                    {headerClock.greeting}
+                  </Text>
+                  <Text
+                    style={[styles.heroGreetingWeekday, { color: theme.heroMuted, opacity: 1 }]}
+                    numberOfLines={1}
+                  >
+                    {headerClock.weekdayLabel}
+                  </Text>
+                </View>
+                <View style={styles.heroGreetingRow}>
+                  <Text
+                    style={[styles.heroGreetingName, { color: theme.heroInk }]}
+                    numberOfLines={1}
+                  >
+                    {firstName}
+                  </Text>
+                  <Text
+                    style={[styles.heroGreetingDate, { color: theme.heroInk }]}
+                    numberOfLines={1}
+                  >
+                    {headerClock.monthDayLabel}
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <View style={[styles.heroGreetingRow, { alignItems: "baseline" }]}>
+                <Text
+                  style={[styles.heroGreetingName, { color: theme.heroInk }]}
+                  numberOfLines={1}
+                >
+                  {headerClock.greeting}
+                </Text>
+                <Text
+                  style={[styles.heroGreetingSub, { color: theme.heroMuted, opacity: 1 }]}
+                  numberOfLines={1}
+                >
+                  {headerClock.dateLabel}
+                </Text>
+              </View>
+            )}
           </View>
         </StaggerReveal>
       </HeroHeaderSurface>
@@ -1391,7 +1491,7 @@ export const WalletsScreen = React.memo(function WalletsScreen({
         style={{ marginBottom: 14 }}
       >
         <View style={styles.heroTopRow}>
-          <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>My Wallets</Text>
+          <HeroEmbroideredTitle kind="wallets" height={42} />
           <View style={styles.heroHeaderActions}>
             {onToggleHidden ? (
               <Pressable
@@ -2015,7 +2115,7 @@ export const ActivityScreen = React.memo(function ActivityScreen({
         style={{ marginBottom: 14 }}
       >
         <View style={styles.heroTopRow}>
-          <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>{mode === "overview" ? "Overview" : "Activity"}</Text>
+          <HeroEmbroideredTitle kind={mode === "overview" ? "overview" : "activity"} height={44} />
           <View style={styles.heroHeaderActions}>
             {onToggleHidden ? (
               <Pressable
@@ -3112,7 +3212,7 @@ export const SettingsScreen = React.memo(function SettingsScreen({
         style={{ marginBottom: 16 }}
       >
         <View style={styles.heroTopRow}>
-          <Text style={[styles.heroHeaderTitle, { color: theme.heroInk }]}>Settings</Text>
+          <HeroEmbroideredTitle kind="settings" height={44} />
         </View>
 
         <ScalePressable
@@ -4396,8 +4496,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   heroBrandTitle: {
-    width: 103,
-    height: 36,
+    width: 132,
+    height: 46,
   },
   heroBalanceValueRow: {
     flexDirection: "row",
@@ -4445,7 +4545,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   heroGreetingBlock: {
-    marginTop: 14,
+    marginTop: 12,
+    gap: 1,
+  },
+  heroGreetingRow: {
     flexDirection: "row",
     alignItems: "baseline",
     justifyContent: "space-between",
@@ -4462,9 +4565,37 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontFamily: "Poppins_400Regular",
     fontWeight: "400",
-    fontSize: 21,
-    letterSpacing: -0.3,
+    fontSize: 14,
+    lineHeight: 19,
+    letterSpacing: -0.1,
+    color: "rgba(255, 255, 255, 0.78)",
+  },
+  heroGreetingWeekday: {
+    fontFamily: "Poppins_400Regular",
+    fontWeight: "400",
+    fontSize: 14,
+    lineHeight: 19,
+    letterSpacing: -0.1,
+    color: "rgba(255, 255, 255, 0.78)",
+    textAlign: "right",
+  },
+  heroGreetingName: {
+    flexShrink: 1,
+    fontFamily: "Poppins_700Bold",
+    fontWeight: "700",
+    fontSize: 22,
+    lineHeight: 27,
+    letterSpacing: -0.4,
     color: "#ffffff",
+  },
+  heroGreetingDate: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 16,
+    lineHeight: 27,
+    letterSpacing: -0.2,
+    color: "#ffffff",
+    textAlign: "right",
   },
   heroHeaderLabel: {
     fontFamily: "Poppins_600SemiBold",

@@ -1490,6 +1490,7 @@ export default function App() {
                         homeSections={homeSections}
                         payLaterAccounts={payLaterAccounts}
                         onOpenPayLater={() => setPayLaterOpen(true)}
+                        userName={profile.fullName}
                         theme={theme}
                       />
                     ),
