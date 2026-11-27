@@ -25,7 +25,7 @@ import {
   ThemeColors,
 } from "./SharedUI";
 
-const PITAKA_TITLE_DARK = require("../../assets/brand/pitaka-title-dark.webp");
+const PITAKA_TITLE_WHITE = require("../../assets/brand/pitaka-title-white.webp");
 const CARD_CASH = require("../../assets/cards/cash.webp");
 const CARD_GCASH = require("../../assets/cards/gcash.webp");
 const CARD_BPI = require("../../assets/cards/bpi.webp");
@@ -465,6 +465,104 @@ const PrivacyCraftShowcase = React.memo(function PrivacyCraftShowcase({
 });
 
 /* -------------------------------------------------------------------------- */
+/* Top Stitched Leather Header (matches HeroHeaderSurface in Screens.tsx)     */
+/* -------------------------------------------------------------------------- */
+const OnboardingLeatherHeader = React.memo(function OnboardingLeatherHeader({
+  theme,
+  paddingTop,
+  children,
+}: {
+  theme: ThemeColors;
+  paddingTop: number;
+  children: React.ReactNode;
+}) {
+  const uid = React.useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const gradId = `obHdrGrad${uid}`;
+  const grainId = `obHdrGrain${uid}`;
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const W = size.width;
+  const H = size.height;
+
+  const makePath = (inset: number, yShift = 0, closed = false) => {
+    const xL = inset;
+    const xR = W - inset;
+    const yB = H - inset + yShift;
+    const r = Math.max(8, 32 - inset);
+    const cmds = [
+      `M${xL} 0`,
+      `V${yB - r}`,
+      `Q${xL} ${yB} ${xL + r} ${yB}`,
+      `H${xR - r}`,
+      `Q${xR} ${yB} ${xR} ${yB - r}`,
+      `V0`,
+    ];
+    if (closed) cmds.push("Z");
+    return cmds.join(" ");
+  };
+
+  return (
+    <View
+      onLayout={(e) => {
+        const { width, height } = e.nativeEvent.layout;
+        setSize((prev) =>
+          prev.width === width && prev.height === height ? prev : { width, height }
+        );
+      }}
+      style={[
+        styles.leatherHeader,
+        { paddingTop, paddingBottom: 18 },
+      ]}
+    >
+      <View
+        pointerEvents="none"
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: H + 8 }}
+      >
+        <Svg width="100%" height="100%">
+          <Defs>
+            <SvgLinearGradient id={gradId} x1="10%" y1="0%" x2="90%" y2="100%">
+              <Stop offset="0" stopColor={theme.leather.colors[1]} />
+              <Stop offset="0.55" stopColor={theme.leather.colors[1]} />
+              <Stop offset="1" stopColor={theme.leather.colors[2]} />
+            </SvgLinearGradient>
+            <Pattern id={grainId} width={6} height={6} patternUnits="userSpaceOnUse">
+              <Path d="M1 1l1.4 .5m2 3l1 .6M1 5l.6 -.3" stroke="#071522" strokeWidth="0.7" opacity="0.45" />
+              <Path d="M2 2l1 .5m-2 3l1 .4M4 2l.9 -.3" stroke="#a2b0bd" strokeWidth="0.65" opacity="0.26" />
+            </Pattern>
+          </Defs>
+          {W > 64 && H > 40 ? (
+            <>
+              <Path d={makePath(0, 4, true)} fill="rgba(24, 32, 54, 0.14)" />
+              <Path d={makePath(0, 0, true)} fill={`url(#${gradId})`} />
+              <Path d={makePath(0, 0, true)} fill={`url(#${grainId})`} />
+              <Path d={makePath(2)} fill="none" stroke={theme.leather.edge} strokeWidth="3" />
+              <Path
+                d={makePath(8)}
+                fill="none"
+                stroke={theme.leather.thread}
+                strokeWidth="1.05"
+                strokeDasharray="3.5 3"
+                strokeLinecap="round"
+                opacity="0.82"
+              />
+              <Path
+                d={makePath(13)}
+                fill="none"
+                stroke={theme.leather.thread}
+                strokeWidth="0.8"
+                strokeDasharray="3.5 3"
+                strokeLinecap="round"
+                opacity="0.43"
+              />
+            </>
+          ) : null}
+        </Svg>
+      </View>
+      {children}
+    </View>
+  );
+});
+
+/* -------------------------------------------------------------------------- */
 /* Main OnboardingSlides Component                                            */
 /* -------------------------------------------------------------------------- */
 export const OnboardingSlides = React.memo(function OnboardingSlides({
@@ -546,7 +644,6 @@ export const OnboardingSlides = React.memo(function OnboardingSlides({
         styles.root,
         {
           backgroundColor: theme.page,
-          paddingTop: insets.top + 8,
           paddingBottom: Math.max(insets.bottom, 16) + 8,
           opacity: exitAnim,
           transform: [
@@ -560,34 +657,34 @@ export const OnboardingSlides = React.memo(function OnboardingSlides({
         },
       ]}
     >
-      {/* Top Bar: Embroidered Pitaka Wordmark + Skip */}
-      <View style={styles.topBar}>
-        <Image
-          source={PITAKA_TITLE_DARK}
-          style={styles.topWordmark}
-          resizeMode="contain"
-          accessibilityLabel="Pitaka"
-        />
-        {!isLast ? (
-          <ScalePressable
-            onPress={handleComplete}
-            accessibilityRole="button"
-            accessibilityLabel="Skip onboarding"
-            scaleTo={0.95}
-            style={[
-              styles.skipBtn,
-              {
-                borderColor: hexToRgba(theme.leather.accent, 0.22),
-                backgroundColor: theme.card,
-              },
-            ]}
-          >
-            <Text style={[styles.skipText, { color: theme.muted }]}>Skip</Text>
-          </ScalePressable>
-        ) : (
-          <View style={styles.skipPlaceholder} />
-        )}
-      </View>
+      {/* Top Stitched Leather Header: Embroidered Pitaka Wordmark + Skip */}
+      <OnboardingLeatherHeader theme={theme} paddingTop={insets.top + 10}>
+        <View style={styles.topBar}>
+          <Image
+            source={PITAKA_TITLE_WHITE}
+            style={styles.topWordmark}
+            resizeMode="contain"
+            accessibilityLabel="Pitaka"
+          />
+          {!isLast ? (
+            <ScalePressable
+              onPress={handleComplete}
+              accessibilityRole="button"
+              accessibilityLabel="Skip onboarding"
+              scaleTo={0.95}
+              style={styles.skipBtn}
+            >
+              <Text style={styles.skipText}>Skip</Text>
+            </ScalePressable>
+          ) : (
+            <View style={styles.stepPill}>
+              <Text style={styles.skipText}>
+                {activeIndex + 1} / {SLIDES.length}
+              </Text>
+            </View>
+          )}
+        </View>
+      </OnboardingLeatherHeader>
 
       {/* Swipeable Slides */}
       <Animated.ScrollView
@@ -773,31 +870,41 @@ const styles = StyleSheet.create({
     zIndex: 950,
     flex: 1,
   },
+  leatherHeader: {
+    position: "relative",
+    overflow: "visible",
+    paddingHorizontal: 26,
+  },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 22,
-    paddingBottom: 6,
   },
   topWordmark: {
-    width: 102,
-    height: 36,
+    width: 122,
+    height: 42,
   },
   skipBtn: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 99,
     borderWidth: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderColor: "rgba(255, 255, 255, 0.18)",
+  },
+  stepPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 99,
+    borderWidth: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderColor: "rgba(255, 255, 255, 0.14)",
   },
   skipText: {
     fontFamily: "Poppins_600SemiBold",
     fontWeight: "600",
     fontSize: 12,
-  },
-  skipPlaceholder: {
-    width: 54,
-    height: 30,
+    color: "#f6f7fb",
   },
   pager: {
     flex: 1,
