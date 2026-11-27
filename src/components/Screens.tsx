@@ -1610,39 +1610,52 @@ export const WalletsScreen = React.memo(function WalletsScreen({
           ) : null}
         </View>
       ) : (
-        <View>
+        <View style={{ gap: 14 }}>
           {walletGroups.map((group) => (
-            <GroupedPhysicalWallet
-              key={group.key}
-              groupLabel={group.label}
-              wallets={group.wallets}
-              total={group.total}
-              hidden={hidden}
-              isOpen
-              collapsible={false}
-              monthlySummary={{
-                monthLabel: fullMonthLabel,
-                monthShortLabel: monthLabel,
-                earned: group.earned,
-                spent: group.spent,
-              }}
-              walletFlows={walletFlowsRecord}
-              theme={theme}
-              onWallet={onWallet}
-              onOpenMenu={onUpdateWallet ?? onWallet}
-              onOpenAdd={onAddWallet}
-              onOpenReorder={
-                group.wallets.length > 1 && onReorderWallets
-                  ? () => setReorderGroup({ label: group.label, wallets: group.wallets })
-                  : undefined
-              }
-            />
+            <View key={group.key}>
+              <SectionTitle
+                title={group.label}
+                subtitle={`${group.wallets.length} ${group.wallets.length === 1 ? "card" : "cards"}`}
+                style={{ marginBottom: 4 }}
+                theme={theme}
+              />
+              <GroupedPhysicalWallet
+                groupLabel={group.label}
+                wallets={group.wallets}
+                total={group.total}
+                hidden={hidden}
+                isOpen
+                collapsible={false}
+                monthlySummary={{
+                  monthLabel: fullMonthLabel,
+                  monthShortLabel: monthLabel,
+                  earned: group.earned,
+                  spent: group.spent,
+                }}
+                walletFlows={walletFlowsRecord}
+                theme={theme}
+                onWallet={onWallet}
+                onOpenMenu={onUpdateWallet ?? onWallet}
+                onOpenAdd={onAddWallet}
+                onOpenReorder={
+                  group.wallets.length > 1 && onReorderWallets
+                    ? () => setReorderGroup({ label: group.label, wallets: group.wallets })
+                    : undefined
+                }
+              />
+            </View>
           ))}
         </View>
       )}
 
       {hiddenWallets.length > 0 ? (
         <View style={{ marginTop: 14 }}>
+          <SectionTitle
+            title="Hidden"
+            subtitle={`${hiddenWallets.length} ${hiddenWallets.length === 1 ? "card" : "cards"}`}
+            style={{ marginBottom: 4 }}
+            theme={theme}
+          />
           <GroupedPhysicalWallet
             groupLabel="Hidden"
             wallets={hiddenWallets}

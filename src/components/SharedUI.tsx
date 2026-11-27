@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Platform, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, {
@@ -836,41 +836,54 @@ export const ActionButton = React.memo(function ActionButton({
 
 export function SectionTitle({
   title,
+  subtitle,
   action,
   actionIcon = "down",
   actionColor,
   onPress,
+  style,
   theme,
 }: {
   title: string;
+  subtitle?: string;
   action?: string;
   actionIcon?: string | null;
   actionColor?: string;
   onPress?: () => void;
+  style?: StyleProp<ViewStyle>;
   theme: ThemeColors;
 }) {
   const resolvedColor = actionColor ?? theme.muted;
   return (
-    <View style={styles.sectionTitle}>
+    <View style={[styles.sectionTitle, style]}>
       <Text style={[styles.sectionTitleText, { color: theme.ink }]}>
         {title}
       </Text>
-      {action ? (
-        <ScalePressable
-          onPress={onPress}
-          disabled={!onPress}
-          hitSlop={8}
-          scaleTo={onPress ? 0.95 : 1}
-          pressOpacity={onPress ? 0.72 : 1}
-          style={styles.sectionActionBtn}
-        >
-          <Text style={[styles.sectionActionText, { color: resolvedColor }]}>
-            {action}
-          </Text>
-          {actionIcon ? (
-            <Icon name={actionIcon} size={14} color={resolvedColor} />
+      {subtitle || action ? (
+        <View style={styles.sectionRight}>
+          {subtitle ? (
+            <Text style={[styles.sectionSubtitleText, { color: theme.muted }]}>
+              {subtitle}
+            </Text>
           ) : null}
-        </ScalePressable>
+          {action ? (
+            <ScalePressable
+              onPress={onPress}
+              disabled={!onPress}
+              hitSlop={8}
+              scaleTo={onPress ? 0.95 : 1}
+              pressOpacity={onPress ? 0.72 : 1}
+              style={styles.sectionActionBtn}
+            >
+              <Text style={[styles.sectionActionText, { color: resolvedColor }]}>
+                {action}
+              </Text>
+              {actionIcon ? (
+                <Icon name={actionIcon} size={14} color={resolvedColor} />
+              ) : null}
+            </ScalePressable>
+          ) : null}
+        </View>
       ) : null}
     </View>
   );
@@ -1336,6 +1349,16 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 19,
     letterSpacing: -0.4,
+  },
+  sectionRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  sectionSubtitleText: {
+    fontFamily: "Poppins_600SemiBold",
+    fontWeight: "600",
+    fontSize: 11.5,
   },
   sectionActionBtn: {
     flexDirection: "row",
